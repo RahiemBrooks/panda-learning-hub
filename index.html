@@ -2176,68 +2176,137 @@
 
         function renderParticipantIdEntry() {
             return `
-                <div style="min-height: 100vh; background: linear-gradient(135deg, #0f1729 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 24px;">
+                <div class="min-h-screen dark-theme-bg flex items-center justify-center p-4">
                     <div style="max-width: 480px; width: 100%;">
+                        <!-- Step Indicator -->
+                        <div class="text-center mb-6">
+                            <span class="inline-block px-4 py-2 rounded-full text-sm font-medium" style="background: var(--accent-orange-glow); color: var(--accent-orange-bright); border: 1px solid var(--border-accent);">
+                                Step 3 of 5: Participant ID
+                            </span>
+                        </div>
+
                         <!-- Logo/Brand -->
-                        <div style="text-align: center; margin-bottom: 40px;">
-                            <div style="font-size: 4rem; margin-bottom: 16px;">🐼</div>
-                            <h1 style="font-size: 2.5rem; font-weight: 700; color: white; margin-bottom: 8px;">PANDA</h1>
-                            <p style="color: #94a3b8; font-size: 1rem;">Learning Hub</p>
+                        <div style="text-align: center; margin-bottom: 32px;">
+                            <div style="font-size: 3.5rem; margin-bottom: 12px;">🐼</div>
+                            <h1 style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">PANDA</h1>
+                            <p style="color: var(--text-muted); font-size: 0.9rem;">Learning Hub</p>
                         </div>
                         
                         <!-- Card -->
-                        <div style="background: rgba(26, 39, 68, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(75, 156, 211, 0.2); border-radius: 24px; padding: 40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);">
-                            <div style="text-align: center; margin-bottom: 32px;">
-                                <h2 style="font-size: 1.5rem; font-weight: 600; color: white; margin-bottom: 12px;">Welcome Back</h2>
-                                <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
-                                    Enter your participant ID to continue
+                        <div class="glass-card" style="background: rgba(31, 42, 66, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border-accent); border-radius: 24px; padding: 32px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);">
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <h2 style="font-size: 1.4rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Enter Your Participant ID</h2>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                    This 5-digit code links your responses to the study while keeping your name private.
                                 </p>
                             </div>
 
-                            <div style="margin-bottom: 24px;">
-                                <label style="display: block; color: #94a3b8; font-weight: 500; margin-bottom: 10px; font-size: 0.9rem;">Participant ID</label>
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; font-size: 0.85rem;">Participant ID</label>
                                 <input 
                                     type="text" 
                                     id="participantIdInput" 
-                                    placeholder="Enter Code Here"
+                                    placeholder="e.g., 12000"
                                     maxlength="5"
-                                    style="width: 100%; padding: 18px; font-size: 1.5rem; text-align: center; background: #0f1729; border: 2px solid #2d3f5f; border-radius: 14px; color: white; font-weight: 600; letter-spacing: 0.15em; transition: all 0.2s;"
-                                    onfocus="this.style.borderColor='#4B9CD3'; this.style.boxShadow='0 0 0 3px rgba(75, 156, 211, 0.2)'"
-                                    onblur="this.style.borderColor='#2d3f5f'; this.style.boxShadow='none'"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                    style="width: 100%; padding: 16px; font-size: 1.4rem; text-align: center; background: var(--bg-deep); border: 2px solid var(--border-default); border-radius: 12px; color: var(--text-primary); font-weight: 600; letter-spacing: 0.15em; transition: all 0.2s;"
+                                    onfocus="this.style.borderColor='var(--unc-blue)'; this.style.boxShadow='0 0 0 3px rgba(75, 156, 211, 0.2)'"
+                                    onblur="this.style.borderColor='var(--border-default)'; this.style.boxShadow='none'"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, ''); clearIdError()"
                                     onkeypress="if(event.key === 'Enter') submitParticipantId()"
                                 />
-                                <p id="idError" style="color: #ef4444; font-size: 0.85rem; margin-top: 10px; text-align: center; display: none; font-weight: 500;"></p>
+                                <p id="idError" style="color: #ef4444; font-size: 0.85rem; margin-top: 8px; text-align: center; display: none; font-weight: 500;"></p>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 8px; text-align: center;">
+                                    Use the 5-digit code you received by email.
+                                </p>
                             </div>
 
                             <button 
                                 onclick="submitParticipantId()" 
-                                style="width: 100%; padding: 16px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px rgba(75, 156, 211, 0.3);"
-                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 30px rgba(75, 156, 211, 0.4)'"
-                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(75, 156, 211, 0.3)'">
+                                style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%); color: white; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px var(--accent-orange-glow);"
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 30px var(--accent-orange-glow)'"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px var(--accent-orange-glow)'">
                                 Continue →
                             </button>
+
+                            <!-- I don't have my code link -->
+                            <div style="margin-top: 16px; text-align: center;">
+                                <button 
+                                    onclick="toggleCodeHelp()"
+                                    style="background: none; border: none; color: var(--unc-blue); font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 4px;"
+                                >
+                                    I don't have my code
+                                </button>
+                                <div id="codeHelpMessage" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border-subtle);">
+                                    <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                                        Your participant ID was sent to your email when you enrolled in the study. Check your inbox (and spam folder) for an email from the PANDA research team. If you still can't find it, contact us at <a href="mailto:rahiem@unc.edu" style="color: var(--unc-blue);">rahiem@unc.edu</a>.
+                                    </p>
+                                </div>
+                            </div>
                             
-                            <div style="margin-top: 20px;">
+                            <!-- Back to Consent -->
+                            <div style="margin-top: 16px;">
                                 <button 
                                     onclick="state.currentView='consent'; state.consentGiven=false; state.consentScrolled=false; render();" 
-                                    style="width: 100%; padding: 14px; background: transparent; color: #94a3b8; border: 1px solid #2d3f5f; border-radius: 12px; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s;"
-                                    onmouseover="this.style.borderColor='#4B9CD3'; this.style.color='#4B9CD3'"
-                                    onmouseout="this.style.borderColor='#2d3f5f'; this.style.color='#94a3b8'">
-                                    ← View Consent Form
+                                    style="width: 100%; padding: 12px; background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.borderColor='var(--unc-blue)'; this.style.color='var(--unc-blue)'"
+                                    onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.color='var(--text-muted)'">
+                                    ← Back to Consent Form
+                                </button>
+                            </div>
+
+                            <!-- Demo Mode Divider -->
+                            <div style="margin-top: 24px; display: flex; align-items: center; gap: 12px;">
+                                <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                                <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
+                                <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                            </div>
+
+                            <!-- Demo Mode Button -->
+                            <div style="margin-top: 16px;">
+                                <button 
+                                    onclick="enterDemoMode()"
+                                    style="width: 100%; padding: 12px; background: var(--bg-elevated); color: var(--text-secondary); border: 1px dashed var(--border-default); border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.borderColor='var(--accent-orange)'; this.style.color='var(--accent-orange-bright)'"
+                                    onmouseout="this.style.borderColor='var(--border-default)'; this.style.color='var(--text-secondary)'">
+                                    🎮 Try Demo Mode <span style="font-size: 0.75rem; opacity: 0.7;">(for portfolio/testing)</span>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Help Text -->
-                        <div style="margin-top: 24px; text-align: center;">
-                            <p style="color: #64748b; font-size: 0.85rem;">
-                                Need help? Contact <a href="mailto:rahiem@unc.edu" style="color: #4B9CD3; text-decoration: none;">rahiem@unc.edu</a>
+                        <div style="margin-top: 20px; text-align: center;">
+                            <p style="color: var(--text-muted); font-size: 0.8rem;">
+                                Need help? Contact <a href="mailto:rahiem@unc.edu" style="color: var(--unc-blue); text-decoration: none;">rahiem@unc.edu</a>
                             </p>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function toggleCodeHelp() {
+            const helpDiv = document.getElementById('codeHelpMessage');
+            if (helpDiv) {
+                helpDiv.style.display = helpDiv.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function clearIdError() {
+            const errorDiv = document.getElementById('idError');
+            const input = document.getElementById('participantIdInput');
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (input) input.style.borderColor = 'var(--border-default)';
+        }
+
+        function enterDemoMode() {
+            // Use a valid demo participant ID (12000 is the first valid ID in the sequence)
+            const demoId = '12000';
+            state.participantId = demoId;
+            state.userId = `PANDA_DEMO_${demoId}_${Date.now()}`;
+            state.isDemoMode = true;
+            logInteraction('demo_mode_entered', { participantId: demoId });
+            state.currentView = 'audioSetup';
+            render();
         }
 
         function validateParticipantId(id) {
