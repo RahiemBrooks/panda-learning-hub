@@ -156,7 +156,24 @@
         .glow-orange {
             box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);
         }
-        
+
+        /* Opening Page Logo */
+        .opening-logo {
+            display: block;
+            height: 72px;
+            width: auto;
+            margin: 0 auto 1.5rem auto;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 12px rgba(255, 140, 66, 0.3));
+        }
+
+        @media (max-width: 640px) {
+            .opening-logo {
+                height: 64px;
+                margin-bottom: 1rem;
+            }
+        }
+
         /* Progress Ring Styles (Synthesis-inspired) */
         .progress-ring {
             width: 100px;
@@ -1859,6 +1876,9 @@
                 <div class="min-h-screen dark-theme-bg flex items-center justify-center p-4">
                     <div class="glass-card max-w-4xl w-full rounded-3xl overflow-hidden" style="background: rgba(31, 42, 66, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border-accent);">
                         <div class="p-8 md:p-12">
+                            <!-- PANDA Logo Image -->
+                            <img src="PANDA LOGO.png" alt="PANDA Study logo" class="opening-logo" />
+
                             <!-- Step Indicator -->
                             <div class="text-center mb-6">
                                 <span class="inline-block px-4 py-2 rounded-full text-sm font-medium" style="background: var(--accent-orange-glow); color: var(--accent-orange-bright); border: 1px solid var(--border-accent);">
