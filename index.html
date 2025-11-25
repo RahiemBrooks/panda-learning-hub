@@ -1937,128 +1937,185 @@
 
         function renderConsentForm() {
             return `
-                <div class="min-h-screen flex items-center justify-center p-4">
-                    <div class="max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden" style="max-height: 90vh; display: flex; flex-direction: column;">
-                        <div class="bg-panda-blue p-6">
-                            <h2 class="text-3xl font-bold text-white">Research Study Consent Form</h2>
-                            <p class="text-blue-100 mt-2">IRB Approval: 25-0805</p>
-                        </div>
-
-                        <div class="overflow-y-auto p-8 bg-white flex-1" onscroll="handleConsentScroll(event)">
-                            <div class="max-w-3xl mx-auto space-y-6 text-gray-700">
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Study Information</h3>
-                                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
-                                        <p class="mb-2"><strong>Study Title:</strong> The PANDA Study (Parenting, Adversity, Neurodevelopment, & Developmental Assessment)</p>
-                                        <p class="mb-2"><strong>Faculty Advisor:</strong> Dr. Margaret Sheridan</p>
-                                        <p class="mb-2"><strong>Principal Investigator:</strong> Dr. Nathan Jorgensen</p>
-                                        <p class="mb-2"><strong>Undergraduate Researcher:</strong> Rahiem Brooks</p>
-                                        <p class="mb-2"><strong>Study Contact:</strong> Rahiem Brooks | <a href="mailto:rahiem@unc.edu" class="text-panda-blue underline">rahiem@unc.edu</a></p>
-                                        <p><strong>Affiliation:</strong> University of North Carolina at Chapel Hill, Department of Psychology & Neuroscience</p>
-                                    </div>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">What is this study about?</h3>
-                                    <p class="leading-relaxed">
-                                        You are invited to participate in a research study on parenting and early childhood development. This study aims to better understand how different parenting experiences affect children's brain development, behavior, and learning—especially for children between the ages of 0 and 5.
-                                    </p>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Who can participate?</h3>
-                                    <p class="leading-relaxed mb-3">To participate, you must:</p>
-                                    <ul class="list-disc list-inside space-y-2 ml-4">
-                                        <li>Be 18 years of age or older</li>
-                                        <li>Be a parent or primary caregiver of a child between 0 and 5 years old</li>
-                                        <li>Be able to read and understand English</li>
-                                    </ul>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">What will I be asked to do?</h3>
-                                    <p class="leading-relaxed mb-3">
-                                        If you agree to participate, you will complete a 10–15 minute online survey. You will be asked questions about your parenting practices, your child's behavior and learning, and some background information about you and your household.
-                                    </p>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Is participation voluntary?</h3>
-                                    <p class="leading-relaxed">
-                                        Yes. Your participation is entirely voluntary. You may skip any question or stop the survey at any time, and there is no penalty for not participating.
-                                    </p>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Will my answers be confidential?</h3>
-                                    <p class="leading-relaxed">
-                                        Yes. Your responses will be confidential and stored securely. Any identifying information (such as name or contact information) will be stored separately from your survey responses. Only the approved research team will have access to your information.
-                                    </p>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Will I be contacted again?</h3>
-                                    <p class="leading-relaxed mb-3">If you agree, we may contact you in the future about:</p>
-                                    <ul class="list-disc list-inside space-y-2 ml-4">
-                                        <li>Follow-up surveys</li>
-                                        <li>Opportunities to participate in other parts of this study (such as parenting programs or educational tools)</li>
-                                    </ul>
-                                    <p class="leading-relaxed mt-3">
-                                        You can opt out of future contact by emailing the study team.
-                                    </p>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Are there any risks or benefits?</h3>
-                                    <p class="leading-relaxed mb-3">
-                                        <strong>Risks:</strong> There are no known risks associated with this study beyond those of daily life.
-                                    </p>
-                                    <p class="leading-relaxed">
-                                        <strong>Benefits:</strong> While you may not directly benefit, your responses will help researchers design better tools to support child development and learning, particularly for families facing economic or social challenges.
-                                    </p>
-                                </section>
-
-                                <section>
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Who do I contact with questions?</h3>
-                                    <p class="leading-relaxed mb-3">
-                                        If you have questions now or later, contact <strong>Rahiem Brooks, Study Coordinator:</strong> <a href="mailto:rahiem@unc.edu" class="text-panda-blue underline">rahiem@unc.edu</a>
-                                    </p>
-                                    <p class="leading-relaxed">
-                                        You may also contact the UNC IRB at <strong>919-966-3113</strong> or <a href="mailto:IRB_subjects@unc.edu" class="text-panda-blue underline">IRB_subjects@unc.edu</a> if you have questions about your rights as a research participant.
-                                    </p>
-                                </section>
-
-                                <section class="bg-orange-50 p-6 rounded-lg border-2 border-panda-orange">
-                                    <h3 class="text-xl font-semibold text-panda-blue mb-3">Statement of Consent</h3>
-                                    <p class="leading-relaxed font-semibold mb-3">By selecting "I agree" below:</p>
-                                    <ul class="list-disc list-inside space-y-2 ml-4">
-                                        <li>I am 18 years old or older</li>
-                                        <li>I have read the information above and voluntarily agree to participate</li>
-                                        <li>I agree that the research team may contact me in the future about related studies</li>
-                                    </ul>
-                                </section>
+                <div class="min-h-screen dark-theme-bg flex items-center justify-content p-4">
+                    <div class="glass-card max-w-4xl w-full mx-auto rounded-3xl overflow-hidden" style="background: rgba(31, 42, 66, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border-accent); max-height: 90vh; display: flex; flex-direction: column;">
+                        
+                        <!-- Header -->
+                        <div class="p-6" style="background: linear-gradient(135deg, var(--unc-blue) 0%, var(--unc-light-blue) 100%);">
+                            <div class="flex items-center justify-between flex-wrap gap-4">
+                                <div>
+                                    <h2 class="text-2xl md:text-3xl font-bold text-white">Research Study Consent</h2>
+                                    <p class="text-blue-100 mt-1 text-sm">IRB Approval: 25-0805</p>
+                                </div>
+                                <span class="inline-block px-4 py-2 rounded-full text-sm font-medium" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3);">
+                                    Step 2 of 5: Consent
+                                </span>
+                            </div>
+                            <!-- Scroll Progress Indicator -->
+                            <div class="mt-4 h-1 rounded-full overflow-hidden" style="background: rgba(255, 255, 255, 0.2);">
+                                <div id="scrollProgress" class="h-full rounded-full transition-all duration-300" style="background: var(--accent-orange); width: 0%;"></div>
                             </div>
                         </div>
 
-                        <div class="bg-gray-50 p-6 border-t border-gray-200">
+                        <!-- Scrollable Content -->
+                        <div class="overflow-y-auto flex-1 p-6 md:p-8" id="consentScrollArea" onscroll="handleConsentScroll(event)">
+                            <div class="max-w-3xl mx-auto space-y-6">
+                                
+                                <!-- Quick Summary Box -->
+                                <div class="p-5 rounded-xl" style="background: var(--accent-orange-glow); border: 1px solid var(--border-accent);">
+                                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2" style="color: var(--accent-orange-bright);">
+                                        <span>📋</span> Quick Summary
+                                    </h3>
+                                    <ul class="space-y-2 text-sm" style="color: var(--text-secondary);">
+                                        <li class="flex items-start gap-2">
+                                            <span style="color: var(--accent-orange);">✓</span>
+                                            <span>You and your child will play a 10–15 minute color/shape learning game</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span style="color: var(--accent-orange);">✓</span>
+                                            <span>You'll receive personalized parenting tips based on neuroscience research</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span style="color: var(--accent-orange);">✓</span>
+                                            <span>Your data is confidential and stored securely at UNC Chapel Hill</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span style="color: var(--accent-orange);">✓</span>
+                                            <span>Participation is voluntary—you can stop at any time, no questions asked</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span style="color: var(--accent-orange);">✓</span>
+                                            <span>Your participation helps advance research on early childhood development</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- Study Information -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Study Information</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm" style="color: var(--text-secondary);">
+                                        <p><strong style="color: var(--text-primary);">Study:</strong> The PANDA Study</p>
+                                        <p><strong style="color: var(--text-primary);">Faculty Advisor:</strong> Dr. Margaret Sheridan</p>
+                                        <p><strong style="color: var(--text-primary);">Principal Investigator:</strong> Dr. Nathan Jorgensen</p>
+                                        <p><strong style="color: var(--text-primary);">Study Coordinator:</strong> Rahiem Brooks</p>
+                                        <p class="md:col-span-2"><strong style="color: var(--text-primary);">Contact:</strong> <a href="mailto:rahiem@unc.edu" style="color: var(--unc-blue);">rahiem@unc.edu</a></p>
+                                        <p class="md:col-span-2"><strong style="color: var(--text-primary);">Affiliation:</strong> UNC Chapel Hill, Dept. of Psychology & Neuroscience</p>
+                                    </div>
+                                </section>
+
+                                <!-- About the Study -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">What is this study about?</h3>
+                                    <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                                        This research explores how parenting experiences affect children's brain development, behavior, and learning in children ages 0–5. Your participation helps us design better tools to support families.
+                                    </p>
+                                </section>
+
+                                <!-- Eligibility -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Who can participate?</h3>
+                                    <ul class="text-sm space-y-2" style="color: var(--text-secondary);">
+                                        <li class="flex items-center gap-2"><span>•</span> 18 years of age or older</li>
+                                        <li class="flex items-center gap-2"><span>•</span> Parent or primary caregiver of a child between 0–5 years old</li>
+                                        <li class="flex items-center gap-2"><span>•</span> Able to read and understand English</li>
+                                    </ul>
+                                </section>
+
+                                <!-- What You'll Do -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">What will I be asked to do?</h3>
+                                    <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                                        Complete a 10–15 minute interactive session with your child. You'll answer questions about parenting practices, your child's development, and some background information.
+                                    </p>
+                                </section>
+
+                                <!-- Voluntary Participation -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Is participation voluntary?</h3>
+                                    <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                                        Yes! Your participation is entirely voluntary. You may skip any question or stop at any time with no penalty.
+                                    </p>
+                                </section>
+
+                                <!-- Confidentiality -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Will my answers be confidential?</h3>
+                                    <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                                        Yes. Your responses are stored securely and kept confidential. Identifying information is stored separately from survey responses. Only approved researchers have access.
+                                    </p>
+                                </section>
+
+                                <!-- Future Contact -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Will I be contacted again?</h3>
+                                    <p class="text-sm leading-relaxed mb-2" style="color: var(--text-secondary);">
+                                        With your permission, we may contact you about follow-up surveys or related study opportunities. You can opt out anytime by emailing the study team.
+                                    </p>
+                                </section>
+
+                                <!-- Risks & Benefits -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Risks & Benefits</h3>
+                                    <p class="text-sm leading-relaxed mb-2" style="color: var(--text-secondary);">
+                                        <strong style="color: var(--text-primary);">Risks:</strong> No known risks beyond everyday activities.
+                                    </p>
+                                    <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                                        <strong style="color: var(--text-primary);">Benefits:</strong> Your responses help develop better tools to support child development, especially for families facing challenges.
+                                    </p>
+                                </section>
+
+                                <!-- Contact -->
+                                <section class="p-5 rounded-xl" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--unc-blue);">Questions?</h3>
+                                    <p class="text-sm leading-relaxed mb-2" style="color: var(--text-secondary);">
+                                        Contact Rahiem Brooks: <a href="mailto:rahiem@unc.edu" style="color: var(--unc-blue);">rahiem@unc.edu</a>
+                                    </p>
+                                    <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                                        For questions about your rights as a participant, contact UNC IRB: <strong>919-966-3113</strong> or <a href="mailto:IRB_subjects@unc.edu" style="color: var(--unc-blue);">IRB_subjects@unc.edu</a>
+                                    </p>
+                                </section>
+
+                                <!-- Consent Statement -->
+                                <section class="p-5 rounded-xl" style="background: var(--accent-orange-glow); border: 2px solid var(--accent-orange);">
+                                    <h3 class="text-lg font-semibold mb-3" style="color: var(--accent-orange-bright);">Statement of Consent</h3>
+                                    <p class="text-sm font-medium mb-3" style="color: var(--text-primary);">By agreeing below, you confirm:</p>
+                                    <ul class="text-sm space-y-2" style="color: var(--text-secondary);">
+                                        <li class="flex items-start gap-2"><span style="color: var(--accent-orange);">•</span> I am 18 years old or older</li>
+                                        <li class="flex items-start gap-2"><span style="color: var(--accent-orange);">•</span> I have read and understand the information above</li>
+                                        <li class="flex items-start gap-2"><span style="color: var(--accent-orange);">•</span> I voluntarily agree to participate in this research</li>
+                                        <li class="flex items-start gap-2"><span style="color: var(--accent-orange);">•</span> I agree to be contacted about future related studies</li>
+                                    </ul>
+                                </section>
+
+                                <!-- Withdrawal Reassurance -->
+                                <div class="text-center py-2">
+                                    <p class="text-sm" style="color: var(--text-muted);">
+                                        💙 Remember: You can withdraw at any time—just close the browser. No explanation needed, no hard feelings!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer with Consent Checkbox and Buttons -->
+                        <div class="p-6" style="background: var(--bg-elevated); border-top: 1px solid var(--border-subtle);">
                             <div class="max-w-3xl mx-auto">
-                                <label class="flex items-start gap-3 mb-6 cursor-pointer">
-                                    <input type="checkbox" id="consentCheckbox" disabled class="mt-1 w-5 h-5 rounded border-gray-300 text-panda-blue focus:ring-panda-blue" onchange="updateConsentButton()">
-                                    <span class="text-gray-700">
-                                        I am 18 years old or older. I have read the information above and voluntarily agree to participate. I agree that the research team may contact me in the future about related studies.
+                                <label class="flex items-start gap-3 mb-4 cursor-pointer">
+                                    <input type="checkbox" id="consentCheckbox" disabled class="mt-1 w-5 h-5 rounded" style="accent-color: var(--accent-orange);" onchange="updateConsentButton()">
+                                    <span class="text-sm" style="color: var(--text-secondary);">
+                                        I confirm I am 18+ years old, have read the information above, and voluntarily agree to participate. I agree to be contacted about related studies.
                                     </span>
                                 </label>
 
-                                <div id="scrollWarning" class="text-sm text-panda-orange mb-4 text-center font-semibold">
-                                    Please scroll to the bottom to review all information before consenting
+                                <div id="scrollWarning" class="text-sm mb-4 text-center font-medium" style="color: var(--accent-orange);">
+                                    ↓ Please scroll to review all information before consenting ↓
                                 </div>
 
                                 <div class="flex gap-4">
-                                    <button onclick="backToOpening()" class="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors">
+                                    <button onclick="backToOpening()" class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all" style="background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-subtle);">
                                         Back
                                     </button>
-                                    <button id="consentButton" onclick="acceptConsent()" disabled class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all bg-gray-300 text-gray-500 cursor-not-allowed">
-                                        I Consent to Participate
+                                    <button id="consentButton" onclick="acceptConsent()" disabled class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all" style="background: var(--bg-card); color: var(--text-muted); cursor: not-allowed;">
+                                        I Agree — Let's Begin!
                                     </button>
                                 </div>
                             </div>
@@ -3812,6 +3869,14 @@
 
         let consentScrolled = false;
         function handleConsentScroll(e) {
+            // Update scroll progress indicator
+            const scrollTop = e.target.scrollTop;
+            const scrollHeight = e.target.scrollHeight - e.target.clientHeight;
+            const scrollPercent = Math.min(100, Math.round((scrollTop / scrollHeight) * 100));
+            const progressBar = document.getElementById('scrollProgress');
+            if (progressBar) progressBar.style.width = scrollPercent + '%';
+            
+            // Check if scrolled to bottom
             const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 50;
             if (bottom && !state.consentScrolled) {
                 state.consentScrolled = true;
@@ -3827,10 +3892,16 @@
             const button = document.getElementById('consentButton');
             if (checkbox.checked) {
                 button.disabled = false;
-                button.className = 'flex-1 px-6 py-3 rounded-xl font-semibold transition-all bg-panda-blue hover:bg-blue-800 text-white transform hover:scale-105';
+                button.style.background = 'linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%)';
+                button.style.color = 'white';
+                button.style.cursor = 'pointer';
+                button.style.boxShadow = '0 4px 20px var(--accent-orange-glow)';
             } else {
                 button.disabled = true;
-                button.className = 'flex-1 px-6 py-3 rounded-xl font-semibold transition-all bg-gray-300 text-gray-500 cursor-not-allowed';
+                button.style.background = 'var(--bg-card)';
+                button.style.color = 'var(--text-muted)';
+                button.style.cursor = 'not-allowed';
+                button.style.boxShadow = 'none';
             }
         }
 
