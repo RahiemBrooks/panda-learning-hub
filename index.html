@@ -3928,54 +3928,101 @@
         function renderCoachingTips() {
             const tip = coachingTips.find(t => t.day === state.currentDay) || coachingTips[0];
             const maxDay = coachingTips.length; // All 20 tips complete
-            
+            const progressPercent = Math.round((state.currentDay / maxDay) * 100);
+
+            // Parse practical tip into bullet points (split by periods or bullet markers)
+            const practicalTipBullets = tip.practicalTip
+                .split(/(?<=[.!?])\s+/)
+                .filter(s => s.trim().length > 10)
+                .slice(0, 2);
+
             return `
-                <!-- Day Navigation for Coaching Tips -->
-                <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 24px; padding: 16px; background: rgba(26, 39, 68, 0.6); border-radius: 12px; border: 1px solid rgba(75, 156, 211, 0.2);">
-                    <button class="day-nav-btn" onclick="previousDay()" ${state.currentDay <= 1 ? 'disabled' : ''}>
+                <!-- Tip of the Day Highlight -->
+                <div style="background: linear-gradient(135deg, rgba(75, 156, 211, 0.2) 0%, rgba(255, 140, 66, 0.15) 100%); border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid rgba(75, 156, 211, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <span style="font-size: 1.5rem;">💡</span>
+                        <span style="color: #fbbf24; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em;">Today's Tip</span>
+                    </div>
+                    <h2 style="color: white; font-size: 1.25rem; font-weight: 700; margin: 0; line-height: 1.4;">${tip.title}</h2>
+                </div>
+
+                <!-- Progress Bar -->
+                <div style="background: rgba(26, 39, 68, 0.6); border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid rgba(75, 156, 211, 0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Your Progress</span>
+                        <span style="color: #4B9CD3; font-weight: 600; font-size: 0.95rem;">Day ${state.currentDay} of ${maxDay}</span>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.6); border-radius: 8px; height: 10px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #4B9CD3 0%, #7BAFD4 100%); height: 100%; width: ${progressPercent}%; border-radius: 8px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                        <span style="color: #64748b; font-size: 0.8rem;">${progressPercent}% complete</span>
+                        <span style="color: #64748b; font-size: 0.8rem;">${maxDay - state.currentDay} days remaining</span>
+                    </div>
+                </div>
+
+                <!-- Day Navigation -->
+                <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 24px;">
+                    <button class="day-nav-btn" onclick="previousDay()" ${state.currentDay <= 1 ? 'disabled' : ''} style="background: rgba(26, 39, 68, 0.8); border: 1px solid rgba(75, 156, 211, 0.3); border-radius: 10px; padding: 10px 16px; cursor: ${state.currentDay <= 1 ? 'not-allowed' : 'pointer'}; opacity: ${state.currentDay <= 1 ? '0.5' : '1'}; transition: all 0.2s; display: flex; align-items: center; gap: 8px; color: #94a3b8;">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
+                        Previous
                     </button>
-                    <span style="font-weight: 600; color: #e2e8f0; font-size: 1rem;">Day ${state.currentDay} of 20</span>
-                    <button class="day-nav-btn" onclick="nextDay()" ${state.currentDay >= maxDay ? 'disabled' : ''}>
+                    <button class="day-nav-btn" onclick="nextDay()" ${state.currentDay >= maxDay ? 'disabled' : ''} style="background: rgba(26, 39, 68, 0.8); border: 1px solid rgba(75, 156, 211, 0.3); border-radius: 10px; padding: 10px 16px; cursor: ${state.currentDay >= maxDay ? 'not-allowed' : 'pointer'}; opacity: ${state.currentDay >= maxDay ? '0.5' : '1'}; transition: all 0.2s; display: flex; align-items: center; gap: 8px; color: #94a3b8;">
+                        Next
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </button>
                 </div>
-                
-                <div class="content-card">
-                    <div class="content-card-header">
-                        <h1 class="content-card-title">${tip.title}</h1>
+
+                <!-- Main Content Card -->
+                <div style="background: rgba(26, 39, 68, 0.8); border-radius: 24px; padding: 32px; border: 1px solid rgba(75, 156, 211, 0.2);">
+                    <!-- Day Badge -->
+                    <div style="display: inline-block; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; font-size: 0.8rem; font-weight: 600; padding: 6px 14px; border-radius: 20px; margin-bottom: 16px;">
+                        Day ${state.currentDay} of ${maxDay}
                     </div>
 
-                    <!-- The Neuroscience Section -->
-                    <div class="section-header">
-                        <svg fill="none" stroke="var(--unc-blue)" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                        </svg>
-                        The Neuroscience
-                    </div>
-                    <p class="section-content">${tip.content}</p>
-                    
-                    <div class="section-divider"></div>
-                    
-                    <!-- Try This Today Section -->
-                    <div class="try-today-section">
-                        <div class="try-today-header">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Try This Today
+                    <h1 style="color: white; font-size: 1.5rem; font-weight: 700; margin-bottom: 24px; line-height: 1.3;">${tip.title}</h1>
+
+                    <!-- Brain Insight Section -->
+                    <div style="background: rgba(75, 156, 211, 0.1); border-radius: 16px; padding: 24px; margin-bottom: 20px; border-left: 4px solid #4B9CD3;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <span style="color: #7BAFD4; font-weight: 600; font-size: 1rem;">Brain Insight</span>
                         </div>
-                        <p class="section-content" style="color: #fcd9b6;">${tip.practicalTip}</p>
+                        <p style="color: #cbd5e1; font-size: 1rem; line-height: 1.7; margin: 0;">${tip.content}</p>
                     </div>
-                    
+
+                    <!-- Try This Section -->
+                    <div style="background: rgba(255, 140, 66, 0.1); border-radius: 16px; padding: 24px; border-left: 4px solid #FF8C42;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #FF8C42 0%, #F4A460 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <span style="color: #F4A460; font-weight: 600; font-size: 1rem;">Try This</span>
+                        </div>
+                        <ul style="margin: 0; padding-left: 0; list-style: none;">
+                            ${practicalTipBullets.map(bullet => `
+                                <li style="color: #fcd9b6; font-size: 1rem; line-height: 1.6; margin-bottom: 12px; padding-left: 24px; position: relative;">
+                                    <span style="position: absolute; left: 0; top: 8px; width: 8px; height: 8px; background: #FF8C42; border-radius: 50%;"></span>
+                                    ${bullet.trim()}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
                     ${state.currentDay >= maxDay ? `
-                        <div class="completion-banner">
-                            <p style="font-size: 1.1rem; font-weight: 600; color: #10b981;">
-                                🎉 You've completed all ${maxDay} available coaching tips! More tips coming soon.
+                        <div style="margin-top: 24px; padding: 20px; background: rgba(16, 185, 129, 0.15); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
+                            <p style="font-size: 1.1rem; font-weight: 600; color: #34d399; margin: 0;">
+                                🎉 You've completed all ${maxDay} coaching tips! Great job!
                             </p>
                         </div>
                     ` : ''}
