@@ -2150,40 +2150,54 @@
             return `
                 <div style="min-height: 100vh; background: linear-gradient(135deg, #0f1729 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 24px;">
                     <div style="max-width: 800px; width: 100%;">
+                        <!-- Step indicator -->
+                        <div style="text-align: center; margin-bottom: 12px;">
+                            <span style="color: #64748b; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 4 of 5</span>
+                        </div>
+
                         <!-- Header -->
-                        <div style="text-align: center; margin-bottom: 48px;">
+                        <div style="text-align: center; margin-bottom: 40px;">
                             <div style="font-size: 4rem; margin-bottom: 16px;">🐼</div>
                             <h2 style="font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; color: white; margin-bottom: 12px;">
                                 Who's using PANDA today?
                             </h2>
-                            <p style="color: #94a3b8; font-size: 1.1rem;">Select your role to continue</p>
+                            <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 8px;">Choose your starting point</p>
+                            <p style="color: #64748b; font-size: 0.9rem;">You can switch anytime from the menu.</p>
                         </div>
-                        
+
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-                            <!-- Parent Button -->
-                            <button onclick="selectRole('parent')" style="background: rgba(26, 39, 68, 0.9); border: 2px solid rgba(75, 156, 211, 0.3); border-radius: 24px; padding: 40px 32px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.borderColor='#4B9CD3'; this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 40px rgba(75, 156, 211, 0.2)'" onmouseout="this.style.borderColor='rgba(75, 156, 211, 0.3)'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <!-- Parent Button (slightly more prominent for first-time flow) -->
+                            <button onclick="selectRole('parent')" style="background: rgba(26, 39, 68, 0.95); border: 2px solid rgba(75, 156, 211, 0.5); border-radius: 24px; padding: 40px 32px; cursor: pointer; transition: all 0.3s; text-align: center; position: relative; box-shadow: 0 4px 20px rgba(75, 156, 211, 0.15);" onmouseover="this.style.borderColor='#4B9CD3'; this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 40px rgba(75, 156, 211, 0.25)'" onmouseout="this.style.borderColor='rgba(75, 156, 211, 0.5)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(75, 156, 211, 0.15)'">
+                                <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 12px; white-space: nowrap;">Recommended first</div>
                                 <div style="width: 100px; height: 100px; margin: 0 auto 24px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); border-radius: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(75, 156, 211, 0.3);">
                                     <svg width="48" height="48" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path>
                                     </svg>
                                 </div>
-                                <h3 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 12px;">Parents</h3>
-                                <p style="color: #94a3b8; font-size: 1rem; line-height: 1.6;">
-                                    Access coaching tips, track progress, and journal your child's learning journey
+                                <h3 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 8px;">Parents</h3>
+                                <p style="color: #e2e8f0; font-size: 0.95rem; line-height: 1.5; margin-bottom: 0;">
+                                    Tips, journal, and resources for guiding your child.
                                 </p>
                             </button>
 
                             <!-- Child Button -->
-                            <button onclick="selectRole('child')" style="background: rgba(26, 39, 68, 0.9); border: 2px solid rgba(255, 140, 66, 0.3); border-radius: 24px; padding: 40px 32px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.borderColor='#FF8C42'; this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 40px rgba(255, 140, 66, 0.2)'" onmouseout="this.style.borderColor='rgba(255, 140, 66, 0.3)'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <button onclick="selectRole('child')" style="background: rgba(26, 39, 68, 0.9); border: 2px solid rgba(255, 140, 66, 0.3); border-radius: 24px; padding: 40px 32px; cursor: pointer; transition: all 0.3s; text-align: center; position: relative;" onmouseover="this.style.borderColor='#FF8C42'; this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 40px rgba(255, 140, 66, 0.2)'" onmouseout="this.style.borderColor='rgba(255, 140, 66, 0.3)'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                                 <div style="width: 100px; height: 100px; margin: 0 auto 24px; background: linear-gradient(135deg, #FF8C42 0%, #F4A460 100%); border-radius: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(255, 140, 66, 0.3);">
                                     <svg width="48" height="48" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"></path>
                                     </svg>
                                 </div>
-                                <h3 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 12px;">Children</h3>
-                                <p style="color: #94a3b8; font-size: 1rem; line-height: 1.6;">
-                                    Learn colors and shapes with your friendly AI tutor! 🎨
+                                <h3 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 8px;">Children</h3>
+                                <p style="color: #e2e8f0; font-size: 0.95rem; line-height: 1.5; margin-bottom: 0;">
+                                    Play simple learning games with Panda.
                                 </p>
+                            </button>
+                        </div>
+
+                        <!-- Back link -->
+                        <div style="text-align: center; margin-top: 32px;">
+                            <button onclick="state.currentView = 'audioSetup'; render();" style="background: none; border: none; color: #64748b; font-size: 0.95rem; cursor: pointer; padding: 8px 16px; transition: color 0.2s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+                                ← Back to Audio Setup
                             </button>
                         </div>
                     </div>
