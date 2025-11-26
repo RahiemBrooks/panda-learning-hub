@@ -1572,6 +1572,45 @@
                 padding: 16px 12px;
             }
         }
+
+        /* Audio Controls Overlay - Mobile Adjustments */
+        @media (max-width: 640px) {
+            #audioControlsContainer {
+                top: 8px !important;
+                right: 8px !important;
+                gap: 6px !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+            }
+
+            #audioControlsContainer button {
+                padding: 5px 8px !important;
+                gap: 5px !important;
+                border-radius: 18px !important;
+            }
+
+            #audioControlsContainer button svg {
+                width: 14px !important;
+                height: 14px !important;
+            }
+
+            #audioControlsContainer button span {
+                font-size: 0.7rem !important;
+            }
+
+            /* Smaller toggle switch on mobile */
+            #audioControlsContainer button > div {
+                width: 32px !important;
+                height: 18px !important;
+                border-radius: 9px !important;
+            }
+
+            /* Smaller toggle ball on mobile */
+            #audioControlsContainer button > div > div {
+                width: 14px !important;
+                height: 14px !important;
+            }
+        }
     </style>
 </head>
 <body class="m-0 p-0">
