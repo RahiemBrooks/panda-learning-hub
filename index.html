@@ -1657,6 +1657,103 @@
         };
 
         // ============================================================================
+        // LOCAL STORAGE PERSISTENCE
+        // ============================================================================
+
+        // Keys for localStorage
+        const STORAGE_KEYS = {
+            CONSENT_GIVEN: 'pandaConsentGiven',
+            PARTICIPATION_CODE: 'pandaParticipationCode',
+            APP_STATE: 'pandaAppState'
+        };
+
+        // Save consent and participation code to localStorage
+        function saveConsentToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.CONSENT_GIVEN, state.consentGiven ? 'true' : 'false');
+                if (state.participantId) {
+                    localStorage.setItem(STORAGE_KEYS.PARTICIPATION_CODE, state.participantId);
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not save consent to localStorage', e);
+            }
+        }
+
+        // Save app state (children, learningData, assessments) to localStorage
+        function saveAppStateToStorage() {
+            try {
+                const persistentState = {
+                    children: state.children,
+                    learningData: state.learningData,
+                    journalEntries: state.journalEntries
+                };
+                localStorage.setItem(STORAGE_KEYS.APP_STATE, JSON.stringify(persistentState));
+            } catch (e) {
+                console.warn('PANDA: Could not save app state to localStorage', e);
+            }
+        }
+
+        // Load app state from localStorage and merge into state
+        function loadAppStateFromStorage() {
+            try {
+                const savedState = localStorage.getItem(STORAGE_KEYS.APP_STATE);
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+
+                    // Validate and merge children array
+                    if (Array.isArray(parsed.children)) {
+                        state.children = parsed.children;
+                    }
+
+                    // Validate and merge learningData object
+                    if (parsed.learningData && typeof parsed.learningData === 'object') {
+                        state.learningData = parsed.learningData;
+                    }
+
+                    // Validate and merge journal entries
+                    if (Array.isArray(parsed.journalEntries)) {
+                        state.journalEntries = parsed.journalEntries;
+                    }
+
+                    // Set first child as selected if exists
+                    if (state.children.length > 0) {
+                        state.selectedChildForProgress = state.children[0].id;
+                    }
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not load app state from localStorage', e);
+                // Fall back to defaults (already set in state)
+            }
+        }
+
+        // Check if user has already completed consent/code entry
+        function loadConsentFromStorage() {
+            try {
+                const consentGiven = localStorage.getItem(STORAGE_KEYS.CONSENT_GIVEN);
+                const participationCode = localStorage.getItem(STORAGE_KEYS.PARTICIPATION_CODE);
+
+                if (consentGiven === 'true' && participationCode && participationCode.length > 0) {
+                    // Restore consent and participation state
+                    state.consentGiven = true;
+                    state.participantId = participationCode;
+                    state.userId = `PANDA_${participationCode}_restored`;
+
+                    // Load saved app state (children, progress, etc.)
+                    loadAppStateFromStorage();
+
+                    // Skip to role selection (audio setup is not re-required)
+                    state.audioSetup.setupComplete = true;
+                    state.currentView = 'roleSelection';
+
+                    return true; // Consent was restored
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not load consent from localStorage', e);
+            }
+            return false; // No saved consent, show normal flow
+        }
+
+        // ============================================================================
         // PARENT VOICE RESPONSE PHRASES
         // ============================================================================
         const correctResponses = [
@@ -2969,6 +3066,10 @@
             state.userId = `PANDA_DEMO_${demoId}_${Date.now()}`;
             state.isDemoMode = true;
             logInteraction('demo_mode_entered', { participantId: demoId });
+
+            // Save consent and participation code to localStorage
+            saveConsentToStorage();
+
             state.currentView = 'audioSetup';
             render();
         }
@@ -3027,6 +3128,10 @@
             state.participantId = id;
             state.userId = `PANDA_${id}_${Date.now()}`;
             logInteraction('participant_id_verified', { participantId: id });
+
+            // Save consent and participation code to localStorage
+            saveConsentToStorage();
+
             state.currentView = 'audioSetup';
             render();
         }
@@ -4571,28 +4676,6 @@
                         <p style="color: #FFFFFF;" class="text-gray-700">When you name things for your child—out loud, in the moment—you're building their vocabulary and helping their brain make connections. You don't need fancy tools. Just talk about what you see and do together.</p>
                     </div>
 
-                    <!-- Start Labeling Activity Button -->
-                    <div class="bg-gradient-to-r from-panda-orange to-orange-400 rounded-2xl p-6 mb-6 shadow-lg">
-                        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div class="text-center md:text-left">
-                                <h3 class="text-xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-2">
-                                    <span class="text-2xl">🐼</span>
-                                    Practice Labeling With Your Child
-                                </h3>
-                                <p class="text-white text-opacity-90 text-sm">Interactive activity where your child taps colors, shapes, and numbers. Earn stars by getting 3 in a row!</p>
-                            </div>
-                            <button
-                                onclick="state.currentView='childManagement'; state.userRole='child'; render();"
-                                class="bg-white text-panda-orange px-6 py-3 rounded-xl font-bold text-lg hover:bg-orange-50 transition-all shadow-md hover:shadow-lg whitespace-nowrap flex items-center gap-2"
-                            >
-                                <span>Start Labeling Activity</span>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- ROUTINE SECTIONS -->
                     <div class="mb-4">
                         <p class="text-lg text-gray-700 font-semibold mb-3">Click any routine below to see example scripts you can use:</p>
@@ -5556,36 +5639,6 @@
                                     </div>
                                 `}
 
-                                <!-- Learning Activities Section -->
-                                <div style="margin-top: 32px; margin-bottom: 32px;">
-                                    <h3 style="color: white; font-weight: 600; font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
-                                        <svg width="22" height="22" fill="none" stroke="#4B9CD3" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                        </svg>
-                                        Learning Activities
-                                    </h3>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                                        <!-- Practice Labeling Card -->
-                                        <div style="background: rgba(26, 39, 68, 0.6); border-radius: 20px; padding: 24px; border: 1px solid rgba(75, 156, 211, 0.15); transition: all 0.3s;" onmouseover="this.style.borderColor='rgba(75, 156, 211, 0.4)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'" onmouseout="this.style.borderColor='rgba(75, 156, 211, 0.15)'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                                                <span style="font-size: 1.5rem;">🏷️</span>
-                                                <span style="color: white; font-weight: 600; font-size: 1.1rem;">Practice Labeling</span>
-                                                ${selectedChild.preAssessmentComplete ? `
-                                                    <span style="background: rgba(75, 156, 211, 0.2); color: #4B9CD3; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; margin-left: auto;">Ready</span>
-                                                ` : `
-                                                    <span style="background: rgba(100, 116, 139, 0.2); color: #64748b; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; margin-left: auto;">🔒 Locked</span>
-                                                `}
-                                            </div>
-                                            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px; line-height: 1.5;">
-                                                Tap to practice colors, shapes, and numbers together.
-                                            </p>
-                                            <button onclick="${selectedChild.preAssessmentComplete ? `selectChild('${selectedChild.id}')` : `showAppToast('Please complete the pre-assessment first.', 'info')`}" style="width: 100%; padding: 12px 20px; background: ${selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #FF8C42 0%, #f97316 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: ${selectedChild.preAssessmentComplete ? 'white' : '#64748b'}; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.preAssessmentComplete ? 'box-shadow: 0 4px 15px rgba(255, 140, 66, 0.3);' : ''}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(255, 140, 66, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(255, 140, 66, 0.3)'"` : ''}>
-                                                ${selectedChild.preAssessmentComplete ? 'Start Labeling Activity →' : '🔒 Complete Pre-Assessment First'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <!-- Assessments Section -->
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px;">
                                     <!-- Pre-Assessment Card -->
@@ -5729,12 +5782,16 @@
             
             state.children.push(newChild);
             state.learningData[childId] = initializeLearningData();
-            
+
             // Set newly added child as selected for progress view
             state.selectedChildForProgress = childId;
-            
+
             logInteraction('child_added', { childId, name });
             input.value = '';
+
+            // Save to localStorage
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -5742,13 +5799,17 @@
             const child = state.children.find(c => c.id === childId);
             state.children = state.children.filter(c => c.id !== childId);
             delete state.learningData[childId];
-            
+
             // Reset selectedChildForProgress if this child was selected
             if (state.selectedChildForProgress === childId) {
                 state.selectedChildForProgress = state.children.length > 0 ? state.children[0].id : null;
             }
-            
+
             logInteraction('child_removed', { childId });
+
+            // Save to localStorage
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -7209,6 +7270,10 @@
 
             state.currentAssessment = null;
             state.selectedChildForProgress = child.id;
+
+            // Save to localStorage (child assessment status updated)
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -8214,7 +8279,10 @@
                 attempts: itemData.attempts,
                 mastered: itemData.mastered
             });
-            
+
+            // Save to localStorage (learning progress updated)
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -8399,7 +8467,11 @@
                 };
             }
         }
-        
+
+        // Check for saved consent/participation code before first render
+        // If found, skip consent/code screens and go directly to role selection
+        loadConsentFromStorage();
+
         render();
     </script>
 </body>
