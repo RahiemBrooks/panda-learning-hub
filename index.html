@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Global UI and accessibility polish complete -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,11 +11,42 @@
         /* CSS Reset and Base Styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.5;
             color: #ffffff;
             background: #13294B;
+        }
+
+        /* Accessibility: Focus styles for keyboard navigation */
+        :focus-visible {
+            outline: 2px solid var(--unc-blue, #4B9CD3);
+            outline-offset: 2px;
+        }
+
+        /* Accessibility: Skip to content link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--accent-orange, #FF8C42);
+            color: white;
+            padding: 8px 16px;
+            z-index: 10000;
+            font-weight: 600;
+            border-radius: 0 0 8px 0;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Accessibility: Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
         
         :root {
@@ -54,7 +86,7 @@
             /* Text hierarchy */
             --text-primary: #F1F5F9;
             --text-secondary: #CBD5E1;
-            --text-muted: #64748B;
+            --text-muted: #8B9CB8; /* Improved contrast from #64748B */
             
             /* Accent Orange (primary accent) */
             --accent-orange: #FF8C42;
@@ -2603,7 +2635,7 @@
                     <div style="max-width: 800px; width: 100%;">
                         <!-- Step indicator -->
                         <div style="text-align: center; margin-bottom: 12px;">
-                            <span style="color: #64748b; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 4 of 5</span>
+                            <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 4 of 5</span>
                         </div>
 
                         <!-- Header -->
@@ -2613,7 +2645,7 @@
                                 Who's using PANDA today?
                             </h2>
                             <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 8px;">Choose your starting point</p>
-                            <p style="color: #64748b; font-size: 0.9rem;">You can switch anytime from the menu.</p>
+                            <p style="color: #94a3b8; font-size: 0.9rem;">You can switch anytime from the menu.</p>
                         </div>
 
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
@@ -3186,31 +3218,31 @@
 
             return `
                 <!-- Panda voice Toggle -->
-                <div onclick="toggleVoice()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Panda voice">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${voiceOn ? '#10b981' : '#64748b'}" stroke-width="2">
+                <button onclick="toggleVoice()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Panda voice: currently ${voiceOn ? 'on' : 'off'}" aria-pressed="${voiceOn}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${voiceOn ? '#10b981' : '#64748b'}" stroke-width="2" aria-hidden="true">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                         <line x1="12" y1="19" x2="12" y2="23"/>
                         <line x1="8" y1="23" x2="16" y2="23"/>
                     </svg>
                     <span style="color: ${voiceOn ? '#e2e8f0' : '#94a3b8'}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Panda voice</span>
-                    <div style="width: 40px; height: 22px; background: ${voiceOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;">
+                    <div style="width: 40px; height: 22px; background: ${voiceOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;" aria-hidden="true">
                         <div style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; ${voiceOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
                     </div>
-                </div>
+                </button>
 
                 <!-- Background music Toggle -->
-                <div onclick="toggleBackgroundMusic()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Background music">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${musicOn ? '#10b981' : '#64748b'}" stroke-width="2">
+                <button onclick="toggleBackgroundMusic()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Background music: currently ${musicOn ? 'on' : 'off'}" aria-pressed="${musicOn}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${musicOn ? '#10b981' : '#64748b'}" stroke-width="2" aria-hidden="true">
                         <path d="M9 18V5l12-2v13"/>
                         <circle cx="6" cy="18" r="3"/>
                         <circle cx="18" cy="16" r="3"/>
                     </svg>
                     <span style="color: ${musicOn ? '#e2e8f0' : '#94a3b8'}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Background music</span>
-                    <div style="width: 40px; height: 22px; background: ${musicOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;">
+                    <div style="width: 40px; height: 22px; background: ${musicOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;" aria-hidden="true">
                         <div style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; ${musicOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
                     </div>
-                </div>
+                </button>
             `;
         }
         
@@ -3342,7 +3374,7 @@
 
                             <!-- Step indicator -->
                             <div style="text-align: center; margin-bottom: 8px;">
-                                <span style="color: #64748b; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 3 of 5</span>
+                                <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 3 of 5</span>
                             </div>
 
                             <!-- Header with Panda -->
@@ -3407,7 +3439,7 @@
 
                             <!-- Privacy Message -->
                             <div style="text-align: center; margin-bottom: 24px; padding: 0 8px;">
-                                <p style="color: #64748b; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                                <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5; margin: 0;">
                                     🔒 Audio stays on this device. We do not store or transmit your child's voice.
                                 </p>
                             </div>
@@ -3473,21 +3505,21 @@
                     <div class="sidebar-overlay ${state.sidebarOpen ? 'open' : ''}" onclick="toggleSidebar()"></div>
 
                     <!-- Sidebar Toggle Button (mobile) -->
-                    <button class="sidebar-toggle" onclick="toggleSidebar()">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
 
                     <!-- Left Sidebar -->
-                    <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}">
+                    <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}" role="navigation" aria-label="Main navigation">
                         <div class="sidebar-header">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 1.5rem;">🐼</span>
+                                <span style="font-size: 1.5rem;" aria-hidden="true">🐼</span>
                                 <span style="font-weight: 700; color: white; font-size: 1.1rem;">PANDA</span>
                             </div>
                         </div>
-                        <nav class="sidebar-nav">
+                        <nav class="sidebar-nav" aria-label="Dashboard navigation">
                             <div class="sidebar-nav-item ${state.activeTab === 'home' ? 'active' : ''}" onclick="setActiveTab('home'); closeSidebar();">
                                 ${homeIcon}
                                 Home
@@ -3541,7 +3573,7 @@
                                 ${selectedChild ? `
                                     <p style="color: #94a3b8; font-size: 0.95rem;">You're viewing <span style="color: #4B9CD3; font-weight: 500;">${selectedChild.name}</span>${selectedChild.age ? `, age ${selectedChild.age}` : ''}</p>
                                 ` : `
-                                    <p style="color: #64748b; font-size: 0.95rem;">No child selected. Add a child in Progress to track learning.</p>
+                                    <p style="color: #94a3b8; font-size: 0.95rem;">No child selected. Add a child in Progress to track learning.</p>
                                 `}
                             </div>
 
