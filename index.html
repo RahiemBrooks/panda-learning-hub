@@ -158,22 +158,14 @@
         }
 
         /* Opening Page Logo */
-       .opening-logo {
-    display: flex;
-    height: 140px;
-    width: 140px;
-    margin: 0 auto 1.75rem auto;
+      .opening-logo {
+    display: block;
+    margin: 1.75rem auto;
+    width: clamp(140px, 28vw, 210px);
+    height: clamp(140px, 28vw, 210px);
     object-fit: contain;
-    justify-content: center;
-    align-items: center;
+    filter: drop-shadow(0 4px 12px rgba(255, 140, 66, 0.3));
 }
-
-        @media (max-width: 640px) {
-            .opening-logo {
-                height: 115px;
-                margin-bottom: 1.5rem;
-            }
-        }
 
         /* Progress Ring Styles (Synthesis-inspired) */
         .progress-ring {
