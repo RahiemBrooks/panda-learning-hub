@@ -3710,6 +3710,36 @@
             const selectedChild = state.children.find(c => c.id === state.activeChildId);
             const colorQuestStats = state.colorQuest;
 
+            // Compute learning progress from canonical learningData (same source as child progress view)
+            const getLearningStats = (childId) => {
+                if (!childId || !state.learningData[childId]) {
+                    return { totalMastered: 0, colorsMastered: 0, colorsTotal: 0, colorsCorrect: 0, colorsAttempts: 0 };
+                }
+                const data = state.learningData[childId];
+                let totalMastered = 0;
+                let colorsMastered = 0;
+                let colorsTotal = 0;
+                let colorsCorrect = 0;
+                let colorsAttempts = 0;
+
+                Object.keys(data).forEach(subject => {
+                    Object.keys(data[subject]).forEach(item => {
+                        const itemData = data[subject][item];
+                        if (itemData.mastered) totalMastered++;
+                        if (subject === 'colors') {
+                            colorsTotal++;
+                            if (itemData.mastered) colorsMastered++;
+                            colorsCorrect += itemData.correct || 0;
+                            colorsAttempts += itemData.attempts || 0;
+                        }
+                    });
+                });
+
+                return { totalMastered, colorsMastered, colorsTotal, colorsCorrect, colorsAttempts };
+            };
+
+            const learningStats = getLearningStats(state.activeChildId);
+
             // Home icon SVG
             const homeIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
@@ -3841,8 +3871,8 @@
                                             </div>
                                             <span style="color: #94a3b8; font-size: 0.9rem;">This Week</span>
                                         </div>
-                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${colorQuestStats.totalAttempts || 0}</div>
-                                        <div style="color: #64748b; font-size: 0.85rem;">Activities completed</div>
+                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${learningStats.totalMastered}</div>
+                                        <div style="color: #64748b; font-size: 0.85rem;">Items mastered</div>
                                     </div>
 
                                     <!-- Colors Mastered Card -->
@@ -3853,8 +3883,8 @@
                                             </div>
                                             <span style="color: #94a3b8; font-size: 0.9rem;">Colors</span>
                                         </div>
-                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${colorQuestStats.correctAnswers || 0}</div>
-                                        <div style="color: #64748b; font-size: 0.85rem;">Correct answers</div>
+                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${learningStats.colorsMastered}</div>
+                                        <div style="color: #64748b; font-size: 0.85rem;">Colors mastered</div>
                                     </div>
 
                                     <!-- Accuracy Card -->
@@ -3867,8 +3897,8 @@
                                             </div>
                                             <span style="color: #94a3b8; font-size: 0.9rem;">Accuracy</span>
                                         </div>
-                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${colorQuestStats.totalAttempts > 0 ? Math.round((colorQuestStats.correctAnswers / colorQuestStats.totalAttempts) * 100) : 0}%</div>
-                                        <div style="color: #64748b; font-size: 0.85rem;">Success rate</div>
+                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${learningStats.colorsTotal > 0 ? Math.round((learningStats.colorsMastered / learningStats.colorsTotal) * 100) : 0}%</div>
+                                        <div style="color: #64748b; font-size: 0.85rem;">Colors mastery</div>
                                     </div>
                                 </div>
 
