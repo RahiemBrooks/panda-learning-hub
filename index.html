@@ -6301,10 +6301,15 @@
             const accentColor = assessment.type === 'post' ? '#10b981' : '#4B9CD3';
             const accentGlow = assessment.type === 'post' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)';
             
+            const isPost = assessment.type === 'post';
+            const badgeLabel = isPost ? 'Post-Assessment' : 'Pre-Assessment';
+            const badgeEmoji = isPost ? '🎯' : '📊';
+            const borderColor = isPost ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)';
+
             return `
                 <div style="min-height: 100vh; background: linear-gradient(180deg, #0B1120 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;">
                     <!-- Starfield Background -->
-                    <div style="position: absolute; inset: 0; background-image: 
+                    <div style="position: absolute; inset: 0; background-image:
                         radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 30% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
                         radial-gradient(1.5px 1.5px at 50% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
@@ -6314,20 +6319,36 @@
                         radial-gradient(1.5px 1.5px at 40% 85%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.25) 0%, transparent 100%);
                         pointer-events: none; z-index: 0;"></div>
-                    
+
                     <div style="position: relative; z-index: 1; max-width: 600px; width: 100%;">
-                        <div style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); border-radius: 32px; padding: 48px 40px; border: 1px solid rgba(75, 156, 211, 0.2); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-                            
+                        <div style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); border-radius: 32px; padding: 40px 36px; border: 2px solid ${borderColor}; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px ${accentGlow};">
+
+                            <!-- Assessment Type Badge -->
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <span style="display: inline-flex; align-items: center; gap: 8px; background: ${isPost ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : 'linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%)'}; color: white; font-size: 0.8rem; font-weight: 700; padding: 8px 16px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    <span>${badgeEmoji}</span>
+                                    <span>${badgeLabel}</span>
+                                </span>
+                            </div>
+
                             <!-- Header -->
-                            <div style="text-align: center; margin-bottom: 32px;">
-                                <p style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: ${accentColor}; margin-bottom: 8px;">${assessment.type === 'post' ? 'Post-Assessment' : 'Pre-Assessment'}</p>
-                                <h2 style="font-size: 1.75rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">${child.name}'s Assessment</h2>
-                                <p style="color: #94a3b8; font-size: 1rem; margin-bottom: 16px;">Question ${assessment.currentIndex + 1} of ${assessment.items.length}</p>
-                                
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <h2 style="font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">${child.name}'s ${isPost ? 'Progress Check' : 'Starting Point'}</h2>
+                                <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px;">Question ${assessment.currentIndex + 1} of ${assessment.items.length}</p>
+
                                 <!-- Progress Bar -->
                                 <div style="width: 100%; background: #2d3f5f; border-radius: 9999px; height: 8px; overflow: hidden;">
-                                    <div style="background: linear-gradient(90deg, ${accentColor}, ${assessment.type === 'post' ? '#34d399' : '#7BAFD4'}); height: 100%; width: ${progress}%; transition: width 0.3s; box-shadow: 0 0 10px ${accentGlow};"></div>
+                                    <div style="background: linear-gradient(90deg, ${accentColor}, ${isPost ? '#34d399' : '#7BAFD4'}); height: 100%; width: ${progress}%; transition: width 0.3s; box-shadow: 0 0 10px ${accentGlow};"></div>
                                 </div>
+                            </div>
+
+                            <!-- Friendly Explanation -->
+                            <div style="background: rgba(255, 140, 66, 0.1); border: 1px solid rgba(255, 140, 66, 0.25); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; text-align: center;">
+                                <p style="color: #FF8C42; font-size: 0.85rem; font-weight: 500; margin: 0;">
+                                    ${isPost
+                                        ? "💡 This isn't a test! We're simply seeing how much your child has grown."
+                                        : "💡 This isn't a test! It just helps us see where to start learning together."}
+                                </p>
                             </div>
                             
                             <!-- Item Display -->
@@ -6435,34 +6456,137 @@
             const assessment = state.currentAssessment;
             const correct = assessment.responses.filter(r => r.correct).length;
             const score = Math.round((correct / assessment.responses.length) * 100);
-            
+
             if (state.assessmentType === 'post') {
                 // Post-assessment completion
                 child.postAssessmentComplete = true;
                 child.postAssessmentScore = score;
-                
-                const improvement = child.preAssessmentScore ? score - child.preAssessmentScore : 0;
-                const message = improvement > 0 
-                    ? `🎉 Amazing Progress!\n\n${child.name} scored ${score}%\n\nThat's a ${improvement}% improvement from the pre-assessment!`
-                    : `Assessment Complete!\n\n${child.name} scored ${score}%`;
-                
-                alert(message);
-                
-                state.currentAssessment = null;
-                state.currentView = 'childManagement';
-                state.selectedChildForProgress = child.id;
+
+                // Show result modal instead of alert
+                state.assessmentResult = {
+                    type: 'post',
+                    childName: child.name,
+                    score: score,
+                    preScore: child.preAssessmentScore || 0,
+                    correct: correct,
+                    total: assessment.responses.length
+                };
             } else {
                 // Pre-assessment completion
                 child.preAssessmentComplete = true;
                 child.preAssessmentScore = score;
-                
-                alert(`Assessment Complete!\n\n${child.name} scored ${score}%\n\nLet's start learning!`);
-                
-                state.currentAssessment = null;
-                state.currentView = 'childManagement';
-                state.selectedChildForProgress = child.id;
+
+                // Show result modal instead of alert
+                state.assessmentResult = {
+                    type: 'pre',
+                    childName: child.name,
+                    score: score,
+                    correct: correct,
+                    total: assessment.responses.length
+                };
             }
+
+            state.currentAssessment = null;
+            state.selectedChildForProgress = child.id;
             render();
+        }
+
+        function renderAssessmentResultModal() {
+            const result = state.assessmentResult;
+            if (!result) return '';
+
+            const isPost = result.type === 'post';
+            const improvement = isPost ? result.score - result.preScore : 0;
+            const accentColor = isPost ? '#10b981' : '#4B9CD3';
+
+            // Determine the message based on improvement
+            let growthMessage = '';
+            let growthEmoji = '';
+            if (isPost) {
+                if (improvement > 10) {
+                    growthMessage = "Wonderful growth! Your practice is really paying off.";
+                    growthEmoji = '🌟';
+                } else if (improvement > 0) {
+                    growthMessage = "Great progress! Every bit of learning counts.";
+                    growthEmoji = '📈';
+                } else if (improvement === 0) {
+                    growthMessage = "Holding steady! Keep practicing together.";
+                    growthEmoji = '💪';
+                } else {
+                    growthMessage = "That's okay! Learning isn't always a straight line. Keep going!";
+                    growthEmoji = '💙';
+                }
+            }
+
+            return `
+                <div style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 1rem;">
+                    <div style="max-width: 480px; width: 100%; background: linear-gradient(135deg, #1a2744 0%, #13294B 100%); border-radius: 24px; padding: 40px 32px; border: 2px solid ${isPost ? 'rgba(16, 185, 129, 0.4)' : 'rgba(75, 156, 211, 0.4)'}; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px ${isPost ? 'rgba(16, 185, 129, 0.2)' : 'rgba(75, 156, 211, 0.2)'}; text-align: center;">
+
+                        <!-- Celebration Icon -->
+                        <div style="font-size: 4rem; margin-bottom: 16px;">${isPost ? '🎉' : '✨'}</div>
+
+                        <!-- Title -->
+                        <h2 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 8px;">
+                            ${isPost ? 'Progress Check Complete!' : 'Starting Point Set!'}
+                        </h2>
+                        <p style="color: #94a3b8; font-size: 1rem; margin-bottom: 24px;">${result.childName}'s ${isPost ? 'post' : 'pre'}-assessment results</p>
+
+                        <!-- Score Display -->
+                        <div style="background: rgba(15, 23, 42, 0.6); border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                            <div style="font-size: 3.5rem; font-weight: 700; color: ${accentColor}; margin-bottom: 8px;">${result.score}%</div>
+                            <p style="color: #94a3b8; font-size: 0.9rem;">${result.correct} out of ${result.total} correct</p>
+                        </div>
+
+                        ${isPost ? `
+                            <!-- Before/After Comparison -->
+                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">Growth Journey</p>
+
+                                <!-- Comparison Bars -->
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <span style="color: #94a3b8; font-size: 0.85rem; width: 50px; text-align: right;">Before</span>
+                                    <div style="flex: 1; background: rgba(75, 156, 211, 0.2); border-radius: 8px; height: 24px; overflow: hidden; position: relative;">
+                                        <div style="background: linear-gradient(90deg, #4B9CD3, #7BAFD4); height: 100%; width: ${result.preScore}%; border-radius: 8px;"></div>
+                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: white; font-size: 0.8rem; font-weight: 600;">${result.preScore}%</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                    <span style="color: #10b981; font-size: 0.85rem; width: 50px; text-align: right; font-weight: 600;">After</span>
+                                    <div style="flex: 1; background: rgba(16, 185, 129, 0.2); border-radius: 8px; height: 24px; overflow: hidden; position: relative;">
+                                        <div style="background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: ${result.score}%; border-radius: 8px;"></div>
+                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: white; font-size: 0.8rem; font-weight: 600;">${result.score}%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Growth Message -->
+                                <div style="background: ${improvement >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)'}; border-radius: 12px; padding: 12px 16px;">
+                                    <p style="color: ${improvement >= 0 ? '#34d399' : '#60a5fa'}; font-size: 1rem; font-weight: 600; margin: 0;">
+                                        ${growthEmoji} ${improvement > 0 ? `+${improvement}% improvement!` : improvement === 0 ? 'Same score' : `${improvement}% change`}
+                                    </p>
+                                    <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 4px;">${growthMessage}</p>
+                                </div>
+                            </div>
+                        ` : `
+                            <!-- Pre-Assessment Message -->
+                            <div style="background: rgba(75, 156, 211, 0.1); border: 1px solid rgba(75, 156, 211, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                                <p style="color: #7BAFD4; font-size: 0.95rem; font-weight: 500; margin: 0;">
+                                    🚀 Great starting point! This helps us know exactly where to begin ${result.childName}'s learning journey.
+                                </p>
+                            </div>
+                        `}
+
+                        <!-- Continue Button -->
+                        <button
+                            onclick="state.assessmentResult = null; state.currentView = 'childManagement'; render();"
+                            style="width: 100%; padding: 16px 32px; background: linear-gradient(135deg, ${accentColor} 0%, ${isPost ? '#34d399' : '#7BAFD4'} 100%); color: white; border-radius: 14px; font-size: 1.1rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px ${isPost ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)'}; transition: all 0.2s;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px ${isPost ? 'rgba(16, 185, 129, 0.4)' : 'rgba(75, 156, 211, 0.4)'}'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px ${isPost ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)'}'"
+                        >
+                            ${isPost ? "See Progress →" : "Start Learning →"}
+                        </button>
+                    </div>
+                </div>
+            `;
         }
         
         function startPostAssessment(childId) {
@@ -7498,12 +7622,31 @@
                 if (existingControls) {
                     existingControls.remove();
                 }
-                
+
                 // Add new controls
                 const controlsDiv = document.createElement('div');
                 controlsDiv.id = 'audioControlsOverlay';
                 controlsDiv.innerHTML = renderAudioControls();
                 document.body.appendChild(controlsDiv);
+            }
+
+            // Add assessment result modal if needed
+            if (state.assessmentResult) {
+                const existingModal = document.getElementById('assessmentResultModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                const modalDiv = document.createElement('div');
+                modalDiv.id = 'assessmentResultModal';
+                modalDiv.innerHTML = renderAssessmentResultModal();
+                document.body.appendChild(modalDiv);
+            } else {
+                // Remove modal if it exists but shouldn't be shown
+                const existingModal = document.getElementById('assessmentResultModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
             }
         }
 
