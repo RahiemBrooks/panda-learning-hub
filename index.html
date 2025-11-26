@@ -1216,7 +1216,7 @@
             currentQuestion: null,
             feedback: '',
             isListening: false,
-            activeTab: 'coaching',
+            activeTab: 'home',
             sidebarOpen: false, // Mobile sidebar state
             // Child learning system
             children: [],
@@ -2973,19 +2973,61 @@
 
         function renderParentDashboard() {
             const maxDay = coachingTips.length;
-            
+            const selectedChild = state.children.find(c => c.id === state.activeChildId);
+            const colorQuestStats = state.colorQuest;
+
+            // Home icon SVG
+            const homeIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>`;
+
+            // Tips icon SVG
+            const tipsIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>`;
+
+            // Labels icon SVG
+            const labelsIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+            </svg>`;
+
+            // Calendar icon SVG
+            const calendarIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>`;
+
+            // Journal icon SVG
+            const journalIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>`;
+
+            // Resources icon SVG
+            const resourcesIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>`;
+
+            // Surveys icon SVG
+            const surveysIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+            </svg>`;
+
+            // Progress icon SVG
+            const progressIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>`;
+
             return `
                 <div class="dashboard-layout">
                     <!-- Sidebar Overlay (mobile) -->
                     <div class="sidebar-overlay ${state.sidebarOpen ? 'open' : ''}" onclick="toggleSidebar()"></div>
-                    
+
                     <!-- Sidebar Toggle Button (mobile) -->
                     <button class="sidebar-toggle" onclick="toggleSidebar()">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
-                    
+
                     <!-- Left Sidebar -->
                     <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}">
                         <div class="sidebar-header">
@@ -2995,51 +3037,41 @@
                             </div>
                         </div>
                         <nav class="sidebar-nav">
+                            <div class="sidebar-nav-item ${state.activeTab === 'home' ? 'active' : ''}" onclick="setActiveTab('home'); closeSidebar();">
+                                ${homeIcon}
+                                Home
+                            </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'coaching' ? 'active' : ''}" onclick="setActiveTab('coaching'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
+                                ${tipsIcon}
                                 Coaching Tips
                             </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'labeling' ? 'active' : ''}" onclick="setActiveTab('labeling'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                </svg>
+                                ${labelsIcon}
                                 Home Labeling
                             </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'calendar' ? 'active' : ''}" onclick="setActiveTab('calendar'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                Learning Calendar
+                                ${calendarIcon}
+                                Calendar
                             </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'journal' ? 'active' : ''}" onclick="setActiveTab('journal'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
+                                ${journalIcon}
                                 Journal
                             </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'resources' ? 'active' : ''}" onclick="setActiveTab('resources'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                </svg>
-                                Resources
+                                ${resourcesIcon}
+                                Parent Resources
                             </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'surveys' ? 'active' : ''}" onclick="setActiveTab('surveys'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                                </svg>
+                                ${surveysIcon}
                                 Surveys
                             </div>
                             <div class="sidebar-nav-item ${state.activeTab === 'analytics' ? 'active' : ''}" onclick="setActiveTab('analytics'); closeSidebar();">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
+                                ${progressIcon}
                                 Progress
                             </div>
                         </nav>
                     </aside>
-                    
+
                     <!-- Top App Bar -->
                     <header class="app-bar">
                         <button class="back-btn" onclick="resetApp()">
@@ -3048,39 +3080,115 @@
                         <div class="app-bar-title">Parent Dashboard</div>
                         <div style="width: 80px;"></div>
                     </header>
-                    
+
                     <!-- Main Content Area -->
                     <main class="main-content">
                         <div class="content-wrapper">
-                            <div id="tabContent"></div>
+                            <!-- Welcome Header -->
+                            <div style="margin-bottom: 24px;">
+                                <h1 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 4px;">Welcome back, Parent!</h1>
+                                ${selectedChild ? `
+                                    <p style="color: #94a3b8; font-size: 0.95rem;">You're viewing <span style="color: #4B9CD3; font-weight: 500;">${selectedChild.name}</span>${selectedChild.age ? `, age ${selectedChild.age}` : ''}</p>
+                                ` : `
+                                    <p style="color: #64748b; font-size: 0.95rem;">No child selected. Add a child in Progress to track learning.</p>
+                                `}
+                            </div>
+
+                            <!-- Dashboard Home Content (when home tab is active) -->
+                            ${state.activeTab === 'home' ? `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px;">
+                                    <!-- Learning This Week Card -->
+                                    <div style="background: rgba(26, 39, 68, 0.8); border-radius: 20px; padding: 24px; border: 1px solid rgba(75, 156, 211, 0.2);">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                            <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                                <svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </div>
+                                            <span style="color: #94a3b8; font-size: 0.9rem;">This Week</span>
+                                        </div>
+                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${colorQuestStats.totalAttempts || 0}</div>
+                                        <div style="color: #64748b; font-size: 0.85rem;">Activities completed</div>
+                                    </div>
+
+                                    <!-- Colors Mastered Card -->
+                                    <div style="background: rgba(26, 39, 68, 0.8); border-radius: 20px; padding: 24px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                            <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                                <span style="font-size: 1.25rem;">🎨</span>
+                                            </div>
+                                            <span style="color: #94a3b8; font-size: 0.9rem;">Colors</span>
+                                        </div>
+                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${colorQuestStats.correctAnswers || 0}</div>
+                                        <div style="color: #64748b; font-size: 0.85rem;">Correct answers</div>
+                                    </div>
+
+                                    <!-- Accuracy Card -->
+                                    <div style="background: rgba(26, 39, 68, 0.8); border-radius: 20px; padding: 24px; border: 1px solid rgba(255, 140, 66, 0.2);">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                            <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #FF8C42 0%, #F4A460 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                                <svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                                </svg>
+                                            </div>
+                                            <span style="color: #94a3b8; font-size: 0.9rem;">Accuracy</span>
+                                        </div>
+                                        <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 4px;">${colorQuestStats.totalAttempts > 0 ? Math.round((colorQuestStats.correctAnswers / colorQuestStats.totalAttempts) * 100) : 0}%</div>
+                                        <div style="color: #64748b; font-size: 0.85rem;">Success rate</div>
+                                    </div>
+                                </div>
+
+                                <!-- Start Learning Button -->
+                                <div style="background: linear-gradient(135deg, rgba(75, 156, 211, 0.15) 0%, rgba(255, 140, 66, 0.15) 100%); border-radius: 24px; padding: 32px; border: 1px solid rgba(75, 156, 211, 0.2); text-align: center;">
+                                    <div style="font-size: 3rem; margin-bottom: 16px;">🐼</div>
+                                    <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 8px;">Ready to Learn?</h2>
+                                    <p style="color: #94a3b8; font-size: 1rem; margin-bottom: 24px;">Start a fun learning session with Panda!</p>
+                                    <button onclick="selectRole('child')" style="padding: 16px 48px; background: linear-gradient(135deg, #FF8C42 0%, #F4A460 100%); color: white; border: none; border-radius: 16px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(255, 140, 66, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px rgba(255, 140, 66, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(255, 140, 66, 0.3)'">
+                                        Start Learning →
+                                    </button>
+                                </div>
+
+                                <!-- Quick Links -->
+                                <div style="margin-top: 32px;">
+                                    <h3 style="color: #94a3b8; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;">Quick Actions</h3>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                                        <button onclick="setActiveTab('coaching')" style="background: rgba(26, 39, 68, 0.6); border: 1px solid rgba(75, 156, 211, 0.15); border-radius: 12px; padding: 16px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(75, 156, 211, 0.4)'" onmouseout="this.style.borderColor='rgba(75, 156, 211, 0.15)'">
+                                            <span style="font-size: 1.5rem; display: block; margin-bottom: 8px;">💡</span>
+                                            <span style="color: white; font-weight: 500; font-size: 0.95rem;">View Tips</span>
+                                        </button>
+                                        <button onclick="setActiveTab('journal')" style="background: rgba(26, 39, 68, 0.6); border: 1px solid rgba(75, 156, 211, 0.15); border-radius: 12px; padding: 16px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(75, 156, 211, 0.4)'" onmouseout="this.style.borderColor='rgba(75, 156, 211, 0.15)'">
+                                            <span style="font-size: 1.5rem; display: block; margin-bottom: 8px;">📝</span>
+                                            <span style="color: white; font-weight: 500; font-size: 0.95rem;">Journal</span>
+                                        </button>
+                                        <button onclick="setActiveTab('analytics')" style="background: rgba(26, 39, 68, 0.6); border: 1px solid rgba(75, 156, 211, 0.15); border-radius: 12px; padding: 16px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(75, 156, 211, 0.4)'" onmouseout="this.style.borderColor='rgba(75, 156, 211, 0.15)'">
+                                            <span style="font-size: 1.5rem; display: block; margin-bottom: 8px;">📊</span>
+                                            <span style="color: white; font-weight: 500; font-size: 0.95rem;">Progress</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div id="tabContent"></div>
+                            `}
                         </div>
                     </main>
-                    
+
                     <!-- Mobile Bottom Navigation -->
                     <nav class="mobile-bottom-nav">
                         <div class="mobile-nav-items">
+                            <div class="mobile-nav-item ${state.activeTab === 'home' ? 'active' : ''}" onclick="setActiveTab('home')">
+                                ${homeIcon}
+                                Home
+                            </div>
                             <div class="mobile-nav-item ${state.activeTab === 'coaching' ? 'active' : ''}" onclick="setActiveTab('coaching')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
+                                ${tipsIcon}
                                 Tips
                             </div>
-                            <div class="mobile-nav-item ${state.activeTab === 'labeling' ? 'active' : ''}" onclick="setActiveTab('labeling')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                </svg>
-                                Labels
-                            </div>
                             <div class="mobile-nav-item ${state.activeTab === 'journal' ? 'active' : ''}" onclick="setActiveTab('journal')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
+                                ${journalIcon}
                                 Journal
                             </div>
                             <div class="mobile-nav-item ${state.activeTab === 'analytics' ? 'active' : ''}" onclick="setActiveTab('analytics')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
+                                ${progressIcon}
                                 Progress
                             </div>
                         </div>
