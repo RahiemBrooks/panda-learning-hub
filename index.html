@@ -4423,6 +4423,22 @@
                 return '<div class="text-center p-8">Loading...</div>';
             }
 
+            // Parent tips based on question type
+            const parentTips = {
+                color: [
+                    "Try pointing to this color around the house later today!",
+                    "At mealtime, ask 'What color is your food?'",
+                    "During a walk, play 'I spy something this color!'"
+                ],
+                shape: [
+                    "Look for this shape in books or around the room!",
+                    "Trace the shape with your finger together.",
+                    "Find this shape in snacks or toys at home!"
+                ]
+            };
+            const tipList = parentTips[state.currentQuestion.type] || parentTips.color;
+            const randomTip = tipList[Math.floor(Math.random() * tipList.length)];
+
             return `
                 <div class="min-h-screen flex flex-col">
                     <!-- Header -->
@@ -4432,7 +4448,10 @@
                                 <div class="bg-white rounded-full p-2">
                                     <div class="w-6 h-6 text-panda-orange">${icons.brain}</div>
                                 </div>
-                                <span class="text-white font-semibold">Learning with AI Tutor</span>
+                                <div>
+                                    <span class="text-white font-semibold block">Quick Practice Mode</span>
+                                    <span class="text-white/70 text-xs">Fun practice, no tracking</span>
+                                </div>
                             </div>
                             <div class="flex items-center gap-4">
                                 <div class="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-white font-semibold">
@@ -4445,21 +4464,37 @@
                         </div>
                     </div>
 
+                    <!-- Quick Practice Explanation -->
+                    <div class="bg-blue-50 border-b border-blue-100 py-2 px-4 text-center">
+                        <p class="text-blue-700 text-sm">
+                            🎮 This is a quick practice mode – just for fun! Progress here is separate from the main learning journey.
+                        </p>
+                    </div>
+
                     <!-- Main Content -->
                     <div class="flex-1 flex items-center justify-center p-8">
                         <div class="max-w-4xl w-full">
                             <!-- Question Display -->
-                            <div class="bg-white rounded-3xl shadow-2xl p-12 text-center mb-8">
+                            <div class="bg-white rounded-3xl shadow-2xl p-12 text-center mb-6">
                                 <div class="text-9xl mb-8 animate-bounce">${state.currentQuestion.image}</div>
                                 <h2 class="text-4xl font-bold text-panda-blue mb-6">
                                     ${state.currentQuestion.question}
                                 </h2>
-                                
+
                                 ${state.feedback ? `
-                                    <div class="text-3xl font-bold mb-6 ${state.feedback.includes('Amazing') || state.feedback.includes('Perfect') || state.feedback.includes('Excellent') || state.feedback.includes('Great') ? 'text-green-600' : 'text-panda-blue'}">
+                                    <div class="text-3xl font-bold mb-6 ${state.feedback.includes('Yay') || state.feedback.includes('Hooray') || state.feedback.includes('Yes') || state.feedback.includes('Wow') ? 'text-green-600' : 'text-panda-blue'}">
                                         ${state.feedback}
                                     </div>
                                 ` : ''}
+                            </div>
+
+                            <!-- Parent Tip -->
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
+                                <span class="text-lg">💡</span>
+                                <div>
+                                    <p class="text-amber-800 text-sm font-medium">Parent tip:</p>
+                                    <p class="text-amber-700 text-sm">${randomTip}</p>
+                                </div>
                             </div>
 
                             <!-- Interactive Options -->
@@ -7517,27 +7552,29 @@
             state.childProgress.total++;
             if (isCorrect) {
                 state.childProgress.correct++;
+                // Simple, warm praise for young children (2-4 years)
                 const praises = [
-                    'Amazing! You did it! 🎉',
-                    'Wow! Great job! ⭐',
-                    'Perfect! You are so smart! 🌟',
-                    'Excellent work! 🎊',
-                    'That is right! High five! ✋'
+                    'Yay! You did it! 🎉',
+                    'Hooray! 🌟',
+                    'Yes! That is it! ⭐',
+                    'Wow! 🎊',
+                    'You found it! ✋'
                 ];
                 const praise = praises[Math.floor(Math.random() * praises.length)];
                 state.feedback = praise;
                 speakText(praise);
                 logInteraction('correct_answer', { lesson: state.currentQuestion });
-                
+
                 setTimeout(() => {
                     startNewLesson();
                     render();
                 }, 3000);
             } else {
+                // Gentle, encouraging responses for young children
                 const encouragements = [
-                    'Not quite! Let us try again together! 💪',
-                    'That is okay! Let us look closely! 👀',
-                    'Good try! Want to try once more? 🙂'
+                    "Let's try again! 💪",
+                    "Oops! One more try! 🙂",
+                    "Let's look together! 👀"
                 ];
                 const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                 state.feedback = encouragement;
