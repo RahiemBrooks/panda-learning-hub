@@ -1235,6 +1235,7 @@
             audioSetup: {
                 musicEnabled: null, // null = not yet chosen, true/false = user choice
                 microphoneEnabled: false,
+                micDenied: false, // true if browser denied mic permission
                 musicPlaying: false,
                 setupComplete: false
             },
@@ -2787,14 +2788,16 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(track => track.stop());
-                
+
                 state.audioSetup.microphoneEnabled = true;
+                state.audioSetup.micDenied = false;
                 logInteraction('microphone_permission', { granted: true });
                 render();
-                
+
             } catch (error) {
                 console.log('Microphone permission denied:', error);
                 state.audioSetup.microphoneEnabled = false;
+                state.audioSetup.micDenied = true;
                 logInteraction('microphone_permission', { granted: false, error: error.message });
                 render();
             }
@@ -2802,7 +2805,33 @@
         
         function skipMicrophoneSetup() {
             state.audioSetup.microphoneEnabled = false;
+            state.audioSetup.micDenied = false;
             logInteraction('microphone_permission', { skipped: true });
+            render();
+        }
+
+        function playPandaVoicePreview() {
+            if (!window.speechSynthesis) {
+                alert('Your browser does not support voice preview.');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance("Hi there! I'm Panda, and I'm so excited to learn with you today!");
+            const voices = window.speechSynthesis.getVoices();
+            // Use same voice selection logic as speakText for consistency
+            let selectedVoice = voices.find(v => v.name.includes('Alex'))
+                             || voices.find(v => v.name.includes('Daniel'))
+                             || voices.find(v => v.name.includes('David'))
+                             || voices.find(v => v.name.includes('Junior'))
+                             || voices.find(v => v.name.includes('Nathan'))
+                             || voices.find(v => v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female'))
+                             || voices.find(v => v.lang.startsWith('en'))
+                             || voices[0];
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.pitch = state.voiceSettings.pitch;
+            utterance.rate = state.voiceSettings.rate;
+            window.speechSynthesis.speak(utterance);
+            logInteraction('panda_voice_preview_played');
         }
         
         function completeAudioSetup() {
@@ -2827,12 +2856,12 @@
         }
         
         function renderAudioSetup() {
-            const { musicPlaying, musicEnabled, microphoneEnabled } = state.audioSetup;
-            
+            const { musicEnabled, microphoneEnabled, micDenied } = state.audioSetup;
+
             return `
                 <div style="min-height: 100vh; background: linear-gradient(180deg, #0B1120 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;">
                     <!-- Starfield Background -->
-                    <div style="position: absolute; inset: 0; background-image: 
+                    <div style="position: absolute; inset: 0; background-image:
                         radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 30% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
                         radial-gradient(1.5px 1.5px at 50% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
@@ -2840,90 +2869,91 @@
                         radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.35) 0%, transparent 100%),
                         radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.3) 0%, transparent 100%);
                         pointer-events: none; z-index: 0;"></div>
-                    
+
                     <div style="position: relative; z-index: 1; max-width: 500px; width: 100%;">
                         <div style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); border-radius: 32px; padding: 48px 40px; border: 1px solid rgba(75, 156, 211, 0.2); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-                            
+
+                            <!-- Step indicator -->
+                            <div style="text-align: center; margin-bottom: 8px;">
+                                <span style="color: #64748b; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 3 of 5</span>
+                            </div>
+
                             <!-- Header with Panda -->
                             <div style="text-align: center; margin-bottom: 32px;">
                                 <div style="font-size: 4rem; margin-bottom: 16px;">🐼</div>
                                 <h1 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 8px;">Audio Setup</h1>
-                                <p style="color: #94a3b8; font-size: 1rem;">Let's make sure everything sounds great!</p>
+                                <p style="color: #94a3b8; font-size: 1rem;">Choose how Panda will sound and interact.</p>
                             </div>
-                            
-                            <!-- Step 1: Sound Test -->
+
+                            <!-- Panda Voice Preview -->
                             <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
-                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.9rem;">1</div>
-                                    <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600;">Sound Test</h3>
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600;">Hear Panda's Voice</h3>
                                 </div>
-                                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">Tap the button to hear a short melody. Make sure your volume is on!</p>
-                                
-                                <button id="playMusicBtn" onclick="playTwinkleTwinkle()" style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;">
-                                    🎵 Play Music
+                                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">Make sure your volume is on, then tap to hear how Panda will talk to your child.</p>
+
+                                <button onclick="playPandaVoicePreview()" style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;">
+                                    🔊 Play Panda Voice
                                 </button>
                             </div>
-                            
-                            <!-- Step 2: Music Preference -->
+
+                            <!-- Background Music Toggle -->
                             <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
-                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.9rem;">2</div>
-                                    <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600;">Background Music</h3>
-                                </div>
-                                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">Would you like soft background music during learning activities?</p>
-                                
-                                <div style="display: flex; gap: 12px;">
-                                    <button onclick="enableBackgroundMusic(true)" style="flex: 1; padding: 14px 20px; background: ${musicEnabled === true ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : 'rgba(30, 41, 59, 0.8)'}; color: ${musicEnabled === true ? 'white' : '#94a3b8'}; border: 2px solid ${musicEnabled === true ? '#10b981' : 'rgba(100, 116, 139, 0.3)'}; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                                        ${musicEnabled === true ? '✓ ' : ''}Yes
-                                    </button>
-                                    <button onclick="enableBackgroundMusic(false)" style="flex: 1; padding: 14px 20px; background: ${musicEnabled === false ? 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)' : 'rgba(30, 41, 59, 0.8)'}; color: ${musicEnabled === false ? 'white' : '#94a3b8'}; border: 2px solid ${musicEnabled === false ? '#64748b' : 'rgba(100, 116, 139, 0.3)'}; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                                        ${musicEnabled === false ? '✓ ' : ''}No Thanks
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Step 3: Microphone -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(75, 156, 211, 0.1);">
-                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.9rem;">3</div>
-                                    <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600;">Microphone Access</h3>
-                                </div>
-                                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">Panda can listen to your child's answers! This makes learning more interactive and fun.</p>
-                                
-                                ${microphoneEnabled ? `
-                                    <div style="padding: 16px; background: rgba(16, 185, 129, 0.2); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
-                                        <span style="color: #34d399; font-weight: 600; font-size: 1.1rem;">✓ Microphone Enabled!</span>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Background Music</h3>
+                                        <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Soft music during activities</p>
                                     </div>
-                                ` : `
-                                    <button onclick="requestMicrophonePermission()" style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; transition: all 0.2s;">
-                                        🎤 Enable Microphone
-                                    </button>
-                                    <button onclick="skipMicrophoneSetup()" style="width: 100%; padding: 12px 20px; background: transparent; color: #64748b; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 12px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
-                                        Skip - I'll tap answers instead
-                                    </button>
-                                `}
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="enableBackgroundMusic(true)" style="padding: 10px 20px; background: ${musicEnabled === true ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : 'rgba(30, 41, 59, 0.8)'}; color: ${musicEnabled === true ? 'white' : '#94a3b8'}; border: 2px solid ${musicEnabled === true ? '#10b981' : 'rgba(100, 116, 139, 0.3)'}; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                            ${musicEnabled === true ? '✓ ' : ''}On
+                                        </button>
+                                        <button onclick="enableBackgroundMusic(false)" style="padding: 10px 20px; background: ${musicEnabled === false ? 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)' : 'rgba(30, 41, 59, 0.8)'}; color: ${musicEnabled === false ? 'white' : '#94a3b8'}; border: 2px solid ${musicEnabled === false ? '#64748b' : 'rgba(100, 116, 139, 0.3)'}; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                            ${musicEnabled === false ? '✓ ' : ''}Off
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <!-- Continue Button (only show if mic is enabled) -->
-                            ${microphoneEnabled ? `
-                                <button onclick="completeAudioSetup()" style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; border: none; border-radius: 16px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.2s;">
-                                    Continue →
-                                </button>
-                            ` : `
-                                <button onclick="completeAudioSetup()" style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 16px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(75, 156, 211, 0.3); transition: all 0.2s;">
-                                    Continue →
-                                </button>
-                            `}
+
+                            <!-- Panda Voice / Microphone Toggle -->
+                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${micDenied ? '16px' : '0'};">
+                                    <div>
+                                        <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Voice Interaction</h3>
+                                        <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Let Panda hear your child's answers</p>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="requestMicrophonePermission()" style="padding: 10px 20px; background: ${microphoneEnabled ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : 'rgba(30, 41, 59, 0.8)'}; color: ${microphoneEnabled ? 'white' : '#94a3b8'}; border: 2px solid ${microphoneEnabled ? '#10b981' : 'rgba(100, 116, 139, 0.3)'}; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                            ${microphoneEnabled ? '✓ ' : ''}On
+                                        </button>
+                                        <button onclick="skipMicrophoneSetup()" style="padding: 10px 20px; background: ${!microphoneEnabled && !micDenied ? 'rgba(30, 41, 59, 0.8)' : (!microphoneEnabled ? 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)' : 'rgba(30, 41, 59, 0.8)')}; color: ${!microphoneEnabled ? 'white' : '#94a3b8'}; border: 2px solid ${!microphoneEnabled ? '#64748b' : 'rgba(100, 116, 139, 0.3)'}; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                            ${!microphoneEnabled ? '✓ ' : ''}Off
+                                        </button>
+                                    </div>
+                                </div>
+                                ${micDenied ? `
+                                    <div style="padding: 14px 16px; background: rgba(251, 191, 36, 0.15); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.3);">
+                                        <p style="color: #fbbf24; font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                                            <strong>Microphone blocked.</strong> No problem! Your child can tap answers instead. To enable voice later, allow microphone access in your browser settings.
+                                        </p>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Privacy Message -->
+                            <div style="text-align: center; margin-bottom: 24px; padding: 0 8px;">
+                                <p style="color: #64748b; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                                    🔒 Audio stays on this device. We do not store or transmit your child's voice.
+                                </p>
+                            </div>
+
+                            <!-- Continue Button -->
+                            <button onclick="completeAudioSetup()" style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; border: none; border-radius: 16px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.2s;">
+                                Continue →
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <style>
-                    @keyframes soundBar {
-                        0% { height: 8px; }
-                        100% { height: 20px; }
-                    }
-                </style>
             `;
         }
 
