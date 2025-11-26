@@ -8134,11 +8134,11 @@
                 itemData.consecutiveCorrect = 0;
 
                 // Wrong answer feedback
-                if (previousStreak > 0) {
-                    // Had a streak going - use restart responses
+                if (previousStreak === 2) {
+                    // Had 2 in a row, breaking the 3-in-a-row attempt
                     speakRandomPhrase(restartResponses);
                 } else {
-                    // No streak - use regular wrong responses
+                    // Streak < 2 (0 or 1) - use regular wrong responses
                     speakRandomPhrase(wrongResponses);
                 }
 
