@@ -1674,6 +1674,7 @@
                 showCoachingPopup: false,
                 waitingForReady: false,
                 listening: false,
+                sttListening: false, // STT-based listening indicator
                 recognition: null,
                 currentQuestion: null,
                 choices: [],
@@ -2221,6 +2222,265 @@
             // Stop ColorQuest listening if active
             if (typeof stopColorQuestListening === 'function') {
                 try { stopColorQuestListening(); } catch(e) {}
+            }
+            // Stop STT listening if active
+            if (typeof stopSttListening === 'function') {
+                try { stopSttListening(); } catch(e) {}
+            }
+        }
+
+        // ============================================================================
+        // ELEVENLABS STT - SPEECH LISTENING HELPER
+        // ============================================================================
+
+        // Global STT state
+        let sttMediaRecorder = null;
+        let sttAudioChunks = [];
+        let sttListeningActive = false;
+        let sttTimeoutId = null;
+
+        /**
+         * Stop any active STT listening session
+         */
+        function stopSttListening() {
+            if (sttTimeoutId) {
+                clearTimeout(sttTimeoutId);
+                sttTimeoutId = null;
+            }
+            if (sttMediaRecorder && sttMediaRecorder.state !== 'inactive') {
+                try {
+                    sttMediaRecorder.stop();
+                } catch (e) {
+                    console.log('Error stopping STT recorder:', e);
+                }
+            }
+            sttListeningActive = false;
+            sttAudioChunks = [];
+        }
+
+        /**
+         * Interpret a transcript for YES/NO responses
+         * @param {string} transcript - The transcribed text (lowercase, trimmed)
+         * @returns {{type: 'yes'|'no'|'unclear'}}
+         */
+        function interpretYesNo(transcript) {
+            const text = transcript.toLowerCase().trim();
+
+            // YES patterns (affirmative responses)
+            const yesPatterns = ['yes', 'yeah', 'yep', 'yup', 'ready', "let's go", "i'm ready", 'okay', 'ok', 'sure', 'uh-huh', 'uh huh', 'mm-hmm', 'mm hmm', 'alright', 'all right'];
+            for (const pattern of yesPatterns) {
+                if (text.includes(pattern)) {
+                    return { type: 'yes' };
+                }
+            }
+
+            // NO patterns (negative responses)
+            const noPatterns = ['no', 'not yet', 'wait', "i'm not ready", 'not ready', 'nope', 'nah', 'uh-uh', 'uh uh'];
+            for (const pattern of noPatterns) {
+                if (text.includes(pattern)) {
+                    return { type: 'no' };
+                }
+            }
+
+            return { type: 'unclear' };
+        }
+
+        /**
+         * Interpret a transcript for OPTION selection (1, 2, or 3)
+         * @param {string} transcript - The transcribed text (lowercase, trimmed)
+         * @returns {{type: 'option', index: number}|{type: 'unclear'}}
+         */
+        function interpretOptionSelection(transcript) {
+            const text = transcript.toLowerCase().trim();
+
+            // Option 1 patterns
+            const option1Patterns = ['one', '1', 'option one', 'option 1', 'first one', 'first', 'the first'];
+            for (const pattern of option1Patterns) {
+                if (text.includes(pattern)) {
+                    return { type: 'option', index: 0 };
+                }
+            }
+
+            // Option 2 patterns
+            const option2Patterns = ['two', '2', 'option two', 'option 2', 'second one', 'second', 'the second'];
+            for (const pattern of option2Patterns) {
+                if (text.includes(pattern)) {
+                    return { type: 'option', index: 1 };
+                }
+            }
+
+            // Option 3 patterns
+            const option3Patterns = ['three', '3', 'option three', 'option 3', 'third one', 'third', 'the third'];
+            for (const pattern of option3Patterns) {
+                if (text.includes(pattern)) {
+                    return { type: 'option', index: 2 };
+                }
+            }
+
+            return { type: 'unclear' };
+        }
+
+        /**
+         * Send audio to ElevenLabs STT and get transcript
+         * @param {Blob} audioBlob - The recorded audio
+         * @returns {Promise<string>} - The transcript text
+         */
+        async function transcribeAudio(audioBlob) {
+            // Convert blob to base64
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const base64Audio = btoa(
+                new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+            );
+
+            const response = await fetch('/.netlify/functions/elevenlabs-stt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    audio: base64Audio,
+                    contentType: audioBlob.type || 'audio/webm'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('STT request failed: ' + response.status);
+            }
+
+            const result = await response.json();
+            return result.transcript || '';
+        }
+
+        /**
+         * Main speech listening helper
+         * Records audio for a short duration and interprets the result
+         *
+         * @param {string} mode - 'yesNo' or 'optionSelection'
+         * @param {Object} options - Configuration options
+         * @param {number} options.duration - Recording duration in ms (default: 2000 for yesNo, 2500 for options)
+         * @param {Function} options.onListeningStart - Called when listening starts
+         * @param {Function} options.onListeningEnd - Called when listening ends
+         * @returns {Promise<{type: string, index?: number}>}
+         */
+        async function listenAndInterpret(mode, options = {}) {
+            const defaultDuration = mode === 'yesNo' ? 2000 : 2500;
+            const duration = options.duration || defaultDuration;
+
+            // Check if browser supports MediaRecorder
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.log('STT: MediaRecorder not supported');
+                return { type: 'unavailable' };
+            }
+
+            // Stop any existing recording
+            stopSttListening();
+
+            try {
+                // Request microphone access
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                // Determine supported MIME type
+                let mimeType = 'audio/webm';
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mimeType = 'audio/webm;codecs=opus';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                    mimeType = 'audio/ogg';
+                }
+
+                return new Promise((resolve) => {
+                    sttAudioChunks = [];
+                    sttListeningActive = true;
+
+                    // Notify listening start
+                    if (options.onListeningStart) {
+                        options.onListeningStart();
+                    }
+
+                    try {
+                        sttMediaRecorder = new MediaRecorder(stream, { mimeType });
+                    } catch (e) {
+                        // Fallback without specific mimeType
+                        sttMediaRecorder = new MediaRecorder(stream);
+                    }
+
+                    sttMediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            sttAudioChunks.push(event.data);
+                        }
+                    };
+
+                    sttMediaRecorder.onstop = async () => {
+                        // Stop all tracks to release microphone
+                        stream.getTracks().forEach(track => track.stop());
+                        sttListeningActive = false;
+
+                        // Notify listening end
+                        if (options.onListeningEnd) {
+                            options.onListeningEnd();
+                        }
+
+                        if (sttAudioChunks.length === 0) {
+                            resolve({ type: 'unclear' });
+                            return;
+                        }
+
+                        const audioBlob = new Blob(sttAudioChunks, { type: mimeType });
+                        sttAudioChunks = [];
+
+                        try {
+                            const transcript = await transcribeAudio(audioBlob);
+                            console.log('🎤 STT transcript:', transcript);
+
+                            if (!transcript || transcript.trim() === '') {
+                                resolve({ type: 'unclear' });
+                                return;
+                            }
+
+                            // Interpret based on mode
+                            if (mode === 'yesNo') {
+                                resolve(interpretYesNo(transcript));
+                            } else if (mode === 'optionSelection') {
+                                resolve(interpretOptionSelection(transcript));
+                            } else {
+                                resolve({ type: 'unclear' });
+                            }
+                        } catch (err) {
+                            console.error('STT transcription error:', err);
+                            resolve({ type: 'unavailable' });
+                        }
+                    };
+
+                    sttMediaRecorder.onerror = (event) => {
+                        console.error('MediaRecorder error:', event.error);
+                        stream.getTracks().forEach(track => track.stop());
+                        sttListeningActive = false;
+                        if (options.onListeningEnd) {
+                            options.onListeningEnd();
+                        }
+                        resolve({ type: 'unavailable' });
+                    };
+
+                    // Start recording
+                    sttMediaRecorder.start();
+
+                    // Stop after duration
+                    sttTimeoutId = setTimeout(() => {
+                        if (sttMediaRecorder && sttMediaRecorder.state === 'recording') {
+                            sttMediaRecorder.stop();
+                        }
+                    }, duration);
+                });
+
+            } catch (err) {
+                console.log('STT: Microphone access error:', err.message);
+                // Permission denied or other error
+                return { type: 'unavailable' };
             }
         }
 
@@ -6032,87 +6292,62 @@
             state.colorQuest.turnsSinceCoaching = 0;
             state.colorQuest.showCoachingPopup = false;
             state.colorQuest.waitingForReady = true; // New state for introduction
-            
+            state.colorQuest.sttListening = false;
+
             state.currentView = 'colorQuest';
             render();
-            
-            // Welcome message with interaction
+
+            // Welcome message with voice + tap instruction
             setTimeout(() => {
-                speakPanda("Hi! I'm Panda. Let's learn together. I'll ask you questions, and you can tap the answer. Ready?", () => {
-                    // After speaking, start listening for "yes" or "ready"
+                speakPanda("Hi! I'm Panda. Let's learn together. Are you ready to start? You can say Yes or No. Or you can tap the buttons on the screen.", () => {
+                    // After speaking, start listening for response
                     listenForReadyResponse();
                 });
             }, 500);
         }
 
-        function listenForReadyResponse() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                // Speech recognition not supported, just proceed after delay
-                setTimeout(() => {
-                    state.colorQuest.waitingForReady = false;
-                    generateColorQuestQuestion();
-                    render();
-                }, 2000);
-                return;
-            }
+        async function listenForReadyResponse() {
+            // Play a short bridging phrase and show listening indicator
+            state.colorQuest.sttListening = true;
+            render();
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.toLowerCase();
-                console.log('Heard:', transcript);
-                
-                // Check for affirmative responses
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
-                    transcript.includes('ok') ||
-                    transcript.includes('okay') ||
-                    transcript.includes('sure') ||
-                    transcript.includes('yep')) {
-                    
-                    speakPanda("Great! Let's go!", () => {
-                        state.colorQuest.waitingForReady = false;
-                        generateColorQuestQuestion();
-                        render();
-                    });
-                } else {
-                    // Didn't hear clear yes, try again
-                    speakPanda("Say yes when you're ready!", () => {
-                        listenForReadyResponse();
-                    });
+            // Play bridging audio (non-blocking) to reduce perceived lag
+            speakText("Okay, let me listen...");
+
+            // Small delay to let bridging audio start
+            await new Promise(r => setTimeout(r, 300));
+
+            // Use STT listening helper
+            const result = await listenAndInterpret('yesNo', {
+                duration: 2000,
+                onListeningStart: () => {
+                    console.log('🎤 Started listening for ready response');
+                },
+                onListeningEnd: () => {
+                    state.colorQuest.sttListening = false;
+                    render();
                 }
-            };
-            
-            recognition.onerror = (event) => {
-                console.log('Speech recognition error:', event.error);
-                // Fallback: just proceed
-                setTimeout(() => {
+            });
+
+            console.log('Ready response result:', result);
+
+            // Handle the result
+            if (result.type === 'yes') {
+                speakPanda("Awesome, you're ready! Let's get started.", () => {
                     state.colorQuest.waitingForReady = false;
                     generateColorQuestQuestion();
                     render();
-                }, 1500);
-            };
-            
-            recognition.onend = () => {
-                console.log('Speech recognition ended');
-            };
-            
-            try {
-                recognition.start();
-            } catch (e) {
-                console.log('Could not start recognition:', e);
-                // Fallback: proceed anyway
-                setTimeout(() => {
-                    state.colorQuest.waitingForReady = false;
-                    generateColorQuestQuestion();
-                    render();
-                }, 1500);
+                });
+            } else if (result.type === 'no') {
+                speakPanda("Okay, we can wait. When you're ready, you can say I'm ready, or tap the Ready button.", () => {
+                    // Keep on ready screen - user can tap or speak again
+                    // Don't auto-listen again to avoid annoyance
+                });
+            } else {
+                // unclear or unavailable - prompt to try again or tap
+                speakPanda("I didn't quite hear that. You can say Yes or No, or tap the buttons on the screen.", () => {
+                    // Keep buttons active for tap fallback
+                });
             }
         }
 
@@ -6172,7 +6407,7 @@
         function askColorQuestQuestion() {
             const q = state.colorQuest.currentQuestion;
             let questionText = '';
-            
+
             if (q.type === 'colors') {
                 questionText = `Can you find the ${q.correctAnswer} one?`;
             } else if (q.type === 'shapes') {
@@ -6180,11 +6415,63 @@
             } else {
                 questionText = `Can you find the number ${q.correctAnswer}?`;
             }
-            
-            speakPanda(questionText, () => {
-                // After asking question, start listening for responses
-                startColorQuestListening();
+
+            // Add voice instruction - mention options for the first few rounds
+            const isEarlyRound = state.colorQuest.currentRound < 3;
+            const voiceHint = isEarlyRound
+                ? ` You can tap the answer, or say Option 1, Option 2, or Option 3.`
+                : '';
+
+            speakPanda(questionText + voiceHint, () => {
+                // After asking question, start STT-based listening for option selection
+                startColorQuestSttListening();
             });
+        }
+
+        // New STT-based listening for option selection during questions
+        async function startColorQuestSttListening() {
+            // Show listening state
+            state.colorQuest.sttListening = true;
+            state.colorQuest.listening = true;
+            render();
+
+            // Play short bridging phrase (non-blocking)
+            speakText("I'm listening...");
+
+            // Small delay to let bridging audio start
+            await new Promise(r => setTimeout(r, 300));
+
+            // Use STT listening helper in option selection mode
+            const result = await listenAndInterpret('optionSelection', {
+                duration: 2500,
+                onListeningStart: () => {
+                    console.log('🎤 Started STT listening for option selection');
+                },
+                onListeningEnd: () => {
+                    state.colorQuest.sttListening = false;
+                    render();
+                }
+            });
+
+            console.log('Option selection result:', result);
+
+            // Handle the result
+            if (result.type === 'option' && result.index >= 0 && result.index < state.colorQuest.choices.length) {
+                // Got a valid option - trigger the answer handler
+                const selectedChoice = state.colorQuest.choices[result.index];
+                console.log('Selected option via voice:', selectedChoice);
+                handleColorQuestAnswer(selectedChoice);
+            } else if (result.type === 'unavailable') {
+                // STT not available - fall back to continuous Web Speech API listening
+                console.log('STT unavailable, falling back to Web Speech API');
+                startColorQuestListening();
+            } else {
+                // unclear - prompt user and keep tap active
+                speakPanda("I'm not sure which one you meant. Let's tap the answer together this time.", () => {
+                    // Keep listening in background if Web Speech API is available
+                    startColorQuestListening();
+                });
+            }
         }
 
         function startColorQuestListening() {
@@ -6202,18 +6489,18 @@
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
-            
+
             recognition.continuous = true; // Keep listening
             recognition.interimResults = false;
             recognition.lang = 'en-US';
-            
+
             recognition.onresult = (event) => {
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
                 console.log('Heard during ColorQuest:', transcript);
-                
+
                 handleColorQuestVoiceInput(transcript);
             };
-            
+
             recognition.onerror = (event) => {
                 console.log('Speech recognition error:', event.error);
                 if (event.error === 'no-speech') {
@@ -6225,7 +6512,7 @@
                     }, 1000);
                 }
             };
-            
+
             recognition.onend = () => {
                 console.log('Recognition ended, restarting...');
                 // Auto-restart to keep listening
@@ -6235,10 +6522,10 @@
                     }, 500);
                 }
             };
-            
+
             state.colorQuest.recognition = recognition;
             state.colorQuest.listening = true;
-            
+
             try {
                 recognition.start();
                 console.log('Started continuous listening');
@@ -6248,13 +6535,17 @@
         }
 
         function stopColorQuestListening() {
+            // Stop Web Speech API recognition
             if (state.colorQuest.recognition) {
                 try {
                     state.colorQuest.recognition.stop();
-                    state.colorQuest.listening = false;
-                    console.log('Stopped listening');
+                    console.log('Stopped Web Speech recognition');
                 } catch (e) {}
             }
+            // Stop STT listening
+            stopSttListening();
+            state.colorQuest.listening = false;
+            state.colorQuest.sttListening = false;
         }
 
         function finishColorQuestSession() {
@@ -6560,30 +6851,40 @@
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 12px;">
                                         <span style="background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">2</span>
-                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Say "Ready!"</strong> or tap the Ready button</span>
+                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Say "Yes"</strong> or tap the Ready button</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 12px;">
                                         <span style="background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">3</span>
-                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Tap the answer</strong> – the game begins!</span>
+                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Say or tap the answer</strong> – let's learn!</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Voice Listening Indicator -->
-                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
-                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
+                            <!-- Voice Listening Indicator - Dynamic based on STT state -->
+                            ${state.colorQuest.sttListening ? `
+                            <div style="background: rgba(20, 184, 166, 0.15); border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 2px solid rgba(20, 184, 166, 0.5); position: relative; overflow: hidden;">
+                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.15), transparent); animation: shimmer 1.5s infinite;"></div>
                                 <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
                                     <div style="display: flex; align-items: center; gap: 4px;">
-                                        <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite;"></span>
-                                        <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.1s;"></span>
-                                        <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.2s;"></span>
-                                        <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
-                                        <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
+                                        <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.6s ease-in-out infinite;"></span>
+                                        <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.6s ease-in-out infinite 0.1s;"></span>
+                                        <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.6s ease-in-out infinite 0.2s;"></span>
+                                        <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.6s ease-in-out infinite 0.3s;"></span>
+                                        <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.6s ease-in-out infinite 0.4s;"></span>
                                     </div>
-                                    <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
+                                    <span style="font-size: 1.1rem; font-weight: 700; color: #14b8a6;">🎤 Listening...</span>
                                 </div>
-                                <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready!</p>
+                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative; font-weight: 500;">Say "Yes" or "No" now!</p>
                             </div>
+                            ` : `
+                            <div style="background: rgba(75, 156, 211, 0.1); border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid rgba(75, 156, 211, 0.3); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                                    <span style="font-size: 1.5rem;">🎙️</span>
+                                    <span style="font-size: 1rem; font-weight: 600; color: #7BAFD4;">Voice or Tap - Your Choice!</span>
+                                </div>
+                                <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem; text-align: center;">Say "Yes" or "No", or tap the buttons below</p>
+                            </div>
+                            `}
 
                             <div style="margin-bottom: 1.25rem;">
                                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
@@ -6669,9 +6970,22 @@
                         💡 Need Help?
                     </button>
                     
-                    <!-- Listening Indicator -->
-                    ${state.colorQuest.listening ? `
-                        <div style="position: fixed; top: 4.5rem; right: 1rem; background: rgba(20, 184, 166, 0.2); color: #14b8a6; padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(20, 184, 166, 0.4); z-index: 100; display: flex; align-items: center; gap: 0.5rem; backdrop-filter: blur(10px);">
+                    <!-- Listening Indicator - Enhanced for STT -->
+                    ${state.colorQuest.sttListening ? `
+                        <div style="position: fixed; top: 4.5rem; right: 1rem; background: rgba(20, 184, 166, 0.25); color: #14b8a6; padding: 12px 20px; border-radius: 16px; font-weight: 600; font-size: 1rem; border: 2px solid rgba(20, 184, 166, 0.6); z-index: 100; backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(20, 184, 166, 0.3);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 4px;">
+                                <div style="display: flex; align-items: center; gap: 3px;">
+                                    <span style="width: 3px; height: 12px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.5s ease-in-out infinite;"></span>
+                                    <span style="width: 3px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.5s ease-in-out infinite 0.1s;"></span>
+                                    <span style="width: 3px; height: 14px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.5s ease-in-out infinite 0.2s;"></span>
+                                    <span style="width: 3px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.5s ease-in-out infinite 0.3s;"></span>
+                                </div>
+                                <span style="font-weight: 700;">🎤 Listening...</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #5eead4; font-weight: 500;">Say "Option 1, 2, or 3"</div>
+                        </div>
+                    ` : state.colorQuest.listening ? `
+                        <div style="position: fixed; top: 4.5rem; right: 1rem; background: rgba(20, 184, 166, 0.15); color: #14b8a6; padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(20, 184, 166, 0.4); z-index: 100; display: flex; align-items: center; gap: 0.5rem; backdrop-filter: blur(10px);">
                             <span style="font-size: 1.1rem;">🎤</span>
                             <span>Panda is listening...</span>
                         </div>
