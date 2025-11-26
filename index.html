@@ -4361,24 +4361,39 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript.toLowerCase();
                 console.log('Heard:', transcript);
-                
+
+                // Check for negative responses FIRST (before affirmative, since "not ready" contains "ready")
+                if (transcript.includes('no') ||
+                    transcript.includes('not yet') ||
+                    transcript.includes('wait') ||
+                    transcript.includes('not ready')) {
+
+                    // User said no - acknowledge and stay on screen
+                    speakPanda("Okay, we can wait! When you're ready, say 'I'm ready' or tap the I'm Ready button.", () => {
+                        // Keep listening for when they're ready
+                        listenForReadyResponse();
+                    });
+                    render(); // Re-render to ensure UI is updated
+
                 // Check for affirmative responses
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
+                } else if (transcript.includes('yes') ||
+                    transcript.includes('ready') ||
+                    transcript.includes('yeah') ||
                     transcript.includes('ok') ||
                     transcript.includes('okay') ||
                     transcript.includes('sure') ||
-                    transcript.includes('yep')) {
-                    
-                    speakPanda("Great! Let's go!", () => {
+                    transcript.includes('yep') ||
+                    transcript.includes("let's go") ||
+                    transcript.includes('go')) {
+
+                    speakPanda("Awesome! You're ready! Let's get started!", () => {
                         state.colorQuest.waitingForReady = false;
                         generateColorQuestQuestion();
                         render();
                     });
                 } else {
-                    // Didn't hear clear yes, try again
-                    speakPanda("Say yes when you're ready!", () => {
+                    // Unclear response
+                    speakPanda("I didn't quite hear that. You can say 'Yes' or 'No', or tap the buttons on the screen.", () => {
                         listenForReadyResponse();
                     });
                 }
@@ -4822,9 +4837,9 @@
                                         <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
                                         <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
                                     </div>
-                                    <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Listening for you...</span>
+                                    <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
                                 </div>
-                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready!</p>
+                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "No" when you're ready to start — or tap "I'M READY!"</p>
                             </div>
                             
                             <div style="margin-bottom: 1.5rem;">
@@ -5103,30 +5118,50 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript.toLowerCase();
                 console.log('Heard:', transcript);
-                
+
                 // Safety check - ensure we're still on the intro screen
                 if (!state.learningIntro.waitingForReady) {
                     console.log('Already proceeded past intro');
                     return;
                 }
-                
+
+                // Check for negative responses FIRST (before affirmative, since "not ready" contains "ready")
+                if (transcript.includes('no') ||
+                    transcript.includes('not yet') ||
+                    transcript.includes('wait') ||
+                    transcript.includes('not ready')) {
+
+                    // User said no - acknowledge and stay on screen
+                    speakPanda("Okay, we can wait! When you're ready, say 'I'm ready' or tap the I'm Ready button.", () => {
+                        // Keep listening for when they're ready
+                        if (state.learningIntro.waitingForReady) {
+                            listenForLearningReadyResponse();
+                        }
+                    });
+                    render(); // Re-render to ensure UI is updated
+
                 // Check for affirmative responses (removed 'let' to prevent self-triggering)
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
+                } else if (transcript.includes('yes') ||
+                    transcript.includes('ready') ||
+                    transcript.includes('yeah') ||
                     transcript.includes('ok') ||
                     transcript.includes('okay') ||
                     transcript.includes('sure') ||
                     transcript.includes('yep') ||
+                    transcript.includes("let's go") ||
                     transcript.includes('go')) {
-                    
+
                     stopAllSpeech();
-                    speakPanda("Fantastic! Let's begin our magical adventure!", () => {
+                    speakPanda("Awesome! You're ready! Let's begin our magical adventure!", () => {
                         completeMagicalIntro();
                     });
                 } else {
-                    // Didn't hear clear yes, keep listening but don't auto-proceed
-                    console.log('Did not recognize affirmative, waiting for button click or retry');
+                    // Unclear response
+                    speakPanda("I didn't quite hear that. You can say 'Yes' or 'No', or tap the buttons on the screen.", () => {
+                        if (state.learningIntro.waitingForReady) {
+                            listenForLearningReadyResponse();
+                        }
+                    });
                 }
             };
             
@@ -5214,9 +5249,9 @@
                                     <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
                                     <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
                                 </div>
-                                <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Listening...</span>
+                                <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
                             </div>
-                            <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" to begin!</p>
+                            <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "No" when you're ready — or tap "I'M READY!"</p>
                         </div>
                         
                         <div style="margin-bottom: 1.5rem;">
@@ -5935,24 +5970,42 @@
             
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript.toLowerCase();
-                
+                console.log('Heard (subject):', transcript);
+
                 // Safety check - ensure we're still on the intro screen
                 if (!state.subjectIntro || !state.subjectIntro.waitingForReady) {
                     console.log('Already proceeded past subject intro');
                     return;
                 }
-                
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
+
+                // Check for negative responses FIRST (before affirmative, since "not ready" contains "ready")
+                if (transcript.includes('no') ||
+                    transcript.includes('not yet') ||
+                    transcript.includes('wait') ||
+                    transcript.includes('not ready')) {
+
+                    // User said no - acknowledge and stay on screen
+                    speakPanda("Okay, we can wait! When you're ready, say 'I'm ready' or tap the Start button.", () => {
+                        // Keep listening for when they're ready
+                        if (state.subjectIntro && state.subjectIntro.waitingForReady) {
+                            listenForSubjectReadyResponse();
+                        }
+                    });
+                    render(); // Re-render to ensure UI is updated
+
+                // Check for affirmative responses
+                } else if (transcript.includes('yes') ||
+                    transcript.includes('ready') ||
+                    transcript.includes('yeah') ||
                     transcript.includes('ok') ||
                     transcript.includes('okay') ||
                     transcript.includes('sure') ||
                     transcript.includes('yep') ||
+                    transcript.includes("let's go") ||
                     transcript.includes('go')) {
-                    
+
                     stopAllSpeech();
-                    speakPanda("Great! Let's start learning!", () => {
+                    speakPanda("Awesome! You're ready! Let's start learning!", () => {
                         state.subjectIntro.waitingForReady = false;
                         state.subjectIntro.shown = true;
                         render();
@@ -5960,8 +6013,12 @@
                         setTimeout(() => askCurrentQuestion(), 500);
                     });
                 } else {
-                    // Didn't hear clear yes, keep listening
-                    console.log('Did not recognize affirmative for subject intro');
+                    // Unclear response
+                    speakPanda("I didn't quite hear that. You can say 'Yes' or 'No', or tap the buttons on the screen.", () => {
+                        if (state.subjectIntro && state.subjectIntro.waitingForReady) {
+                            listenForSubjectReadyResponse();
+                        }
+                    });
                 }
             };
             
@@ -6086,7 +6143,7 @@
                                     </div>
                                     <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
                                 </div>
-                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready to start!</p>
+                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "No" when you're ready — or tap "START!"</p>
                             </div>
                             
                             <!-- Divider -->
