@@ -2732,30 +2732,32 @@
         function renderAudioControlsContent() {
             const musicOn = state.audioSetup.musicEnabled;
             const voiceOn = state.voiceEnabled;
-            
+
             return `
-                <!-- Voice Toggle -->
-                <div onclick="toggleVoice()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.8); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.2);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${voiceOn ? '#10b981' : '#64748b'}" stroke-width="2">
+                <!-- Panda voice Toggle -->
+                <div onclick="toggleVoice()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Panda voice">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${voiceOn ? '#10b981' : '#64748b'}" stroke-width="2">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                         <line x1="12" y1="19" x2="12" y2="23"/>
                         <line x1="8" y1="23" x2="16" y2="23"/>
                     </svg>
-                    <div style="width: 44px; height: 24px; background: ${voiceOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 12px; position: relative; transition: all 0.3s;">
-                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; ${voiceOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                    <span style="color: ${voiceOn ? '#e2e8f0' : '#94a3b8'}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Panda voice</span>
+                    <div style="width: 40px; height: 22px; background: ${voiceOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;">
+                        <div style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; ${voiceOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
                     </div>
                 </div>
-                
-                <!-- Music Toggle -->
-                <div onclick="toggleBackgroundMusic()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.8); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.2);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${musicOn ? '#10b981' : '#64748b'}" stroke-width="2">
+
+                <!-- Background music Toggle -->
+                <div onclick="toggleBackgroundMusic()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Background music">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${musicOn ? '#10b981' : '#64748b'}" stroke-width="2">
                         <path d="M9 18V5l12-2v13"/>
                         <circle cx="6" cy="18" r="3"/>
                         <circle cx="18" cy="16" r="3"/>
                     </svg>
-                    <div style="width: 44px; height: 24px; background: ${musicOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 12px; position: relative; transition: all 0.3s;">
-                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; ${musicOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                    <span style="color: ${musicOn ? '#e2e8f0' : '#94a3b8'}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Background music</span>
+                    <div style="width: 40px; height: 22px; background: ${musicOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;">
+                        <div style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; ${musicOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
                     </div>
                 </div>
             `;
