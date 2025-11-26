@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Global UI and accessibility polish complete -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,11 +11,42 @@
         /* CSS Reset and Base Styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.5;
             color: #ffffff;
             background: #13294B;
+        }
+
+        /* Accessibility: Focus styles for keyboard navigation */
+        :focus-visible {
+            outline: 2px solid var(--unc-blue, #4B9CD3);
+            outline-offset: 2px;
+        }
+
+        /* Accessibility: Skip to content link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--accent-orange, #FF8C42);
+            color: white;
+            padding: 8px 16px;
+            z-index: 10000;
+            font-weight: 600;
+            border-radius: 0 0 8px 0;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Accessibility: Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
         
         :root {
@@ -54,7 +86,7 @@
             /* Text hierarchy */
             --text-primary: #F1F5F9;
             --text-secondary: #CBD5E1;
-            --text-muted: #64748B;
+            --text-muted: #8B9CB8; /* Improved contrast from #64748B */
             
             /* Accent Orange (primary accent) */
             --accent-orange: #FF8C42;
@@ -649,7 +681,353 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-        
+
+        /* ============================================================================ */
+        /* STANDARDIZED COMPONENT SYSTEM                                               */
+        /* ============================================================================ */
+
+        /* ----- STANDARDIZED BUTTONS ----- */
+
+        /* Primary Action Button (Orange - Main CTA) */
+        .std-btn-primary {
+            background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px var(--accent-orange-glow);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 140, 66, 0.4);
+        }
+        .std-btn-primary:disabled {
+            background: rgba(100, 116, 139, 0.3);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Secondary Button (Blue) */
+        .std-btn-secondary {
+            background: linear-gradient(135deg, var(--unc-blue) 0%, var(--unc-light-blue) 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(75, 156, 211, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(75, 156, 211, 0.4);
+        }
+
+        /* Success Button (Green) */
+        .std-btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Ghost/Outline Button */
+        .std-btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-ghost:hover {
+            background: var(--bg-elevated);
+            border-color: var(--border-default);
+            color: var(--text-primary);
+        }
+
+        /* Small Button Variant */
+        .std-btn-sm {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+        }
+
+        /* Large Button Variant */
+        .std-btn-lg {
+            padding: 18px 36px;
+            font-size: 1.1rem;
+            border-radius: var(--radius-lg);
+        }
+
+        /* Full Width Button */
+        .std-btn-full {
+            width: 100%;
+        }
+
+        /* ----- STANDARDIZED CARDS ----- */
+
+        /* Standard Card */
+        .std-card {
+            background: rgba(31, 42, 66, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 24px;
+        }
+        .std-card-hover {
+            transition: all 0.3s ease;
+        }
+        .std-card-hover:hover {
+            border-color: var(--border-accent);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Solid Card (no blur) */
+        .std-card-solid {
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            padding: 24px;
+        }
+
+        /* Elevated Card */
+        .std-card-elevated {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+
+        /* Interactive Card Button */
+        .std-card-btn {
+            background: rgba(26, 39, 68, 0.6);
+            border: 1px solid rgba(75, 156, 211, 0.15);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        .std-card-btn:hover {
+            border-color: rgba(75, 156, 211, 0.4);
+            background: rgba(26, 39, 68, 0.8);
+        }
+
+        /* ----- STANDARDIZED SECTION TITLES ----- */
+
+        /* Page Title (largest) */
+        .std-title-page {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        /* Section Title */
+        .std-title-section {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        /* Subsection Title */
+        .std-title-subsection {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        /* Card Title */
+        .std-title-card {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Gradient Title (accent) */
+        .std-title-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Accent Title (orange) */
+        .std-title-accent {
+            color: var(--accent-orange);
+        }
+
+        /* Muted Label */
+        .std-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ----- STANDARDIZED PROGRESS PILLS ----- */
+
+        /* Progress Pill Container */
+        .std-pill {
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .std-pill:hover {
+            transform: scale(1.05);
+        }
+
+        /* Progress Pill Circle */
+        .std-pill-circle {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 16px;
+        }
+
+        /* Progress Pill Icon Container */
+        .std-pill-icon {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #2d3f5f 0%, #1e293b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(75, 156, 211, 0.3);
+            transition: all 0.3s ease;
+        }
+        .std-pill:hover .std-pill-icon {
+            border-color: rgba(75, 156, 211, 0.5);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Progress Pill Label */
+        .std-pill-label {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        /* Progress Pill Count */
+        .std-pill-count {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        /* Progress Pill Bar */
+        .std-pill-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(100, 116, 139, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px auto 0;
+        }
+        .std-pill-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--unc-blue), var(--unc-light-blue));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .std-pill-bar-fill.complete {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        /* Recommended Badge */
+        .std-pill-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #f97316 100%);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 10px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);
+        }
+
+        /* Complete Checkmark */
+        .std-pill-check {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Locked State */
+        .std-pill.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .std-pill.locked:hover {
+            transform: none;
+        }
+
         .grid { display: grid; }
         .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1553,7 +1931,112 @@
                 try { stopColorQuestListening(); } catch(e) {}
             }
         }
-        
+
+        // ============================================================================
+        // APP MODAL & TOAST SYSTEM
+        // ============================================================================
+
+        // Show a styled modal dialog matching app design
+        // type: 'info' (blue), 'success' (green), 'warning' (orange), 'error' (red)
+        function showAppModal(title, message, type = 'info', onClose = null) {
+            const colors = {
+                info: { accent: '#4B9CD3', glow: 'rgba(75, 156, 211, 0.3)', icon: 'ℹ️' },
+                success: { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.3)', icon: '✅' },
+                warning: { accent: '#FF8C42', glow: 'rgba(255, 140, 66, 0.3)', icon: '⚠️' },
+                error: { accent: '#ef4444', glow: 'rgba(239, 68, 68, 0.3)', icon: '❌' },
+                celebration: { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.4)', icon: '🎉' }
+            };
+            const c = colors[type] || colors.info;
+
+            // Remove any existing modal
+            const existing = document.getElementById('appModalOverlay');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'appModalOverlay';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; animation: fadeIn 0.2s ease-out;';
+            modal.innerHTML = `
+                <div style="max-width: 420px; width: 100%; background: linear-gradient(135deg, #1a2744 0%, #13294B 100%); border-radius: 20px; padding: 32px 28px; border: 1px solid ${c.accent}40; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px ${c.glow}; text-align: center; animation: slideUp 0.25s ease-out;">
+                    <div style="font-size: 3rem; margin-bottom: 16px;">${c.icon}</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 700; color: white; margin-bottom: 12px;">${title}</h3>
+                    <p style="color: #94a3b8; font-size: 1rem; line-height: 1.6; margin-bottom: 24px; white-space: pre-line;">${message}</p>
+                    <button id="appModalCloseBtn" style="background: linear-gradient(135deg, ${c.accent} 0%, ${c.accent}cc 100%); color: white; padding: 14px 36px; border-radius: 12px; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; box-shadow: 0 4px 15px ${c.glow}; transition: all 0.2s;">
+                        OK
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeModal = () => {
+                modal.remove();
+                if (onClose) onClose();
+            };
+
+            modal.querySelector('#appModalCloseBtn').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+
+            // Add animation styles if not present
+            if (!document.getElementById('appModalStyles')) {
+                const style = document.createElement('style');
+                style.id = 'appModalStyles';
+                style.textContent = `
+                    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+                    @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Show a toast notification (auto-dismisses)
+        // type: 'info', 'success', 'warning', 'error'
+        function showAppToast(message, type = 'info', duration = 4000) {
+            const colors = {
+                info: { bg: 'rgba(75, 156, 211, 0.95)', icon: 'ℹ️' },
+                success: { bg: 'rgba(16, 185, 129, 0.95)', icon: '✅' },
+                warning: { bg: 'rgba(255, 140, 66, 0.95)', icon: '⚠️' },
+                error: { bg: 'rgba(239, 68, 68, 0.95)', icon: '❌' }
+            };
+            const c = colors[type] || colors.info;
+
+            // Create toast container if not exists
+            let container = document.getElementById('appToastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'appToastContainer';
+                container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `background: ${c.bg}; color: white; padding: 14px 20px; border-radius: 12px; font-size: 0.95rem; font-weight: 500; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); display: flex; align-items: center; gap: 10px; max-width: 360px; pointer-events: auto; animation: slideInRight 0.3s ease-out; backdrop-filter: blur(10px);`;
+            toast.innerHTML = `<span style="font-size: 1.2rem;">${c.icon}</span><span style="white-space: pre-line;">${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Add animation styles if not present
+            if (!document.getElementById('appModalStyles')) {
+                const style = document.createElement('style');
+                style.id = 'appModalStyles';
+                style.textContent = `
+                    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+                    @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+                `;
+                document.head.appendChild(style);
+            }
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
         function speakText(text) {
             if (!state.voiceEnabled) return;
             
@@ -1626,12 +2109,12 @@
 
         function startVoiceRecognition() {
             if (!state.voiceEnabled) {
-                alert('Please turn on Voice first by clicking the "🔊 Voice On" button.');
+                showAppToast('Please turn on Voice first by clicking the "Voice On" button.', 'warning');
                 return;
             }
 
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('⚠️ Voice recognition needs Chrome, Edge, or Safari browser.\n\nYour browser doesn\'t support voice commands, but you can still use the buttons!');
+                showAppModal('Browser Not Supported', 'Voice recognition needs Chrome, Edge, or Safari browser.\n\nYour browser doesn\'t support voice commands, but you can still use the buttons!', 'warning');
                 return;
             }
 
@@ -1660,7 +2143,7 @@
                 if (event.error === 'no-speech') {
                     speakText("I didn't hear anything. Try again!");
                 } else if (event.error === 'not-allowed') {
-                    alert('⚠️ Microphone permission denied.\n\nPlease allow microphone access in your browser settings.');
+                    showAppModal('Microphone Access Needed', 'Microphone permission denied.\n\nPlease allow microphone access in your browser settings.', 'warning');
                 }
                 render();
             };
@@ -1674,7 +2157,7 @@
                 recognition.start();
             } catch (e) {
                 console.error('Failed to start recognition:', e);
-                alert('Could not start voice recognition. Please try again.');
+                showAppToast('Could not start voice recognition. Please try again.', 'error');
                 state.isListening = false;
                 render();
             }
@@ -1946,7 +2429,7 @@
                                 <p class="text-sm mb-4" style="color: var(--text-muted);">
                                     Before we begin, we need your informed consent to participate in this research study.
                                 </p>
-                                <button onclick="showConsent()" class="px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 hover:scale-105" style="background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%); color: white; box-shadow: 0 4px 20px var(--accent-orange-glow);">
+                                <button onclick="showConsent()" class="std-btn-primary std-btn-lg">
                                     Review Research Consent Form
                                 </button>
                             </div>
@@ -2132,10 +2615,10 @@
                                 </div>
 
                                 <div class="flex gap-4">
-                                    <button onclick="backToOpening()" class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all" style="background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-subtle);">
+                                    <button onclick="backToOpening()" class="std-btn-ghost flex-1">
                                         Back
                                     </button>
-                                    <button id="consentButton" onclick="acceptConsent()" disabled class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all" style="background: var(--bg-card); color: var(--text-muted); cursor: not-allowed;">
+                                    <button id="consentButton" onclick="acceptConsent()" disabled class="std-btn-success flex-1" style="opacity: 0.5; cursor: not-allowed;">
                                         I Agree — Let's Begin!
                                     </button>
                                 </div>
@@ -2152,7 +2635,7 @@
                     <div style="max-width: 800px; width: 100%;">
                         <!-- Step indicator -->
                         <div style="text-align: center; margin-bottom: 12px;">
-                            <span style="color: #64748b; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 4 of 5</span>
+                            <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 4 of 5</span>
                         </div>
 
                         <!-- Header -->
@@ -2162,7 +2645,7 @@
                                 Who's using PANDA today?
                             </h2>
                             <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 8px;">Choose your starting point</p>
-                            <p style="color: #64748b; font-size: 0.9rem;">You can switch anytime from the menu.</p>
+                            <p style="color: #94a3b8; font-size: 0.9rem;">You can switch anytime from the menu.</p>
                         </div>
 
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
@@ -2526,7 +3009,7 @@
                 if (!audioContext) {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
                     if (!AudioContextClass) {
-                        alert('Your browser does not support Web Audio. Please try Chrome or Firefox.');
+                        showAppModal('Audio Not Supported', 'Your browser does not support Web Audio. Please try Chrome or Firefox.', 'warning');
                         return;
                     }
                     audioContext = new AudioContextClass();
@@ -2547,10 +3030,10 @@
                 
             } catch (error) {
                 console.error('Error in playTwinkleTwinkle:', error);
-                alert('Could not play audio: ' + error.message);
+                showAppToast('Could not play audio: ' + error.message, 'error');
             }
         }
-        
+
         function playMelodyNotes() {
             console.log('Playing melody notes...');
             
@@ -2732,32 +3215,34 @@
         function renderAudioControlsContent() {
             const musicOn = state.audioSetup.musicEnabled;
             const voiceOn = state.voiceEnabled;
-            
+
             return `
-                <!-- Voice Toggle -->
-                <div onclick="toggleVoice()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.8); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.2);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${voiceOn ? '#10b981' : '#64748b'}" stroke-width="2">
+                <!-- Panda voice Toggle -->
+                <button onclick="toggleVoice()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Panda voice: currently ${voiceOn ? 'on' : 'off'}" aria-pressed="${voiceOn}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${voiceOn ? '#10b981' : '#64748b'}" stroke-width="2" aria-hidden="true">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                         <line x1="12" y1="19" x2="12" y2="23"/>
                         <line x1="8" y1="23" x2="16" y2="23"/>
                     </svg>
-                    <div style="width: 44px; height: 24px; background: ${voiceOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 12px; position: relative; transition: all 0.3s;">
-                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; ${voiceOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                    <span style="color: ${voiceOn ? '#e2e8f0' : '#94a3b8'}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Panda voice</span>
+                    <div style="width: 40px; height: 22px; background: ${voiceOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;" aria-hidden="true">
+                        <div style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; ${voiceOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
                     </div>
-                </div>
-                
-                <!-- Music Toggle -->
-                <div onclick="toggleBackgroundMusic()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.8); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.2);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${musicOn ? '#10b981' : '#64748b'}" stroke-width="2">
+                </button>
+
+                <!-- Background music Toggle -->
+                <button onclick="toggleBackgroundMusic()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border-radius: 24px; border: 1px solid rgba(75, 156, 211, 0.3); backdrop-filter: blur(8px);" aria-label="Toggle Background music: currently ${musicOn ? 'on' : 'off'}" aria-pressed="${musicOn}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${musicOn ? '#10b981' : '#64748b'}" stroke-width="2" aria-hidden="true">
                         <path d="M9 18V5l12-2v13"/>
                         <circle cx="6" cy="18" r="3"/>
                         <circle cx="18" cy="16" r="3"/>
                     </svg>
-                    <div style="width: 44px; height: 24px; background: ${musicOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 12px; position: relative; transition: all 0.3s;">
-                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; ${musicOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                    <span style="color: ${musicOn ? '#e2e8f0' : '#94a3b8'}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Background music</span>
+                    <div style="width: 40px; height: 22px; background: ${musicOn ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : '#374151'}; border-radius: 11px; position: relative; transition: all 0.3s;" aria-hidden="true">
+                        <div style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; ${musicOn ? 'right: 2px;' : 'left: 2px;'} transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
                     </div>
-                </div>
+                </button>
             `;
         }
         
@@ -2826,7 +3311,7 @@
 
         function playPandaVoicePreview() {
             if (!window.speechSynthesis) {
-                alert('Your browser does not support voice preview.');
+                showAppToast('Your browser does not support voice preview.', 'warning');
                 return;
             }
             window.speechSynthesis.cancel();
@@ -2889,33 +3374,31 @@
 
                             <!-- Step indicator -->
                             <div style="text-align: center; margin-bottom: 8px;">
-                                <span style="color: #64748b; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 3 of 5</span>
+                                <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.05em;">Step 3 of 5</span>
                             </div>
 
                             <!-- Header with Panda -->
                             <div style="text-align: center; margin-bottom: 32px;">
                                 <div style="font-size: 4rem; margin-bottom: 16px;">🐼</div>
-                                <h1 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 8px;">Audio Setup</h1>
+                                <h1 class="std-title-section" style="margin-bottom: 8px;">Audio Setup</h1>
                                 <p style="color: #94a3b8; font-size: 1rem;">Choose how Panda will sound and interact.</p>
                             </div>
 
                             <!-- Panda Voice Preview -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
-                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                    <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600;">Hear Panda's Voice</h3>
-                                </div>
+                            <div class="std-card-elevated" style="margin-bottom: 20px;">
+                                <h3 class="std-title-subsection">Hear Panda's Voice</h3>
                                 <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">Make sure your volume is on, then tap to hear how Panda will talk to your child.</p>
 
-                                <button onclick="playPandaVoicePreview()" style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;">
+                                <button onclick="playPandaVoicePreview()" class="std-btn-secondary std-btn-full">
                                     🔊 Play Panda Voice
                                 </button>
                             </div>
 
                             <!-- Background Music Toggle -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
+                            <div class="std-card-elevated" style="margin-bottom: 20px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
                                     <div>
-                                        <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Background Music</h3>
+                                        <h3 class="std-title-subsection" style="margin-bottom: 4px;">Background Music</h3>
                                         <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Soft music during activities</p>
                                     </div>
                                     <div style="display: flex; gap: 8px;">
@@ -2930,10 +3413,10 @@
                             </div>
 
                             <!-- Panda Voice / Microphone Toggle -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
+                            <div class="std-card-elevated" style="margin-bottom: 20px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${micDenied ? '16px' : '0'};">
                                     <div>
-                                        <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Voice Interaction</h3>
+                                        <h3 class="std-title-subsection" style="margin-bottom: 4px;">Voice Interaction</h3>
                                         <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Let Panda hear your child's answers</p>
                                     </div>
                                     <div style="display: flex; gap: 8px;">
@@ -2956,13 +3439,13 @@
 
                             <!-- Privacy Message -->
                             <div style="text-align: center; margin-bottom: 24px; padding: 0 8px;">
-                                <p style="color: #64748b; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                                <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5; margin: 0;">
                                     🔒 Audio stays on this device. We do not store or transmit your child's voice.
                                 </p>
                             </div>
 
                             <!-- Continue Button -->
-                            <button onclick="completeAudioSetup()" style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; border: none; border-radius: 16px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.2s;">
+                            <button onclick="completeAudioSetup()" class="std-btn-success std-btn-lg std-btn-full">
                                 Continue →
                             </button>
                         </div>
@@ -3022,21 +3505,21 @@
                     <div class="sidebar-overlay ${state.sidebarOpen ? 'open' : ''}" onclick="toggleSidebar()"></div>
 
                     <!-- Sidebar Toggle Button (mobile) -->
-                    <button class="sidebar-toggle" onclick="toggleSidebar()">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
 
                     <!-- Left Sidebar -->
-                    <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}">
+                    <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}" role="navigation" aria-label="Main navigation">
                         <div class="sidebar-header">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 1.5rem;">🐼</span>
+                                <span style="font-size: 1.5rem;" aria-hidden="true">🐼</span>
                                 <span style="font-weight: 700; color: white; font-size: 1.1rem;">PANDA</span>
                             </div>
                         </div>
-                        <nav class="sidebar-nav">
+                        <nav class="sidebar-nav" aria-label="Dashboard navigation">
                             <div class="sidebar-nav-item ${state.activeTab === 'home' ? 'active' : ''}" onclick="setActiveTab('home'); closeSidebar();">
                                 ${homeIcon}
                                 Home
@@ -3090,7 +3573,7 @@
                                 ${selectedChild ? `
                                     <p style="color: #94a3b8; font-size: 0.95rem;">You're viewing <span style="color: #4B9CD3; font-weight: 500;">${selectedChild.name}</span>${selectedChild.age ? `, age ${selectedChild.age}` : ''}</p>
                                 ` : `
-                                    <p style="color: #64748b; font-size: 0.95rem;">No child selected. Add a child in Progress to track learning.</p>
+                                    <p style="color: #94a3b8; font-size: 0.95rem;">No child selected. Add a child in Progress to track learning.</p>
                                 `}
                             </div>
 
@@ -3352,7 +3835,7 @@
             const entryText = document.getElementById('journalEntry').value.trim();
 
             if (!entryText) {
-                alert('Please write something before saving your entry.');
+                showAppToast('Please write something before saving your entry.', 'warning');
                 return;
             }
 
@@ -3407,13 +3890,13 @@
             URL.revokeObjectURL(url);
             
             logInteraction('journal_exported', { entryCount: state.journalEntries.length });
-            
-            alert(`Journal exported! ${state.journalEntries.length} entries saved.`);
+
+            showAppToast(`Journal exported! ${state.journalEntries.length} entries saved.`, 'success');
         }
 
         function emailJournal() {
             if (state.journalEntries.length === 0) {
-                alert('You have no journal entries to email yet.');
+                showAppToast('You have no journal entries to email yet.', 'info');
                 return;
             }
 
@@ -4732,7 +5215,7 @@
                                             onblur="this.style.borderColor='#2d3f5f'; this.style.boxShadow='none'"
                                             onkeypress="if(event.key === 'Enter') addChild()"
                                         />
-                                        <button onclick="addChild()" style="padding: 16px 28px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(75, 156, 211, 0.3); white-space: nowrap;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                        <button onclick="addChild()" class="std-btn-secondary" style="white-space: nowrap;">
                                             + Add
                                         </button>
                                     </div>
@@ -4740,7 +5223,7 @@
                             </div>
                         ` : `
                             <!-- My Children Title -->
-                            <h1 style="font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; color: #FF8C42; margin-bottom: 8px;">My Children</h1>
+                            <h1 class="std-title-page std-title-accent">My Children</h1>
                             
                             <!-- Selected Child Name -->
                             <h2 style="font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; color: white; margin-bottom: 24px;">
@@ -4777,7 +5260,7 @@
                             ${selectedChild ? `
                                 <!-- Start Learning Button -->
                                 <div style="margin-bottom: 24px;">
-                                    <button onclick="${selectedChild.preAssessmentComplete ? `state.activeChildId='${selectedChild.id}'; state.currentView='childLearning'; render();` : `alert('Please complete the pre-assessment first to unlock learning activities.')`}" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 24px; background: ${selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #FF8C42 0%, #f97316 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.preAssessmentComplete ? 'box-shadow: 0 4px 20px rgba(255, 140, 66, 0.4);' : ''}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(255, 140, 66, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(255, 140, 66, 0.4)'"` : ''}>
+                                    <button onclick="${selectedChild.preAssessmentComplete ? `state.activeChildId='${selectedChild.id}'; state.currentView='childLearning'; render();` : `showAppToast('Please complete the pre-assessment first to unlock learning activities.', 'info')`}" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 24px; background: ${selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #FF8C42 0%, #f97316 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.preAssessmentComplete ? 'box-shadow: 0 4px 20px rgba(255, 140, 66, 0.4);' : ''}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(255, 140, 66, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(255, 140, 66, 0.4)'"` : ''}>
                                         ${selectedChild.preAssessmentComplete ? `
                                             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
@@ -4813,7 +5296,7 @@
                                             const subjectInfo = curriculum[subject];
                                             const isLocked = !selectedChild.preAssessmentComplete;
                                             return `
-                                                <div onclick="${isLocked ? `alert('Please complete the assessment first!')` : `goToSubjectFromMyChildren('${selectedChild.id}', '${subject}')`}" style="cursor: pointer; text-align: center; transition: transform 0.3s; ${isLocked ? 'opacity: 0.5;' : ''}" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                                <div onclick="${isLocked ? `showAppToast('Please complete the assessment first!', 'info')` : `goToSubjectFromMyChildren('${selectedChild.id}', '${subject}')`}" style="cursor: pointer; text-align: center; transition: transform 0.3s; ${isLocked ? 'opacity: 0.5;' : ''}" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                                                     <div style="position: relative; width: 130px; height: 130px; margin: 0 auto 16px;">
                                                         <!-- Simple circle with gradient background -->
                                                         <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #2d3f5f 0%, #1e293b 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(75, 156, 211, 0.3); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);">
@@ -4977,7 +5460,7 @@
                                         <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px;">
                                             ${selectedChild.postAssessmentComplete ? 'Learning progress confirmed!' : selectedChild.preAssessmentComplete ? 'Measure learning progress.' : 'Complete pre-assessment first.'}
                                         </p>
-                                        <button onclick="${selectedChild.preAssessmentComplete ? `state.assessmentType='post'; startPostAssessment('${selectedChild.id}')` : `alert('Please complete the pre-assessment first.')`}" style="width: 100%; padding: 12px 20px; background: ${selectedChild.postAssessmentComplete ? 'rgba(34, 197, 94, 0.2)' : selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: ${selectedChild.preAssessmentComplete ? 'white' : '#64748b'}; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.postAssessmentComplete || !selectedChild.preAssessmentComplete ? '' : 'box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);'}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'"` : ''}>
+                                        <button onclick="${selectedChild.preAssessmentComplete ? `state.assessmentType='post'; startPostAssessment('${selectedChild.id}')` : `showAppToast('Please complete the pre-assessment first.', 'info')`}" style="width: 100%; padding: 12px 20px; background: ${selectedChild.postAssessmentComplete ? 'rgba(34, 197, 94, 0.2)' : selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: ${selectedChild.preAssessmentComplete ? 'white' : '#64748b'}; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.postAssessmentComplete || !selectedChild.preAssessmentComplete ? '' : 'box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);'}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'"` : ''}>
                                             ${selectedChild.postAssessmentComplete ? 'Retake Post-Assessment' : selectedChild.preAssessmentComplete ? 'Start Post-Assessment →' : '🔒 Complete Pre-Assessment First'}
                                         </button>
                                     </div>
@@ -5026,12 +5509,12 @@
             const name = input.value.trim();
             
             if (!name) {
-                alert('Please enter a name for your child.');
+                showAppToast('Please enter a name for your child.', 'warning');
                 return;
             }
-            
+
             if (state.children.length >= 5) {
-                alert('Maximum of 5 children reached.');
+                showAppToast('Maximum of 5 children reached.', 'info');
                 return;
             }
             
@@ -5095,7 +5578,7 @@
             const child = state.children.find(c => c.id === childId);
             
             if (!child.preAssessmentComplete) {
-                alert('Please complete the assessment first!');
+                showAppToast('Please complete the assessment first!', 'info');
                 return;
             }
             
@@ -5419,12 +5902,12 @@
                 ? `Great job practicing with Panda today! Every session helps ${child ? child.name : 'your child'} learn.`
                 : `Amazing session! ${child ? child.name : 'Your child'} got ${correctCount} correct answer${correctCount !== 1 ? 's' : ''} in ${roundCount} round${roundCount !== 1 ? 's' : ''}. Keep up the great work!`;
 
-            alert(`🎉 Session Complete!\n\n${message}\n\nSee you next time!`);
-
-            // Reset and return to child management
-            state.colorQuest.active = false;
-            state.currentView = 'childManagement';
-            render();
+            showAppModal('Session Complete!', `${message}\n\nSee you next time!`, 'celebration', () => {
+                // Reset and return to child management after modal closes
+                state.colorQuest.active = false;
+                state.currentView = 'childManagement';
+                render();
+            });
         }
 
         function handleColorQuestVoiceInput(transcript) {
@@ -5732,7 +6215,7 @@
                                     </button>
 
                                     <button
-                                        onclick="state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
+                                        onclick="stopAllSpeech(); state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
                                         style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; border-radius: 14px; font-size: 1.2rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
                                         onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
                                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(16, 185, 129, 0.3)'">
@@ -5741,13 +6224,22 @@
                                 </div>
                             </div>
 
-                            <button
-                                onclick="stopAllSpeech(); state.currentView='childManagement'; state.colorQuest.active=false; render();"
-                                style="background: transparent; color: #64748b; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
-                                onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
-                                ← Back
-                            </button>
+                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <button
+                                    onclick="stopAllSpeech(); state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
+                                    style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                    onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                    Skip Intro
+                                </button>
+                                <button
+                                    onclick="stopAllSpeech(); state.currentView='childManagement'; state.colorQuest.active=false; render();"
+                                    style="background: transparent; color: #64748b; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
+                                    onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
+                                    ← Back
+                                </button>
+                            </div>
                         </div>
                         
                         <style>
@@ -6118,22 +6610,19 @@
                         </div>
                         
                         <div style="margin-bottom: 1.5rem;">
-                            <button 
-                                onclick="completeMagicalIntro();"
-                                style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 16px 40px; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
-                                onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
-                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(16, 185, 129, 0.3)'">
+                            <button onclick="completeMagicalIntro();" class="std-btn-success std-btn-lg">
                                 ✨ LET'S GO! ✨
                             </button>
                         </div>
-                        
-                        <button 
-                            onclick="stopAllSpeech(); state.currentView='childManagement'; render();"
-                            style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
-                            onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
-                            onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
-                            ← Maybe Later
-                        </button>
+
+                        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                            <button onclick="stopAllSpeech(); completeMagicalIntro();" class="std-btn-ghost std-btn-sm">
+                                Skip Intro
+                            </button>
+                            <button onclick="stopAllSpeech(); state.currentView='childManagement'; render();" class="std-btn-ghost std-btn-sm">
+                                ← Maybe Later
+                            </button>
+                        </div>
                     </div>
                     
                     <style>
@@ -6741,25 +7230,23 @@
                                 const isRecommended = idx === modules.findIndex(m => m.mastered < m.total);
                                 const isComplete = mod.mastered === mod.total;
                                 return `
-                                <div class="subject-pill" onclick="selectSubject('${mod.subject}')" style="position: relative;">
+                                <div class="std-pill subject-pill" onclick="selectSubject('${mod.subject}')" style="position: relative;">
                                     ${isRecommended && !isComplete ? `
-                                        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #FF8C42 0%, #f97316 100%); color: white; font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);">
-                                            START HERE
-                                        </div>
+                                        <div class="std-pill-badge">START HERE</div>
                                     ` : ''}
                                     ${isComplete ? `
-                                        <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);">✓</div>
+                                        <div class="std-pill-check">✓</div>
                                     ` : ''}
-                                    <div class="subject-circle" style="${isRecommended && !isComplete ? 'border: 3px solid #FF8C42; box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);' : ''}">
-                                        <div class="subject-icon">${mod.icon}</div>
+                                    <div class="std-pill-circle subject-circle" style="${isRecommended && !isComplete ? 'border: 3px solid #FF8C42; box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);' : ''}">
+                                        <div class="std-pill-icon subject-icon">${mod.icon}</div>
                                     </div>
-                                    <div class="subject-label">${mod.name}</div>
+                                    <div class="std-pill-label subject-label">${mod.name}</div>
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                        <div class="subject-count" style="font-size: 0.85rem; color: ${isComplete ? '#22c55e' : '#94a3b8'};">
+                                        <div class="std-pill-count" style="color: ${isComplete ? '#22c55e' : '#94a3b8'};">
                                             Mastered: ${mod.mastered}/${mod.total}
                                         </div>
-                                        <div style="width: 60px; height: 4px; background: rgba(100, 116, 139, 0.3); border-radius: 2px; overflow: hidden;">
-                                            <div style="width: ${mod.percentage}%; height: 100%; background: ${isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #4B9CD3, #7BAFD4)'}; border-radius: 2px;"></div>
+                                        <div class="std-pill-bar">
+                                            <div class="std-pill-bar-fill ${isComplete ? 'complete' : ''}" style="width: ${mod.percentage}%;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -6768,7 +7255,7 @@
                         
                         <!-- Coming Soon Modules (Locked) -->
                         <div style="margin-top: 20px;">
-                            <div style="text-align: center; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">Coming Soon</div>
+                            <div class="std-label" style="text-align: center; margin-bottom: 24px;">Coming Soon</div>
                             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; opacity: 0.5;">
                                 ${comingSoon.map(mod => `
                                     <div style="text-align: center;">
@@ -6796,6 +7283,15 @@
                                 <div style="display: inline-flex; align-items: center; gap: 12px; background: rgba(30, 41, 59, 0.8); border: 1px dashed rgba(75, 156, 211, 0.4); border-radius: 999px; padding: 12px 24px;">
                                     <span style="font-size: 1.2rem;">🎤</span>
                                     <span style="color: #94a3b8; font-size: 0.9rem;">Say "colors", "shapes", or "numbers"</span>
+                                </div>
+                                <div style="margin-top: 12px;">
+                                    <button
+                                        onclick="stopAllSpeech();"
+                                        style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                        onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                        Skip Intro
+                                    </button>
                                 </div>
                             </div>
                         ` : ''}
@@ -7142,7 +7638,7 @@
                             </div>
                             
                             <!-- Start Button -->
-                            <button 
+                            <button
                                 onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
                                 style="background: ${accent.gradient}; color: white; padding: 1.25rem 3rem; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.1) inset; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; letter-spacing: 0.02em;"
                                 onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 32px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.2) inset'"
@@ -7152,10 +7648,17 @@
                                 </svg>
                                 I'M READY!
                             </button>
-                            
-                            <!-- Back Button -->
-                            <div style="margin-top: 1.5rem;">
-                                <button 
+
+                            <!-- Skip and Back Buttons -->
+                            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <button
+                                    onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
+                                    style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                    onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                    Skip Intro
+                                </button>
+                                <button
                                     onclick="stopAllSpeech(); state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();"
                                     style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
                                     onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0'; this.style.borderColor='rgba(100, 116, 139, 0.5)'"
@@ -7464,11 +7967,13 @@
                     itemData.mastered = true;
                     speakText(`Amazing! You mastered ${item}! That's wonderful!`);
                     
-                    // Celebration alert
+                    // Celebration modal
                     setTimeout(() => {
-                        alert(`🎉 MASTERED: ${item}!\n\n${state.children.find(c => c.id === state.activeChildId).name} has mastered this item!\n\nGreat teaching!`);
-                        state.currentLesson = null;
-                        render();
+                        const childName = state.children.find(c => c.id === state.activeChildId).name;
+                        showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
+                            state.currentLesson = null;
+                            render();
+                        });
                     }, 100);
                 } else {
                     const remaining = 3 - itemData.consecutiveCorrect;
