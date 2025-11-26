@@ -1682,7 +1682,8 @@
             // Learning section intro
             learningIntro: {
                 shown: false,
-                waitingForReady: false
+                waitingForReady: false,
+                listening: false // ElevenLabs STT recording state
             },
             // Subject practice intro
             subjectIntro: {
@@ -2222,6 +2223,291 @@
             if (typeof stopColorQuestListening === 'function') {
                 try { stopColorQuestListening(); } catch(e) {}
             }
+            // Stop ElevenLabs STT recording if active
+            if (typeof stopElevenLabsSTT === 'function') {
+                try { stopElevenLabsSTT(); } catch(e) {}
+            }
+        }
+
+        // ============================================================================
+        // ELEVENLABS SPEECH-TO-TEXT MODULE
+        // For toddler voice interaction (yes/no and option selection)
+        // Uses ElevenLabs STT API via Netlify function for better accuracy
+        // ============================================================================
+
+        // State for ElevenLabs STT
+        const elevenLabsSTT = {
+            mediaRecorder: null,
+            audioChunks: [],
+            isRecording: false,
+            recordingTimeout: null,
+            currentMode: null, // 'yesNo' or 'option'
+            onResult: null,    // Callback for result
+            stream: null       // MediaStream reference
+        };
+
+        // YES/NO interpretation patterns (for toddler speech)
+        const YES_PATTERNS = ['yes', 'yeah', 'yep', 'yup', 'ready', 'let\'s go', 'lets go', 'i\'m ready', 'im ready', 'ok', 'okay', 'sure', 'uh huh', 'uh-huh', 'go'];
+        const NO_PATTERNS = ['no', 'nope', 'not yet', 'wait', 'i\'m not ready', 'im not ready', 'not ready', 'nah'];
+
+        // OPTION interpretation patterns (for multiple choice)
+        const OPTION_PATTERNS = {
+            0: ['one', '1', 'option one', 'option 1', 'first one', 'first', 'the first'],
+            1: ['two', '2', 'option two', 'option 2', 'second one', 'second', 'the second'],
+            2: ['three', '3', 'option three', 'option 3', 'third one', 'third', 'the third']
+        };
+
+        /**
+         * Interpret a transcript for yes/no responses
+         * Returns: 'yes', 'no', 'unclear', or 'unavailable'
+         */
+        function interpretYesNo(transcript) {
+            if (!transcript || typeof transcript !== 'string') return 'unavailable';
+
+            const lowerTranscript = transcript.toLowerCase().trim();
+            if (!lowerTranscript) return 'unclear';
+
+            // Check for YES patterns
+            for (const pattern of YES_PATTERNS) {
+                if (lowerTranscript.includes(pattern)) {
+                    console.log('🎤 ElevenLabs STT: Interpreted as YES from:', transcript);
+                    return 'yes';
+                }
+            }
+
+            // Check for NO patterns
+            for (const pattern of NO_PATTERNS) {
+                if (lowerTranscript.includes(pattern)) {
+                    console.log('🎤 ElevenLabs STT: Interpreted as NO from:', transcript);
+                    return 'no';
+                }
+            }
+
+            console.log('🎤 ElevenLabs STT: Could not interpret yes/no from:', transcript);
+            return 'unclear';
+        }
+
+        /**
+         * Interpret a transcript for option selection (1, 2, or 3)
+         * Returns: 0, 1, 2 (option index), 'unclear', or 'unavailable'
+         */
+        function interpretOption(transcript) {
+            if (!transcript || typeof transcript !== 'string') return 'unavailable';
+
+            const lowerTranscript = transcript.toLowerCase().trim();
+            if (!lowerTranscript) return 'unclear';
+
+            // Check each option's patterns
+            for (const [optionIndex, patterns] of Object.entries(OPTION_PATTERNS)) {
+                for (const pattern of patterns) {
+                    if (lowerTranscript.includes(pattern)) {
+                        console.log(`🎤 ElevenLabs STT: Interpreted as Option ${parseInt(optionIndex) + 1} from:`, transcript);
+                        return parseInt(optionIndex);
+                    }
+                }
+            }
+
+            console.log('🎤 ElevenLabs STT: Could not interpret option from:', transcript);
+            return 'unclear';
+        }
+
+        /**
+         * Send audio to ElevenLabs STT Netlify function
+         * Returns the transcript string or null on error
+         */
+        async function sendToElevenLabsSTT(audioBlob) {
+            try {
+                // Convert blob to base64
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                const base64Audio = btoa(
+                    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+                );
+
+                const response = await fetch('/.netlify/functions/elevenlabs-stt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        audio: base64Audio,
+                        contentType: audioBlob.type || 'audio/webm'
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('🎤 ElevenLabs STT: API error', response.status);
+                    return null;
+                }
+
+                const data = await response.json();
+                console.log('🎤 ElevenLabs STT: Received transcript:', data.transcript);
+                return data.transcript || '';
+
+            } catch (error) {
+                console.error('🎤 ElevenLabs STT: Error sending audio:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Stop any active ElevenLabs STT recording
+         */
+        function stopElevenLabsSTT() {
+            if (elevenLabsSTT.recordingTimeout) {
+                clearTimeout(elevenLabsSTT.recordingTimeout);
+                elevenLabsSTT.recordingTimeout = null;
+            }
+
+            if (elevenLabsSTT.mediaRecorder && elevenLabsSTT.isRecording) {
+                try {
+                    elevenLabsSTT.mediaRecorder.stop();
+                } catch (e) {
+                    console.log('🎤 ElevenLabs STT: Could not stop recorder:', e);
+                }
+            }
+
+            if (elevenLabsSTT.stream) {
+                elevenLabsSTT.stream.getTracks().forEach(track => track.stop());
+                elevenLabsSTT.stream = null;
+            }
+
+            elevenLabsSTT.isRecording = false;
+            elevenLabsSTT.audioChunks = [];
+        }
+
+        /**
+         * Start listening with ElevenLabs STT
+         * @param {string} mode - 'yesNo' or 'option'
+         * @param {function} onResult - Callback with result: { interpretation: string|number, transcript: string }
+         * @param {number} durationMs - Recording duration in ms (default: 2000 for yesNo, 2500 for option)
+         */
+        async function startElevenLabsSTT(mode, onResult, durationMs = null) {
+            // Set default duration based on mode
+            if (durationMs === null) {
+                durationMs = mode === 'yesNo' ? 2000 : 2500;
+            }
+
+            // Stop any existing recording
+            stopElevenLabsSTT();
+
+            // Check for microphone permission
+            if (!state.audioSetup.microphoneEnabled) {
+                console.log('🎤 ElevenLabs STT: Microphone not enabled');
+                if (onResult) onResult({ interpretation: 'unavailable', transcript: '' });
+                return;
+            }
+
+            try {
+                // Request microphone access
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                elevenLabsSTT.stream = stream;
+                elevenLabsSTT.audioChunks = [];
+                elevenLabsSTT.currentMode = mode;
+                elevenLabsSTT.onResult = onResult;
+
+                // Determine supported MIME type
+                let mimeType = 'audio/webm';
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mimeType = 'audio/webm;codecs=opus';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                    mimeType = 'audio/ogg';
+                }
+
+                const mediaRecorder = new MediaRecorder(stream, { mimeType });
+                elevenLabsSTT.mediaRecorder = mediaRecorder;
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        elevenLabsSTT.audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    elevenLabsSTT.isRecording = false;
+
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                    elevenLabsSTT.stream = null;
+
+                    // Create audio blob
+                    const audioBlob = new Blob(elevenLabsSTT.audioChunks, { type: mimeType });
+                    elevenLabsSTT.audioChunks = [];
+
+                    // Check if we have audio data
+                    if (audioBlob.size < 100) {
+                        console.log('🎤 ElevenLabs STT: Audio too short, returning unavailable');
+                        if (elevenLabsSTT.onResult) {
+                            elevenLabsSTT.onResult({ interpretation: 'unavailable', transcript: '' });
+                        }
+                        return;
+                    }
+
+                    // Send to ElevenLabs STT
+                    const transcript = await sendToElevenLabsSTT(audioBlob);
+
+                    if (transcript === null) {
+                        // API error
+                        if (elevenLabsSTT.onResult) {
+                            elevenLabsSTT.onResult({ interpretation: 'unavailable', transcript: '' });
+                        }
+                        return;
+                    }
+
+                    // Interpret based on mode
+                    let interpretation;
+                    if (elevenLabsSTT.currentMode === 'yesNo') {
+                        interpretation = interpretYesNo(transcript);
+                    } else if (elevenLabsSTT.currentMode === 'option') {
+                        interpretation = interpretOption(transcript);
+                    } else {
+                        interpretation = 'unclear';
+                    }
+
+                    // Call the result callback
+                    if (elevenLabsSTT.onResult) {
+                        elevenLabsSTT.onResult({ interpretation, transcript });
+                    }
+                };
+
+                mediaRecorder.onerror = (event) => {
+                    console.error('🎤 ElevenLabs STT: MediaRecorder error:', event.error);
+                    stopElevenLabsSTT();
+                    if (elevenLabsSTT.onResult) {
+                        elevenLabsSTT.onResult({ interpretation: 'unavailable', transcript: '' });
+                    }
+                };
+
+                // Start recording
+                mediaRecorder.start();
+                elevenLabsSTT.isRecording = true;
+                console.log(`🎤 ElevenLabs STT: Started recording (${mode} mode, ${durationMs}ms)`);
+
+                // Auto-stop after duration
+                elevenLabsSTT.recordingTimeout = setTimeout(() => {
+                    if (elevenLabsSTT.mediaRecorder && elevenLabsSTT.isRecording) {
+                        console.log('🎤 ElevenLabs STT: Stopping recording after timeout');
+                        elevenLabsSTT.mediaRecorder.stop();
+                    }
+                }, durationMs);
+
+            } catch (error) {
+                console.error('🎤 ElevenLabs STT: Error accessing microphone:', error);
+                if (onResult) onResult({ interpretation: 'unavailable', transcript: '' });
+            }
+        }
+
+        /**
+         * Check if ElevenLabs STT is currently recording
+         */
+        function isElevenLabsSTTRecording() {
+            return elevenLabsSTT.isRecording;
         }
 
         // ============================================================================
@@ -6045,75 +6331,60 @@
             }, 500);
         }
 
+        // ColorQuest Ready Response - Uses ElevenLabs STT for better toddler speech recognition
         function listenForReadyResponse() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                // Speech recognition not supported, just proceed after delay
-                setTimeout(() => {
-                    state.colorQuest.waitingForReady = false;
-                    generateColorQuestQuestion();
-                    render();
-                }, 2000);
+            // Check if mic is available
+            if (!state.audioSetup.microphoneEnabled) {
+                console.log('🎤 ColorQuest: Microphone not enabled, waiting for button tap');
+                // Stay on screen and let user tap the button
                 return;
             }
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.toLowerCase();
-                console.log('Heard:', transcript);
-                
-                // Check for affirmative responses
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
-                    transcript.includes('ok') ||
-                    transcript.includes('okay') ||
-                    transcript.includes('sure') ||
-                    transcript.includes('yep')) {
-                    
-                    speakPanda("Great! Let's go!", () => {
+            // Update UI to show listening state
+            state.colorQuest.listening = true;
+            render();
+
+            // Use ElevenLabs STT with 2-second recording window for yes/no
+            startElevenLabsSTT('yesNo', (result) => {
+                state.colorQuest.listening = false;
+
+                // Safety check - make sure we're still waiting for ready
+                if (!state.colorQuest.waitingForReady) {
+                    console.log('🎤 ColorQuest: Already proceeded past ready screen');
+                    return;
+                }
+
+                if (result.interpretation === 'yes') {
+                    // Child said YES - proceed with enthusiasm
+                    speakPanda("Awesome, you're ready! Let's go!", () => {
                         state.colorQuest.waitingForReady = false;
                         generateColorQuestQuestion();
                         render();
                     });
+                } else if (result.interpretation === 'no') {
+                    // Child said NO - acknowledge and wait
+                    speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the Ready button.", () => {
+                        render();
+                        // Listen again after a delay
+                        setTimeout(() => {
+                            if (state.colorQuest.waitingForReady) {
+                                listenForReadyResponse();
+                            }
+                        }, 1500);
+                    });
                 } else {
-                    // Didn't hear clear yes, try again
-                    speakPanda("Say yes when you're ready!", () => {
-                        listenForReadyResponse();
+                    // UNCLEAR or UNAVAILABLE - encourage tapping
+                    speakPanda("I didn't quite hear that. You can say 'Yes' or 'No,' or tap the buttons.", () => {
+                        render();
+                        // Listen again after a delay
+                        setTimeout(() => {
+                            if (state.colorQuest.waitingForReady) {
+                                listenForReadyResponse();
+                            }
+                        }, 1500);
                     });
                 }
-            };
-            
-            recognition.onerror = (event) => {
-                console.log('Speech recognition error:', event.error);
-                // Fallback: just proceed
-                setTimeout(() => {
-                    state.colorQuest.waitingForReady = false;
-                    generateColorQuestQuestion();
-                    render();
-                }, 1500);
-            };
-            
-            recognition.onend = () => {
-                console.log('Speech recognition ended');
-            };
-            
-            try {
-                recognition.start();
-            } catch (e) {
-                console.log('Could not start recognition:', e);
-                // Fallback: proceed anyway
-                setTimeout(() => {
-                    state.colorQuest.waitingForReady = false;
-                    generateColorQuestQuestion();
-                    render();
-                }, 1500);
-            }
+            }, 2000); // 2-second recording window
         }
 
         function generateColorQuestQuestion() {
@@ -6172,7 +6443,7 @@
         function askColorQuestQuestion() {
             const q = state.colorQuest.currentQuestion;
             let questionText = '';
-            
+
             if (q.type === 'colors') {
                 questionText = `Can you find the ${q.correctAnswer} one?`;
             } else if (q.type === 'shapes') {
@@ -6180,81 +6451,92 @@
             } else {
                 questionText = `Can you find the number ${q.correctAnswer}?`;
             }
-            
+
+            // Add voice option instruction if microphone is enabled
+            if (state.audioSetup.microphoneEnabled) {
+                questionText += ` You can tap the answer, or say 'Option 1', 'Option 2', or 'Option 3.'`;
+            }
+
             speakPanda(questionText, () => {
                 // After asking question, start listening for responses
                 startColorQuestListening();
             });
         }
 
+        // ColorQuest Option Listening - Uses ElevenLabs STT for option selection
+        // Kids can say "Option 1", "Option 2", "Option 3" or just "one", "two", "three"
         function startColorQuestListening() {
-            // Only start if speech recognition is available
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            // Check if mic is available
+            if (!state.audioSetup.microphoneEnabled) {
+                console.log('🎤 ColorQuest: Microphone not enabled, waiting for tap');
+                // Stay on screen and let user tap the answer
                 return;
             }
 
-            // Stop any existing recognition
-            if (state.colorQuest.recognition) {
-                try {
-                    state.colorQuest.recognition.stop();
-                } catch (e) {}
-            }
+            // Update UI to show listening state
+            state.colorQuest.listening = true;
+            render();
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            
-            recognition.continuous = true; // Keep listening
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-                console.log('Heard during ColorQuest:', transcript);
-                
-                handleColorQuestVoiceInput(transcript);
-            };
-            
-            recognition.onerror = (event) => {
-                console.log('Speech recognition error:', event.error);
-                if (event.error === 'no-speech') {
-                    // Restart if no speech detected
+            // Use ElevenLabs STT with 2.5-second recording window for option selection
+            startElevenLabsSTT('option', (result) => {
+                // Safety check - make sure ColorQuest is still active
+                if (!state.colorQuest.active || state.colorQuest.showCoachingPopup) {
+                    state.colorQuest.listening = false;
+                    render();
+                    return;
+                }
+
+                if (typeof result.interpretation === 'number') {
+                    // Child said an option number (0, 1, or 2)
+                    const optionIndex = result.interpretation;
+                    const choices = state.colorQuest.choices;
+
+                    if (optionIndex >= 0 && optionIndex < choices.length) {
+                        const selectedChoice = choices[optionIndex];
+                        console.log(`🎤 ColorQuest: Voice selected option ${optionIndex + 1}: ${selectedChoice}`);
+
+                        state.colorQuest.listening = false;
+                        stopElevenLabsSTT();
+
+                        // Trigger the same logic as if they tapped that choice
+                        handleColorQuestAnswer(selectedChoice);
+                    } else {
+                        // Invalid option index, keep listening
+                        state.colorQuest.listening = false;
+                        render();
+                        // Restart listening after a short delay
+                        setTimeout(() => {
+                            if (state.colorQuest.active && !state.colorQuest.showCoachingPopup) {
+                                startColorQuestListening();
+                            }
+                        }, 1000);
+                    }
+                } else if (result.interpretation === 'unclear') {
+                    // Couldn't understand - encourage tapping
+                    state.colorQuest.listening = false;
+                    speakPanda("I'm not sure which one you meant. Let's tap the answer together this time.", () => {
+                        render();
+                        // Continue to let them tap - don't restart listening
+                    });
+                } else {
+                    // UNAVAILABLE - just let them tap
+                    state.colorQuest.listening = false;
+                    render();
+                    // Restart listening after a delay if still on question
                     setTimeout(() => {
                         if (state.colorQuest.active && !state.colorQuest.showCoachingPopup) {
                             startColorQuestListening();
                         }
-                    }, 1000);
+                    }, 2000);
                 }
-            };
-            
-            recognition.onend = () => {
-                console.log('Recognition ended, restarting...');
-                // Auto-restart to keep listening
-                if (state.colorQuest.active && !state.colorQuest.showCoachingPopup) {
-                    setTimeout(() => {
-                        startColorQuestListening();
-                    }, 500);
-                }
-            };
-            
-            state.colorQuest.recognition = recognition;
-            state.colorQuest.listening = true;
-            
-            try {
-                recognition.start();
-                console.log('Started continuous listening');
-            } catch (e) {
-                console.log('Could not start continuous recognition:', e);
-            }
+            }, 2500); // 2.5-second recording window for options
         }
 
         function stopColorQuestListening() {
-            if (state.colorQuest.recognition) {
-                try {
-                    state.colorQuest.recognition.stop();
-                    state.colorQuest.listening = false;
-                    console.log('Stopped listening');
-                } catch (e) {}
-            }
+            // Stop ElevenLabs STT if active
+            stopElevenLabsSTT();
+            state.colorQuest.listening = false;
+            console.log('🎤 ColorQuest: Stopped listening');
         }
 
         function finishColorQuestSession() {
@@ -6278,76 +6560,8 @@
             });
         }
 
-        function handleColorQuestVoiceInput(transcript) {
-            const q = state.colorQuest.currentQuestion;
-            
-            // Check for help requests
-            if (transcript.includes('help') || 
-                transcript.includes('i don\'t know') ||
-                transcript.includes('i cant find') ||
-                transcript.includes('i can\'t find') ||
-                transcript.includes('where is') ||
-                transcript.includes('i need help') ||
-                transcript.includes('stuck')) {
-                
-                console.log('Help requested!');
-                stopColorQuestListening();
-                
-                // Respond with appropriate hint based on current level
-                if (state.colorQuest.hintLevel === 0) {
-                    speakPanda("No problem! Let me give you a hint!", () => {
-                        state.colorQuest.hintLevel = 1;
-                        giveConceptHint();
-                        render();
-                        startColorQuestListening();
-                    });
-                } else if (state.colorQuest.hintLevel === 1) {
-                    speakPanda("Okay, let me help you more!", () => {
-                        state.colorQuest.hintLevel = 2;
-                        giveCueHint();
-                        render();
-                        startColorQuestListening();
-                    });
-                } else if (state.colorQuest.hintLevel === 2) {
-                    speakPanda("No worries! I'll show you!", () => {
-                        state.colorQuest.hintLevel = 3;
-                        giveModelHint();
-                        render();
-                        // After model hint, move to next question
-                        setTimeout(() => {
-                            state.colorQuest.currentRound++;
-                            state.colorQuest.turnsSinceCoaching++;
-                            generateColorQuestQuestion();
-                            render();
-                        }, 3000);
-                    });
-                }
-                return;
-            }
-            
-            // Check if they're trying to answer by saying the color/shape/number
-            if (transcript.includes(q.correctAnswer)) {
-                // They said the correct answer!
-                console.log('Said correct answer!');
-                handleColorQuestAnswer(q.correctAnswer);
-                return;
-            }
-            
-            // Check if they said one of the distractor choices
-            for (let choice of state.colorQuest.choices) {
-                if (transcript.includes(choice)) {
-                    console.log('Said a choice:', choice);
-                    handleColorQuestAnswer(choice);
-                    return;
-                }
-            }
-            
-            // Other responses
-            if (transcript.includes('repeat') || transcript.includes('say that again') || transcript.includes('what')) {
-                stopColorQuestListening();
-                askColorQuestQuestion();
-            }
-        }
+        // Note: The old handleColorQuestVoiceInput function has been replaced by
+        // ElevenLabs STT option interpretation in startColorQuestListening()
 
         function speakPanda(text, onComplete) {
             if (!state.voiceEnabled) {
@@ -6858,74 +7072,59 @@
             });
         }
 
+        // Magical Learning Intro Ready Response - Uses ElevenLabs STT for better toddler speech recognition
         function listenForLearningReadyResponse() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                // Speech recognition not supported - user must click the button
+            // Check if mic is available
+            if (!state.audioSetup.microphoneEnabled) {
+                console.log('🎤 LearningIntro: Microphone not enabled, waiting for button tap');
+                // Stay on screen and let user tap the button
                 return;
             }
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.toLowerCase();
-                console.log('Heard:', transcript);
-                
-                // Safety check - ensure we're still on the intro screen
+            // Update UI to show listening state
+            state.learningIntro.listening = true;
+            render();
+
+            // Use ElevenLabs STT with 2-second recording window for yes/no
+            startElevenLabsSTT('yesNo', (result) => {
+                state.learningIntro.listening = false;
+
+                // Safety check - make sure we're still waiting for ready
                 if (!state.learningIntro.waitingForReady) {
-                    console.log('Already proceeded past intro');
+                    console.log('🎤 LearningIntro: Already proceeded past intro');
                     return;
                 }
-                
-                // Check for affirmative responses (removed 'let' to prevent self-triggering)
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
-                    transcript.includes('ok') ||
-                    transcript.includes('okay') ||
-                    transcript.includes('sure') ||
-                    transcript.includes('yep') ||
-                    transcript.includes('go')) {
-                    
+
+                if (result.interpretation === 'yes') {
+                    // Child said YES - proceed with enthusiasm
                     stopAllSpeech();
                     speakPanda("Fantastic! Let's begin our magical adventure!", () => {
                         completeMagicalIntro();
                     });
+                } else if (result.interpretation === 'no') {
+                    // Child said NO - acknowledge and wait
+                    speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the Ready button.", () => {
+                        render();
+                        // Listen again after a delay
+                        setTimeout(() => {
+                            if (state.learningIntro.waitingForReady && state.currentView === 'childLearning') {
+                                listenForLearningReadyResponse();
+                            }
+                        }, 1500);
+                    });
                 } else {
-                    // Didn't hear clear yes, keep listening but don't auto-proceed
-                    console.log('Did not recognize affirmative, waiting for button click or retry');
+                    // UNCLEAR or UNAVAILABLE - encourage tapping
+                    speakPanda("I didn't quite hear that. You can say 'Yes' or 'No,' or tap the buttons.", () => {
+                        render();
+                        // Listen again after a delay
+                        setTimeout(() => {
+                            if (state.learningIntro.waitingForReady && state.currentView === 'childLearning') {
+                                listenForLearningReadyResponse();
+                            }
+                        }, 1500);
+                    });
                 }
-            };
-            
-            recognition.onerror = (event) => {
-                console.log('Speech recognition error:', event.error);
-                // Don't auto-proceed - let user click the button
-            };
-            
-            recognition.onend = () => {
-                console.log('Speech recognition ended');
-                // Restart listening if still on this screen
-                if (state.learningIntro.waitingForReady && state.currentView === 'childLearning') {
-                    setTimeout(() => {
-                        try {
-                            listenForLearningReadyResponse();
-                        } catch(e) {
-                            console.log('Could not restart listening');
-                        }
-                    }, 1000);
-                }
-            };
-            
-            try {
-                recognition.start();
-            } catch (e) {
-                console.log('Could not start recognition:', e);
-                // Don't auto-proceed - let user click the button
-            }
+            }, 2000); // 2-second recording window
         }
 
         function renderMagicalLearningIntro() {
