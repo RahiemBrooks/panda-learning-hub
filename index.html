@@ -4571,6 +4571,28 @@
                         <p class="text-gray-700">When you name things for your child—out loud, in the moment—you're building their vocabulary and helping their brain make connections. You don't need fancy tools. Just talk about what you see and do together.</p>
                     </div>
 
+                    <!-- Start Labeling Activity Button -->
+                    <div class="bg-gradient-to-r from-panda-orange to-orange-400 rounded-2xl p-6 mb-6 shadow-lg">
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div class="text-center md:text-left">
+                                <h3 class="text-xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-2">
+                                    <span class="text-2xl">🐼</span>
+                                    Practice Labeling With Your Child
+                                </h3>
+                                <p class="text-white text-opacity-90 text-sm">Interactive activity where your child taps colors, shapes, and numbers. Earn stars by getting 3 in a row!</p>
+                            </div>
+                            <button
+                                onclick="state.currentView='childManagement'; state.userRole='child'; render();"
+                                class="bg-white text-panda-orange px-6 py-3 rounded-xl font-bold text-lg hover:bg-orange-50 transition-all shadow-md hover:shadow-lg whitespace-nowrap flex items-center gap-2"
+                            >
+                                <span>Start Labeling Activity</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- ROUTINE SECTIONS -->
                     <div class="mb-4">
                         <p class="text-lg text-gray-700 font-semibold mb-3">Click any routine below to see example scripts you can use:</p>
