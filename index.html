@@ -3766,6 +3766,141 @@
             `;
         }
 
+        function renderCalendarPlaceholder() {
+            return `
+                <div class="max-w-3xl mx-auto">
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-600 rounded-2xl p-8 text-center">
+                        <div class="inline-block bg-amber-500 text-white text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-4">
+                            Prototype – Not Active in Demo
+                        </div>
+                        <div class="w-16 h-16 mx-auto mb-4 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-3">20-Day Learning Calendar</h2>
+                        <p class="text-gray-300 mb-6 max-w-xl mx-auto">
+                            In the full PANDA study, this calendar will guide you through the complete 20-day learning program with your child.
+                        </p>
+                        <div class="bg-gray-700/50 rounded-xl p-6 text-left max-w-lg mx-auto">
+                            <h3 class="text-lg font-semibold text-white mb-3">What this will include:</h3>
+                            <ul class="space-y-2 text-gray-300 text-sm">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Daily activity schedule</strong> – See which activities are planned for each day of the study</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Progress tracking</strong> – Visual checkmarks showing completed days</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Reminder system</strong> – Optional notifications to stay on track</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Catch-up flexibility</strong> – Easy way to reschedule if you miss a day</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-6">
+                            This feature activates when you enroll in the full research study.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSurveysPlaceholder() {
+            return `
+                <div class="max-w-3xl mx-auto">
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-600 rounded-2xl p-8 text-center">
+                        <div class="inline-block bg-amber-500 text-white text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-4">
+                            Prototype – Not Active in Demo
+                        </div>
+                        <div class="w-16 h-16 mx-auto mb-4 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-3">Research Surveys</h2>
+                        <p class="text-gray-300 mb-6 max-w-xl mx-auto">
+                            In the full PANDA study, this section will provide direct links to required research surveys at key points during your participation.
+                        </p>
+                        <div class="bg-gray-700/50 rounded-xl p-6 text-left max-w-lg mx-auto">
+                            <h3 class="text-lg font-semibold text-white mb-3">What this will include:</h3>
+                            <ul class="space-y-2 text-gray-300 text-sm">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Pre-study survey</strong> – Background information before you begin (via Qualtrics)</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Mid-study check-in</strong> – Brief feedback halfway through the program</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Post-study survey</strong> – Final reflections and outcome measures</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Completion status</strong> – Track which surveys you've finished</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-6">
+                            Survey links will appear here when you're enrolled in the full research study.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAnalyticsPlaceholder() {
+            return `
+                <div class="max-w-3xl mx-auto">
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-600 rounded-2xl p-8 text-center">
+                        <div class="inline-block bg-amber-500 text-white text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-4">
+                            Prototype – Not Active in Demo
+                        </div>
+                        <div class="w-16 h-16 mx-auto mb-4 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-3">Progress Analytics</h2>
+                        <p class="text-gray-300 mb-6 max-w-xl mx-auto">
+                            In the full PANDA study, this dashboard will show your family's learning progress with visual charts and insights.
+                        </p>
+                        <div class="bg-gray-700/50 rounded-xl p-6 text-left max-w-lg mx-auto">
+                            <h3 class="text-lg font-semibold text-white mb-3">What this will include:</h3>
+                            <ul class="space-y-2 text-gray-300 text-sm">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Activity completion graphs</strong> – See how many activities you've completed over time</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Child progress charts</strong> – Track your child's learning across different skills</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Engagement summary</strong> – Time spent and activities by category</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-panda-orange mt-0.5">•</span>
+                                    <span><strong>Milestone celebrations</strong> – Badges and achievements earned</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-6">
+                            Analytics will populate as you progress through the full research study.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
         function toggleLabelingGuide() {
             const content = document.getElementById('labelingGuideContent');
             const btn = document.getElementById('labelingGuideBtn');
@@ -7207,15 +7342,15 @@
                 } else if (state.activeTab === 'labeling') {
                     tabContent.innerHTML = renderLabelingGuide();
                 } else if (state.activeTab === 'calendar') {
-                    tabContent.innerHTML = '<div class="text-center p-8 text-lg" style="color: #cbd5e1;">📅 Learning Calendar - Interactive 20-day calendar coming soon</div>';
+                    tabContent.innerHTML = renderCalendarPlaceholder();
                 } else if (state.activeTab === 'journal') {
                     tabContent.innerHTML = renderJournal();
                 } else if (state.activeTab === 'resources') {
                     tabContent.innerHTML = renderResources();
                 } else if (state.activeTab === 'surveys') {
-                    tabContent.innerHTML = '<div class="text-center p-8 text-lg" style="color: #cbd5e1;">📋 Surveys - Qualtrics integration ready for deployment</div>';
+                    tabContent.innerHTML = renderSurveysPlaceholder();
                 } else if (state.activeTab === 'analytics') {
-                    tabContent.innerHTML = '<div class="text-center p-8 text-lg" style="color: #cbd5e1;">📊 Analytics - Progress tracking dashboard coming soon</div>';
+                    tabContent.innerHTML = renderAnalyticsPlaceholder();
                 }
             } else if (state.currentView === 'childManagement') {
                 app.innerHTML = renderChildManagement();
