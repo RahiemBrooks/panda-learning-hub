@@ -649,7 +649,353 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-        
+
+        /* ============================================================================ */
+        /* STANDARDIZED COMPONENT SYSTEM                                               */
+        /* ============================================================================ */
+
+        /* ----- STANDARDIZED BUTTONS ----- */
+
+        /* Primary Action Button (Orange - Main CTA) */
+        .std-btn-primary {
+            background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px var(--accent-orange-glow);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 140, 66, 0.4);
+        }
+        .std-btn-primary:disabled {
+            background: rgba(100, 116, 139, 0.3);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Secondary Button (Blue) */
+        .std-btn-secondary {
+            background: linear-gradient(135deg, var(--unc-blue) 0%, var(--unc-light-blue) 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(75, 156, 211, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(75, 156, 211, 0.4);
+        }
+
+        /* Success Button (Green) */
+        .std-btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Ghost/Outline Button */
+        .std-btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .std-btn-ghost:hover {
+            background: var(--bg-elevated);
+            border-color: var(--border-default);
+            color: var(--text-primary);
+        }
+
+        /* Small Button Variant */
+        .std-btn-sm {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+        }
+
+        /* Large Button Variant */
+        .std-btn-lg {
+            padding: 18px 36px;
+            font-size: 1.1rem;
+            border-radius: var(--radius-lg);
+        }
+
+        /* Full Width Button */
+        .std-btn-full {
+            width: 100%;
+        }
+
+        /* ----- STANDARDIZED CARDS ----- */
+
+        /* Standard Card */
+        .std-card {
+            background: rgba(31, 42, 66, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 24px;
+        }
+        .std-card-hover {
+            transition: all 0.3s ease;
+        }
+        .std-card-hover:hover {
+            border-color: var(--border-accent);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Solid Card (no blur) */
+        .std-card-solid {
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            padding: 24px;
+        }
+
+        /* Elevated Card */
+        .std-card-elevated {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+
+        /* Interactive Card Button */
+        .std-card-btn {
+            background: rgba(26, 39, 68, 0.6);
+            border: 1px solid rgba(75, 156, 211, 0.15);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        .std-card-btn:hover {
+            border-color: rgba(75, 156, 211, 0.4);
+            background: rgba(26, 39, 68, 0.8);
+        }
+
+        /* ----- STANDARDIZED SECTION TITLES ----- */
+
+        /* Page Title (largest) */
+        .std-title-page {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        /* Section Title */
+        .std-title-section {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        /* Subsection Title */
+        .std-title-subsection {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        /* Card Title */
+        .std-title-card {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Gradient Title (accent) */
+        .std-title-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Accent Title (orange) */
+        .std-title-accent {
+            color: var(--accent-orange);
+        }
+
+        /* Muted Label */
+        .std-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ----- STANDARDIZED PROGRESS PILLS ----- */
+
+        /* Progress Pill Container */
+        .std-pill {
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .std-pill:hover {
+            transform: scale(1.05);
+        }
+
+        /* Progress Pill Circle */
+        .std-pill-circle {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 16px;
+        }
+
+        /* Progress Pill Icon Container */
+        .std-pill-icon {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #2d3f5f 0%, #1e293b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(75, 156, 211, 0.3);
+            transition: all 0.3s ease;
+        }
+        .std-pill:hover .std-pill-icon {
+            border-color: rgba(75, 156, 211, 0.5);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Progress Pill Label */
+        .std-pill-label {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        /* Progress Pill Count */
+        .std-pill-count {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        /* Progress Pill Bar */
+        .std-pill-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(100, 116, 139, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px auto 0;
+        }
+        .std-pill-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--unc-blue), var(--unc-light-blue));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .std-pill-bar-fill.complete {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        /* Recommended Badge */
+        .std-pill-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #f97316 100%);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 10px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);
+        }
+
+        /* Complete Checkmark */
+        .std-pill-check {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Locked State */
+        .std-pill.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .std-pill.locked:hover {
+            transform: none;
+        }
+
         .grid { display: grid; }
         .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -2051,7 +2397,7 @@
                                 <p class="text-sm mb-4" style="color: var(--text-muted);">
                                     Before we begin, we need your informed consent to participate in this research study.
                                 </p>
-                                <button onclick="showConsent()" class="px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 hover:scale-105" style="background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%); color: white; box-shadow: 0 4px 20px var(--accent-orange-glow);">
+                                <button onclick="showConsent()" class="std-btn-primary std-btn-lg">
                                     Review Research Consent Form
                                 </button>
                             </div>
@@ -2237,10 +2583,10 @@
                                 </div>
 
                                 <div class="flex gap-4">
-                                    <button onclick="backToOpening()" class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all" style="background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-subtle);">
+                                    <button onclick="backToOpening()" class="std-btn-ghost flex-1">
                                         Back
                                     </button>
-                                    <button id="consentButton" onclick="acceptConsent()" disabled class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all" style="background: var(--bg-card); color: var(--text-muted); cursor: not-allowed;">
+                                    <button id="consentButton" onclick="acceptConsent()" disabled class="std-btn-success flex-1" style="opacity: 0.5; cursor: not-allowed;">
                                         I Agree — Let's Begin!
                                     </button>
                                 </div>
@@ -3002,27 +3348,25 @@
                             <!-- Header with Panda -->
                             <div style="text-align: center; margin-bottom: 32px;">
                                 <div style="font-size: 4rem; margin-bottom: 16px;">🐼</div>
-                                <h1 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 8px;">Audio Setup</h1>
+                                <h1 class="std-title-section" style="margin-bottom: 8px;">Audio Setup</h1>
                                 <p style="color: #94a3b8; font-size: 1rem;">Choose how Panda will sound and interact.</p>
                             </div>
 
                             <!-- Panda Voice Preview -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
-                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                    <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600;">Hear Panda's Voice</h3>
-                                </div>
+                            <div class="std-card-elevated" style="margin-bottom: 20px;">
+                                <h3 class="std-title-subsection">Hear Panda's Voice</h3>
                                 <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px;">Make sure your volume is on, then tap to hear how Panda will talk to your child.</p>
 
-                                <button onclick="playPandaVoicePreview()" style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;">
+                                <button onclick="playPandaVoicePreview()" class="std-btn-secondary std-btn-full">
                                     🔊 Play Panda Voice
                                 </button>
                             </div>
 
                             <!-- Background Music Toggle -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
+                            <div class="std-card-elevated" style="margin-bottom: 20px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
                                     <div>
-                                        <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Background Music</h3>
+                                        <h3 class="std-title-subsection" style="margin-bottom: 4px;">Background Music</h3>
                                         <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Soft music during activities</p>
                                     </div>
                                     <div style="display: flex; gap: 8px;">
@@ -3037,10 +3381,10 @@
                             </div>
 
                             <!-- Panda Voice / Microphone Toggle -->
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 20px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(75, 156, 211, 0.1);">
+                            <div class="std-card-elevated" style="margin-bottom: 20px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${micDenied ? '16px' : '0'};">
                                     <div>
-                                        <h3 style="color: #e2e8f0; font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Voice Interaction</h3>
+                                        <h3 class="std-title-subsection" style="margin-bottom: 4px;">Voice Interaction</h3>
                                         <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Let Panda hear your child's answers</p>
                                     </div>
                                     <div style="display: flex; gap: 8px;">
@@ -3069,7 +3413,7 @@
                             </div>
 
                             <!-- Continue Button -->
-                            <button onclick="completeAudioSetup()" style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; border: none; border-radius: 16px; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.2s;">
+                            <button onclick="completeAudioSetup()" class="std-btn-success std-btn-lg std-btn-full">
                                 Continue →
                             </button>
                         </div>
@@ -4839,7 +5183,7 @@
                                             onblur="this.style.borderColor='#2d3f5f'; this.style.boxShadow='none'"
                                             onkeypress="if(event.key === 'Enter') addChild()"
                                         />
-                                        <button onclick="addChild()" style="padding: 16px 28px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(75, 156, 211, 0.3); white-space: nowrap;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                        <button onclick="addChild()" class="std-btn-secondary" style="white-space: nowrap;">
                                             + Add
                                         </button>
                                     </div>
@@ -4847,7 +5191,7 @@
                             </div>
                         ` : `
                             <!-- My Children Title -->
-                            <h1 style="font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; color: #FF8C42; margin-bottom: 8px;">My Children</h1>
+                            <h1 class="std-title-page std-title-accent">My Children</h1>
                             
                             <!-- Selected Child Name -->
                             <h2 style="font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; color: white; margin-bottom: 24px;">
@@ -6234,28 +6578,16 @@
                         </div>
                         
                         <div style="margin-bottom: 1.5rem;">
-                            <button
-                                onclick="completeMagicalIntro();"
-                                style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 16px 40px; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
-                                onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
-                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(16, 185, 129, 0.3)'">
+                            <button onclick="completeMagicalIntro();" class="std-btn-success std-btn-lg">
                                 ✨ LET'S GO! ✨
                             </button>
                         </div>
 
                         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                            <button
-                                onclick="stopAllSpeech(); completeMagicalIntro();"
-                                style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
-                                onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                            <button onclick="stopAllSpeech(); completeMagicalIntro();" class="std-btn-ghost std-btn-sm">
                                 Skip Intro
                             </button>
-                            <button
-                                onclick="stopAllSpeech(); state.currentView='childManagement'; render();"
-                                style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
-                                onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
+                            <button onclick="stopAllSpeech(); state.currentView='childManagement'; render();" class="std-btn-ghost std-btn-sm">
                                 ← Maybe Later
                             </button>
                         </div>
@@ -6866,25 +7198,23 @@
                                 const isRecommended = idx === modules.findIndex(m => m.mastered < m.total);
                                 const isComplete = mod.mastered === mod.total;
                                 return `
-                                <div class="subject-pill" onclick="selectSubject('${mod.subject}')" style="position: relative;">
+                                <div class="std-pill subject-pill" onclick="selectSubject('${mod.subject}')" style="position: relative;">
                                     ${isRecommended && !isComplete ? `
-                                        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #FF8C42 0%, #f97316 100%); color: white; font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);">
-                                            START HERE
-                                        </div>
+                                        <div class="std-pill-badge">START HERE</div>
                                     ` : ''}
                                     ${isComplete ? `
-                                        <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);">✓</div>
+                                        <div class="std-pill-check">✓</div>
                                     ` : ''}
-                                    <div class="subject-circle" style="${isRecommended && !isComplete ? 'border: 3px solid #FF8C42; box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);' : ''}">
-                                        <div class="subject-icon">${mod.icon}</div>
+                                    <div class="std-pill-circle subject-circle" style="${isRecommended && !isComplete ? 'border: 3px solid #FF8C42; box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);' : ''}">
+                                        <div class="std-pill-icon subject-icon">${mod.icon}</div>
                                     </div>
-                                    <div class="subject-label">${mod.name}</div>
+                                    <div class="std-pill-label subject-label">${mod.name}</div>
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                        <div class="subject-count" style="font-size: 0.85rem; color: ${isComplete ? '#22c55e' : '#94a3b8'};">
+                                        <div class="std-pill-count" style="color: ${isComplete ? '#22c55e' : '#94a3b8'};">
                                             Mastered: ${mod.mastered}/${mod.total}
                                         </div>
-                                        <div style="width: 60px; height: 4px; background: rgba(100, 116, 139, 0.3); border-radius: 2px; overflow: hidden;">
-                                            <div style="width: ${mod.percentage}%; height: 100%; background: ${isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #4B9CD3, #7BAFD4)'}; border-radius: 2px;"></div>
+                                        <div class="std-pill-bar">
+                                            <div class="std-pill-bar-fill ${isComplete ? 'complete' : ''}" style="width: ${mod.percentage}%;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -6893,7 +7223,7 @@
                         
                         <!-- Coming Soon Modules (Locked) -->
                         <div style="margin-top: 20px;">
-                            <div style="text-align: center; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">Coming Soon</div>
+                            <div class="std-label" style="text-align: center; margin-bottom: 24px;">Coming Soon</div>
                             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; opacity: 0.5;">
                                 ${comingSoon.map(mod => `
                                     <div style="text-align: center;">
