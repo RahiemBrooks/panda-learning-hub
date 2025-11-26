@@ -74,6 +74,7 @@ exports.handler = async (event, context) => {
           style: 0.0,
           use_speaker_boost: true,
         },
+        speaking_rate: 0.9,
       }),
     });
 
