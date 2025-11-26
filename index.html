@@ -1657,6 +1657,103 @@
         };
 
         // ============================================================================
+        // LOCAL STORAGE PERSISTENCE
+        // ============================================================================
+
+        // Keys for localStorage
+        const STORAGE_KEYS = {
+            CONSENT_GIVEN: 'pandaConsentGiven',
+            PARTICIPATION_CODE: 'pandaParticipationCode',
+            APP_STATE: 'pandaAppState'
+        };
+
+        // Save consent and participation code to localStorage
+        function saveConsentToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.CONSENT_GIVEN, state.consentGiven ? 'true' : 'false');
+                if (state.participantId) {
+                    localStorage.setItem(STORAGE_KEYS.PARTICIPATION_CODE, state.participantId);
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not save consent to localStorage', e);
+            }
+        }
+
+        // Save app state (children, learningData, assessments) to localStorage
+        function saveAppStateToStorage() {
+            try {
+                const persistentState = {
+                    children: state.children,
+                    learningData: state.learningData,
+                    journalEntries: state.journalEntries
+                };
+                localStorage.setItem(STORAGE_KEYS.APP_STATE, JSON.stringify(persistentState));
+            } catch (e) {
+                console.warn('PANDA: Could not save app state to localStorage', e);
+            }
+        }
+
+        // Load app state from localStorage and merge into state
+        function loadAppStateFromStorage() {
+            try {
+                const savedState = localStorage.getItem(STORAGE_KEYS.APP_STATE);
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+
+                    // Validate and merge children array
+                    if (Array.isArray(parsed.children)) {
+                        state.children = parsed.children;
+                    }
+
+                    // Validate and merge learningData object
+                    if (parsed.learningData && typeof parsed.learningData === 'object') {
+                        state.learningData = parsed.learningData;
+                    }
+
+                    // Validate and merge journal entries
+                    if (Array.isArray(parsed.journalEntries)) {
+                        state.journalEntries = parsed.journalEntries;
+                    }
+
+                    // Set first child as selected if exists
+                    if (state.children.length > 0) {
+                        state.selectedChildForProgress = state.children[0].id;
+                    }
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not load app state from localStorage', e);
+                // Fall back to defaults (already set in state)
+            }
+        }
+
+        // Check if user has already completed consent/code entry
+        function loadConsentFromStorage() {
+            try {
+                const consentGiven = localStorage.getItem(STORAGE_KEYS.CONSENT_GIVEN);
+                const participationCode = localStorage.getItem(STORAGE_KEYS.PARTICIPATION_CODE);
+
+                if (consentGiven === 'true' && participationCode && participationCode.length > 0) {
+                    // Restore consent and participation state
+                    state.consentGiven = true;
+                    state.participantId = participationCode;
+                    state.userId = `PANDA_${participationCode}_restored`;
+
+                    // Load saved app state (children, progress, etc.)
+                    loadAppStateFromStorage();
+
+                    // Skip to role selection (audio setup is not re-required)
+                    state.audioSetup.setupComplete = true;
+                    state.currentView = 'roleSelection';
+
+                    return true; // Consent was restored
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not load consent from localStorage', e);
+            }
+            return false; // No saved consent, show normal flow
+        }
+
+        // ============================================================================
         // PARENT VOICE RESPONSE PHRASES
         // ============================================================================
         const correctResponses = [
@@ -2969,6 +3066,10 @@
             state.userId = `PANDA_DEMO_${demoId}_${Date.now()}`;
             state.isDemoMode = true;
             logInteraction('demo_mode_entered', { participantId: demoId });
+
+            // Save consent and participation code to localStorage
+            saveConsentToStorage();
+
             state.currentView = 'audioSetup';
             render();
         }
@@ -3027,6 +3128,10 @@
             state.participantId = id;
             state.userId = `PANDA_${id}_${Date.now()}`;
             logInteraction('participant_id_verified', { participantId: id });
+
+            // Save consent and participation code to localStorage
+            saveConsentToStorage();
+
             state.currentView = 'audioSetup';
             render();
         }
@@ -5729,12 +5834,16 @@
             
             state.children.push(newChild);
             state.learningData[childId] = initializeLearningData();
-            
+
             // Set newly added child as selected for progress view
             state.selectedChildForProgress = childId;
-            
+
             logInteraction('child_added', { childId, name });
             input.value = '';
+
+            // Save to localStorage
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -5742,13 +5851,17 @@
             const child = state.children.find(c => c.id === childId);
             state.children = state.children.filter(c => c.id !== childId);
             delete state.learningData[childId];
-            
+
             // Reset selectedChildForProgress if this child was selected
             if (state.selectedChildForProgress === childId) {
                 state.selectedChildForProgress = state.children.length > 0 ? state.children[0].id : null;
             }
-            
+
             logInteraction('child_removed', { childId });
+
+            // Save to localStorage
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -7209,6 +7322,10 @@
 
             state.currentAssessment = null;
             state.selectedChildForProgress = child.id;
+
+            // Save to localStorage (child assessment status updated)
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -8214,7 +8331,10 @@
                 attempts: itemData.attempts,
                 mastered: itemData.mastered
             });
-            
+
+            // Save to localStorage (learning progress updated)
+            saveAppStateToStorage();
+
             render();
         }
 
@@ -8399,7 +8519,11 @@
                 };
             }
         }
-        
+
+        // Check for saved consent/participation code before first render
+        // If found, skip consent/code screens and go directly to role selection
+        loadConsentFromStorage();
+
         render();
     </script>
 </body>
