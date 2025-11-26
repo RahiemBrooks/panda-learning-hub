@@ -5734,7 +5734,7 @@
                                     </button>
 
                                     <button
-                                        onclick="state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
+                                        onclick="stopAllSpeech(); state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
                                         style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; border-radius: 14px; font-size: 1.2rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
                                         onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
                                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(16, 185, 129, 0.3)'">
@@ -5743,13 +5743,22 @@
                                 </div>
                             </div>
 
-                            <button
-                                onclick="stopAllSpeech(); state.currentView='childManagement'; state.colorQuest.active=false; render();"
-                                style="background: transparent; color: #64748b; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
-                                onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
-                                ← Back
-                            </button>
+                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <button
+                                    onclick="stopAllSpeech(); state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
+                                    style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                    onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                    Skip Intro
+                                </button>
+                                <button
+                                    onclick="stopAllSpeech(); state.currentView='childManagement'; state.colorQuest.active=false; render();"
+                                    style="background: transparent; color: #64748b; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
+                                    onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
+                                    ← Back
+                                </button>
+                            </div>
                         </div>
                         
                         <style>
@@ -6120,7 +6129,7 @@
                         </div>
                         
                         <div style="margin-bottom: 1.5rem;">
-                            <button 
+                            <button
                                 onclick="completeMagicalIntro();"
                                 style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 16px 40px; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
                                 onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
@@ -6128,14 +6137,23 @@
                                 ✨ LET'S GO! ✨
                             </button>
                         </div>
-                        
-                        <button 
-                            onclick="stopAllSpeech(); state.currentView='childManagement'; render();"
-                            style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
-                            onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
-                            onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
-                            ← Maybe Later
-                        </button>
+
+                        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                            <button
+                                onclick="stopAllSpeech(); completeMagicalIntro();"
+                                style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                Skip Intro
+                            </button>
+                            <button
+                                onclick="stopAllSpeech(); state.currentView='childManagement'; render();"
+                                style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
+                                onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
+                                ← Maybe Later
+                            </button>
+                        </div>
                     </div>
                     
                     <style>
@@ -6799,6 +6817,15 @@
                                     <span style="font-size: 1.2rem;">🎤</span>
                                     <span style="color: #94a3b8; font-size: 0.9rem;">Say "colors", "shapes", or "numbers"</span>
                                 </div>
+                                <div style="margin-top: 12px;">
+                                    <button
+                                        onclick="stopAllSpeech();"
+                                        style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                        onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                        Skip Intro
+                                    </button>
+                                </div>
                             </div>
                         ` : ''}
                         
@@ -7144,7 +7171,7 @@
                             </div>
                             
                             <!-- Start Button -->
-                            <button 
+                            <button
                                 onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
                                 style="background: ${accent.gradient}; color: white; padding: 1.25rem 3rem; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.1) inset; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; letter-spacing: 0.02em;"
                                 onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 32px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.2) inset'"
@@ -7154,10 +7181,17 @@
                                 </svg>
                                 I'M READY!
                             </button>
-                            
-                            <!-- Back Button -->
-                            <div style="margin-top: 1.5rem;">
-                                <button 
+
+                            <!-- Skip and Back Buttons -->
+                            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <button
+                                    onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
+                                    style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
+                                    onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
+                                    Skip Intro
+                                </button>
+                                <button
                                     onclick="stopAllSpeech(); state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();"
                                     style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
                                     onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0'; this.style.borderColor='rgba(100, 116, 139, 0.5)'"
