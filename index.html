@@ -4422,6 +4422,22 @@
                 return '<div class="text-center p-8">Loading...</div>';
             }
 
+            // Parent tips based on question type
+            const parentTips = {
+                color: [
+                    "Try pointing to this color around the house later today!",
+                    "At mealtime, ask 'What color is your food?'",
+                    "During a walk, play 'I spy something this color!'"
+                ],
+                shape: [
+                    "Look for this shape in books or around the room!",
+                    "Trace the shape with your finger together.",
+                    "Find this shape in snacks or toys at home!"
+                ]
+            };
+            const tipList = parentTips[state.currentQuestion.type] || parentTips.color;
+            const randomTip = tipList[Math.floor(Math.random() * tipList.length)];
+
             return `
                 <div class="min-h-screen flex flex-col">
                     <!-- Header -->
@@ -4431,7 +4447,10 @@
                                 <div class="bg-white rounded-full p-2">
                                     <div class="w-6 h-6 text-panda-orange">${icons.brain}</div>
                                 </div>
-                                <span class="text-white font-semibold">Learning with AI Tutor</span>
+                                <div>
+                                    <span class="text-white font-semibold block">Quick Practice Mode</span>
+                                    <span class="text-white/70 text-xs">Fun practice, no tracking</span>
+                                </div>
                             </div>
                             <div class="flex items-center gap-4">
                                 <div class="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-white font-semibold">
@@ -4444,21 +4463,37 @@
                         </div>
                     </div>
 
+                    <!-- Quick Practice Explanation -->
+                    <div class="bg-blue-50 border-b border-blue-100 py-2 px-4 text-center">
+                        <p class="text-blue-700 text-sm">
+                            🎮 This is a quick practice mode – just for fun! Progress here is separate from the main learning journey.
+                        </p>
+                    </div>
+
                     <!-- Main Content -->
                     <div class="flex-1 flex items-center justify-center p-8">
                         <div class="max-w-4xl w-full">
                             <!-- Question Display -->
-                            <div class="bg-white rounded-3xl shadow-2xl p-12 text-center mb-8">
+                            <div class="bg-white rounded-3xl shadow-2xl p-12 text-center mb-6">
                                 <div class="text-9xl mb-8 animate-bounce">${state.currentQuestion.image}</div>
                                 <h2 class="text-4xl font-bold text-panda-blue mb-6">
                                     ${state.currentQuestion.question}
                                 </h2>
-                                
+
                                 ${state.feedback ? `
-                                    <div class="text-3xl font-bold mb-6 ${state.feedback.includes('Amazing') || state.feedback.includes('Perfect') || state.feedback.includes('Excellent') || state.feedback.includes('Great') ? 'text-green-600' : 'text-panda-blue'}">
+                                    <div class="text-3xl font-bold mb-6 ${state.feedback.includes('Yay') || state.feedback.includes('Hooray') || state.feedback.includes('Yes') || state.feedback.includes('Wow') ? 'text-green-600' : 'text-panda-blue'}">
                                         ${state.feedback}
                                     </div>
                                 ` : ''}
+                            </div>
+
+                            <!-- Parent Tip -->
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
+                                <span class="text-lg">💡</span>
+                                <div>
+                                    <p class="text-amber-800 text-sm font-medium">Parent tip:</p>
+                                    <p class="text-amber-700 text-sm">${randomTip}</p>
+                                </div>
                             </div>
 
                             <!-- Interactive Options -->
@@ -5371,6 +5406,27 @@
             }
         }
 
+        function finishColorQuestSession() {
+            stopColorQuestListening();
+            stopAllSpeech();
+
+            const child = state.children.find(c => c.id === state.activeChildId);
+            const correctCount = state.colorQuest.correctAnswers || 0;
+            const roundCount = state.colorQuest.currentRound || 0;
+
+            // Show a friendly success message
+            const message = correctCount === 0
+                ? `Great job practicing with Panda today! Every session helps ${child ? child.name : 'your child'} learn.`
+                : `Amazing session! ${child ? child.name : 'Your child'} got ${correctCount} correct answer${correctCount !== 1 ? 's' : ''} in ${roundCount} round${roundCount !== 1 ? 's' : ''}. Keep up the great work!`;
+
+            alert(`🎉 Session Complete!\n\n${message}\n\nSee you next time!`);
+
+            // Reset and return to child management
+            state.colorQuest.active = false;
+            state.currentView = 'childManagement';
+            render();
+        }
+
         function handleColorQuestVoiceInput(transcript) {
             const q = state.colorQuest.currentQuestion;
             
@@ -5614,24 +5670,43 @@
                             radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.25) 0%, transparent 100%);
                             pointer-events: none; z-index: 0;"></div>
                         
-                        <div style="position: relative; z-index: 1; max-width: 480px; text-align: center; background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); padding: 48px 40px; border-radius: 32px; border: 1px solid rgba(75, 156, 211, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-                            
+                        <div style="position: relative; z-index: 1; max-width: 520px; text-align: center; background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); padding: 40px 36px; border-radius: 32px; border: 1px solid rgba(75, 156, 211, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+
                             <!-- Panda with glow ring -->
-                            <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 24px;">
+                            <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 20px;">
                                 <div style="position: absolute; inset: -8px; border-radius: 50%; background: conic-gradient(from 0deg, #ec4899, #f472b6, #14b8a6, #4B9CD3, #ec4899); animation: spin 4s linear infinite; opacity: 0.6;"></div>
                                 <div style="position: absolute; inset: 0; border-radius: 50%; background: #1a2744; display: flex; align-items: center; justify-content: center;">
-                                    <span style="font-size: 4rem; animation: gentle-bounce 2s ease-in-out infinite;">🐼</span>
+                                    <span style="font-size: 3.5rem; animation: gentle-bounce 2s ease-in-out infinite;">🐼</span>
                                 </div>
                             </div>
-                            
-                            <h1 style="font-size: 2.25rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.75rem;">Hi! I'm Panda!</h1>
-                            
-                            <p style="font-size: 1.15rem; color: #94a3b8; margin-bottom: 2rem; line-height: 1.7;">
-                                Let's learn together! I'll ask you questions, and you can tap the answer.
+
+                            <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem;">Hi! I'm Panda!</h1>
+
+                            <p style="font-size: 1.1rem; color: #94a3b8; margin-bottom: 1.5rem; line-height: 1.6;">
+                                Let's learn colors, shapes, and numbers together!
                             </p>
-                            
+
+                            <!-- How This Works - 3 Steps -->
+                            <div style="background: rgba(75, 156, 211, 0.1); border: 1px solid rgba(75, 156, 211, 0.25); border-radius: 16px; padding: 20px; margin-bottom: 1.5rem; text-align: left;">
+                                <p style="font-size: 0.85rem; font-weight: 600; color: #4B9CD3; margin-bottom: 12px; text-align: center;">How This Works</p>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <span style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">1</span>
+                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Panda says hello</strong> and asks a question</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <span style="background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">2</span>
+                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Say "Ready!"</strong> or tap the Ready button</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <span style="background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">3</span>
+                                        <span style="color: #e2e8f0; font-size: 0.95rem;"><strong>Tap the answer</strong> – the game begins!</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Voice Listening Indicator -->
-                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
+                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
                                 <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
                                 <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
                                     <div style="display: flex; align-items: center; gap: 4px;">
@@ -5641,40 +5716,34 @@
                                         <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
                                         <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
                                     </div>
-                                    <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Listening for you...</span>
+                                    <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
                                 </div>
-                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready!</p>
+                                <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready!</p>
                             </div>
-                            
-                            <div style="margin-bottom: 1.5rem;">
-                                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">Test my voice or start when ready:</p>
-                                
+
+                            <div style="margin-bottom: 1.25rem;">
                                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                                    <button 
+                                    <button
                                         onclick="speakText('Hi! I am Panda! I am so excited to learn with you today!');"
                                         style="background: rgba(75, 156, 211, 0.2); color: #7BAFD4; padding: 12px 20px; border-radius: 12px; font-size: 1rem; font-weight: 600; border: 1px solid rgba(75, 156, 211, 0.4); cursor: pointer; transition: all 0.2s;"
                                         onmouseover="this.style.background='rgba(75, 156, 211, 0.3)'; this.style.color='#93c5fd';"
                                         onmouseout="this.style.background='rgba(75, 156, 211, 0.2)'; this.style.color='#7BAFD4';">
                                         🔊 Test Voice
                                     </button>
-                                    
-                                    <button 
+
+                                    <button
                                         onclick="state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
-                                        style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; border-radius: 14px; font-size: 1.25rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
+                                        style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; border-radius: 14px; font-size: 1.2rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
                                         onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
                                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(16, 185, 129, 0.3)'">
                                         ✓ I'M READY!
                                     </button>
                                 </div>
-                                
-                                <p style="font-size: 0.75rem; color: #475569; margin-top: 1rem;">
-                                    💡 Tip: Click "Test Voice" to hear Panda!
-                                </p>
                             </div>
-                            
-                            <button 
+
+                            <button
                                 onclick="stopAllSpeech(); state.currentView='childManagement'; state.colorQuest.active=false; render();"
-                                style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
+                                style="background: transparent; color: #64748b; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
                                 onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0';"
                                 onmouseout="this.style.background='transparent'; this.style.color='#64748b';">
                                 ← Back
@@ -5793,28 +5862,38 @@
                             ` : ''}
                         </div>
                         
+                        <!-- Mastery Info -->
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 20px; padding: 8px 16px;">
+                                <svg width="16" height="16" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span style="color: #22c55e; font-size: 0.85rem; font-weight: 500;">⭐ 3 correct in a row = Mastered!</span>
+                            </div>
+                        </div>
+
                         <!-- Controls -->
                         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                            <button 
+                            <button
                                 onclick="askColorQuestQuestion()"
                                 style="background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(75, 156, 211, 0.3); transition: all 0.2s;"
                                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(75, 156, 211, 0.4)'"
                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(75, 156, 211, 0.3)'">
                                 🔊 Repeat Question
                             </button>
-                            <button 
+                            <button
+                                onclick="finishColorQuestSession()"
+                                style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s;"
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(16, 185, 129, 0.4)'"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)'">
+                                ✓ Finish for Now
+                            </button>
+                            <button
                                 onclick="stopColorQuestListening(); state.currentView='childManagement'; state.colorQuest.active=false; render();"
                                 style="background: rgba(30, 41, 59, 0.8); color: #94a3b8; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 1rem; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
                                 onmouseover="this.style.background='rgba(51, 65, 85, 0.9)'; this.style.color='white'"
                                 onmouseout="this.style.background='rgba(30, 41, 59, 0.8)'; this.style.color='#94a3b8'">
                                 ← Back
-                            </button>
-                            <button 
-                                onclick="stopColorQuestListening(); resetApp()"
-                                style="background: rgba(30, 41, 59, 0.8); color: #94a3b8; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 1rem; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(51, 65, 85, 0.9)'; this.style.color='white'"
-                                onmouseout="this.style.background='rgba(30, 41, 59, 0.8)'; this.style.color='#94a3b8'">
-                                🏠 Main Menu
                             </button>
                         </div>
                     </div>
@@ -6119,13 +6198,18 @@
             }
             
             return `
-                <div style="min-height: 100vh; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 1rem; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; overflow-y: auto;">
-                    <div style="max-width: 42rem; width: 100%; background: white; border-radius: 1.5rem; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); margin: 1rem auto;">
-                        
-                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="min-height: 100vh; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 1rem; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; overflow-y: auto;">
+                    <div style="max-width: 42rem; width: 100%; background: white; border-radius: 1.5rem; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); margin: 1rem auto; position: relative;">
+
+                        <!-- Parent-Only Badge -->
+                        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #FF8C42 0%, #f97316 100%); color: white; font-size: 0.75rem; font-weight: 700; padding: 6px 16px; border-radius: 20px; white-space: nowrap; box-shadow: 0 4px 12px rgba(255, 140, 66, 0.4); text-transform: uppercase; letter-spacing: 0.05em;">
+                            👨‍👩‍👧 For Parents Only
+                        </div>
+
+                        <div style="text-align: center; margin-bottom: 1.5rem; margin-top: 0.5rem;">
                             <div style="font-size: 3rem; margin-bottom: 0.5rem;">🐼💡</div>
                             <h2 style="font-size: 1.75rem; font-weight: bold; color: #1E5A8E; margin-bottom: 0.25rem;">Teaching Tip</h2>
-                            <p style="font-size: 1rem; color: #6b7280;">How to teach this concept</p>
+                            <p style="font-size: 1rem; color: #6b7280;">Quick coaching for this question</p>
                         </div>
                         
                         <!-- Say This Exactly -->
@@ -6251,10 +6335,15 @@
             const accentColor = assessment.type === 'post' ? '#10b981' : '#4B9CD3';
             const accentGlow = assessment.type === 'post' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)';
             
+            const isPost = assessment.type === 'post';
+            const badgeLabel = isPost ? 'Post-Assessment' : 'Pre-Assessment';
+            const badgeEmoji = isPost ? '🎯' : '📊';
+            const borderColor = isPost ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)';
+
             return `
                 <div style="min-height: 100vh; background: linear-gradient(180deg, #0B1120 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;">
                     <!-- Starfield Background -->
-                    <div style="position: absolute; inset: 0; background-image: 
+                    <div style="position: absolute; inset: 0; background-image:
                         radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 30% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
                         radial-gradient(1.5px 1.5px at 50% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
@@ -6264,20 +6353,36 @@
                         radial-gradient(1.5px 1.5px at 40% 85%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.25) 0%, transparent 100%);
                         pointer-events: none; z-index: 0;"></div>
-                    
+
                     <div style="position: relative; z-index: 1; max-width: 600px; width: 100%;">
-                        <div style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); border-radius: 32px; padding: 48px 40px; border: 1px solid rgba(75, 156, 211, 0.2); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-                            
+                        <div style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); border-radius: 32px; padding: 40px 36px; border: 2px solid ${borderColor}; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px ${accentGlow};">
+
+                            <!-- Assessment Type Badge -->
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <span style="display: inline-flex; align-items: center; gap: 8px; background: ${isPost ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : 'linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%)'}; color: white; font-size: 0.8rem; font-weight: 700; padding: 8px 16px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    <span>${badgeEmoji}</span>
+                                    <span>${badgeLabel}</span>
+                                </span>
+                            </div>
+
                             <!-- Header -->
-                            <div style="text-align: center; margin-bottom: 32px;">
-                                <p style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: ${accentColor}; margin-bottom: 8px;">${assessment.type === 'post' ? 'Post-Assessment' : 'Pre-Assessment'}</p>
-                                <h2 style="font-size: 1.75rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">${child.name}'s Assessment</h2>
-                                <p style="color: #94a3b8; font-size: 1rem; margin-bottom: 16px;">Question ${assessment.currentIndex + 1} of ${assessment.items.length}</p>
-                                
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <h2 style="font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">${child.name}'s ${isPost ? 'Progress Check' : 'Starting Point'}</h2>
+                                <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px;">Question ${assessment.currentIndex + 1} of ${assessment.items.length}</p>
+
                                 <!-- Progress Bar -->
                                 <div style="width: 100%; background: #2d3f5f; border-radius: 9999px; height: 8px; overflow: hidden;">
-                                    <div style="background: linear-gradient(90deg, ${accentColor}, ${assessment.type === 'post' ? '#34d399' : '#7BAFD4'}); height: 100%; width: ${progress}%; transition: width 0.3s; box-shadow: 0 0 10px ${accentGlow};"></div>
+                                    <div style="background: linear-gradient(90deg, ${accentColor}, ${isPost ? '#34d399' : '#7BAFD4'}); height: 100%; width: ${progress}%; transition: width 0.3s; box-shadow: 0 0 10px ${accentGlow};"></div>
                                 </div>
+                            </div>
+
+                            <!-- Friendly Explanation -->
+                            <div style="background: rgba(255, 140, 66, 0.1); border: 1px solid rgba(255, 140, 66, 0.25); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; text-align: center;">
+                                <p style="color: #FF8C42; font-size: 0.85rem; font-weight: 500; margin: 0;">
+                                    ${isPost
+                                        ? "💡 This isn't a test! We're simply seeing how much your child has grown."
+                                        : "💡 This isn't a test! It just helps us see where to start learning together."}
+                                </p>
                             </div>
                             
                             <!-- Item Display -->
@@ -6385,34 +6490,137 @@
             const assessment = state.currentAssessment;
             const correct = assessment.responses.filter(r => r.correct).length;
             const score = Math.round((correct / assessment.responses.length) * 100);
-            
+
             if (state.assessmentType === 'post') {
                 // Post-assessment completion
                 child.postAssessmentComplete = true;
                 child.postAssessmentScore = score;
-                
-                const improvement = child.preAssessmentScore ? score - child.preAssessmentScore : 0;
-                const message = improvement > 0 
-                    ? `🎉 Amazing Progress!\n\n${child.name} scored ${score}%\n\nThat's a ${improvement}% improvement from the pre-assessment!`
-                    : `Assessment Complete!\n\n${child.name} scored ${score}%`;
-                
-                alert(message);
-                
-                state.currentAssessment = null;
-                state.currentView = 'childManagement';
-                state.selectedChildForProgress = child.id;
+
+                // Show result modal instead of alert
+                state.assessmentResult = {
+                    type: 'post',
+                    childName: child.name,
+                    score: score,
+                    preScore: child.preAssessmentScore || 0,
+                    correct: correct,
+                    total: assessment.responses.length
+                };
             } else {
                 // Pre-assessment completion
                 child.preAssessmentComplete = true;
                 child.preAssessmentScore = score;
-                
-                alert(`Assessment Complete!\n\n${child.name} scored ${score}%\n\nLet's start learning!`);
-                
-                state.currentAssessment = null;
-                state.currentView = 'childManagement';
-                state.selectedChildForProgress = child.id;
+
+                // Show result modal instead of alert
+                state.assessmentResult = {
+                    type: 'pre',
+                    childName: child.name,
+                    score: score,
+                    correct: correct,
+                    total: assessment.responses.length
+                };
             }
+
+            state.currentAssessment = null;
+            state.selectedChildForProgress = child.id;
             render();
+        }
+
+        function renderAssessmentResultModal() {
+            const result = state.assessmentResult;
+            if (!result) return '';
+
+            const isPost = result.type === 'post';
+            const improvement = isPost ? result.score - result.preScore : 0;
+            const accentColor = isPost ? '#10b981' : '#4B9CD3';
+
+            // Determine the message based on improvement
+            let growthMessage = '';
+            let growthEmoji = '';
+            if (isPost) {
+                if (improvement > 10) {
+                    growthMessage = "Wonderful growth! Your practice is really paying off.";
+                    growthEmoji = '🌟';
+                } else if (improvement > 0) {
+                    growthMessage = "Great progress! Every bit of learning counts.";
+                    growthEmoji = '📈';
+                } else if (improvement === 0) {
+                    growthMessage = "Holding steady! Keep practicing together.";
+                    growthEmoji = '💪';
+                } else {
+                    growthMessage = "That's okay! Learning isn't always a straight line. Keep going!";
+                    growthEmoji = '💙';
+                }
+            }
+
+            return `
+                <div style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 1rem;">
+                    <div style="max-width: 480px; width: 100%; background: linear-gradient(135deg, #1a2744 0%, #13294B 100%); border-radius: 24px; padding: 40px 32px; border: 2px solid ${isPost ? 'rgba(16, 185, 129, 0.4)' : 'rgba(75, 156, 211, 0.4)'}; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px ${isPost ? 'rgba(16, 185, 129, 0.2)' : 'rgba(75, 156, 211, 0.2)'}; text-align: center;">
+
+                        <!-- Celebration Icon -->
+                        <div style="font-size: 4rem; margin-bottom: 16px;">${isPost ? '🎉' : '✨'}</div>
+
+                        <!-- Title -->
+                        <h2 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 8px;">
+                            ${isPost ? 'Progress Check Complete!' : 'Starting Point Set!'}
+                        </h2>
+                        <p style="color: #94a3b8; font-size: 1rem; margin-bottom: 24px;">${result.childName}'s ${isPost ? 'post' : 'pre'}-assessment results</p>
+
+                        <!-- Score Display -->
+                        <div style="background: rgba(15, 23, 42, 0.6); border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                            <div style="font-size: 3.5rem; font-weight: 700; color: ${accentColor}; margin-bottom: 8px;">${result.score}%</div>
+                            <p style="color: #94a3b8; font-size: 0.9rem;">${result.correct} out of ${result.total} correct</p>
+                        </div>
+
+                        ${isPost ? `
+                            <!-- Before/After Comparison -->
+                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">Growth Journey</p>
+
+                                <!-- Comparison Bars -->
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <span style="color: #94a3b8; font-size: 0.85rem; width: 50px; text-align: right;">Before</span>
+                                    <div style="flex: 1; background: rgba(75, 156, 211, 0.2); border-radius: 8px; height: 24px; overflow: hidden; position: relative;">
+                                        <div style="background: linear-gradient(90deg, #4B9CD3, #7BAFD4); height: 100%; width: ${result.preScore}%; border-radius: 8px;"></div>
+                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: white; font-size: 0.8rem; font-weight: 600;">${result.preScore}%</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                    <span style="color: #10b981; font-size: 0.85rem; width: 50px; text-align: right; font-weight: 600;">After</span>
+                                    <div style="flex: 1; background: rgba(16, 185, 129, 0.2); border-radius: 8px; height: 24px; overflow: hidden; position: relative;">
+                                        <div style="background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: ${result.score}%; border-radius: 8px;"></div>
+                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: white; font-size: 0.8rem; font-weight: 600;">${result.score}%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Growth Message -->
+                                <div style="background: ${improvement >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)'}; border-radius: 12px; padding: 12px 16px;">
+                                    <p style="color: ${improvement >= 0 ? '#34d399' : '#60a5fa'}; font-size: 1rem; font-weight: 600; margin: 0;">
+                                        ${growthEmoji} ${improvement > 0 ? `+${improvement}% improvement!` : improvement === 0 ? 'Same score' : `${improvement}% change`}
+                                    </p>
+                                    <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 4px;">${growthMessage}</p>
+                                </div>
+                            </div>
+                        ` : `
+                            <!-- Pre-Assessment Message -->
+                            <div style="background: rgba(75, 156, 211, 0.1); border: 1px solid rgba(75, 156, 211, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                                <p style="color: #7BAFD4; font-size: 0.95rem; font-weight: 500; margin: 0;">
+                                    🚀 Great starting point! This helps us know exactly where to begin ${result.childName}'s learning journey.
+                                </p>
+                            </div>
+                        `}
+
+                        <!-- Continue Button -->
+                        <button
+                            onclick="state.assessmentResult = null; state.currentView = 'childManagement'; render();"
+                            style="width: 100%; padding: 16px 32px; background: linear-gradient(135deg, ${accentColor} 0%, ${isPost ? '#34d399' : '#7BAFD4'} 100%); color: white; border-radius: 14px; font-size: 1.1rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px ${isPost ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)'}; transition: all 0.2s;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 32px ${isPost ? 'rgba(16, 185, 129, 0.4)' : 'rgba(75, 156, 211, 0.4)'}'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px ${isPost ? 'rgba(16, 185, 129, 0.3)' : 'rgba(75, 156, 211, 0.3)'}'"
+                        >
+                            ${isPost ? "See Progress →" : "Start Learning →"}
+                        </button>
+                    </div>
+                </div>
+            `;
         }
         
         function startPostAssessment(childId) {
@@ -7343,27 +7551,29 @@
             state.childProgress.total++;
             if (isCorrect) {
                 state.childProgress.correct++;
+                // Simple, warm praise for young children (2-4 years)
                 const praises = [
-                    'Amazing! You did it! 🎉',
-                    'Wow! Great job! ⭐',
-                    'Perfect! You are so smart! 🌟',
-                    'Excellent work! 🎊',
-                    'That is right! High five! ✋'
+                    'Yay! You did it! 🎉',
+                    'Hooray! 🌟',
+                    'Yes! That is it! ⭐',
+                    'Wow! 🎊',
+                    'You found it! ✋'
                 ];
                 const praise = praises[Math.floor(Math.random() * praises.length)];
                 state.feedback = praise;
                 speakText(praise);
                 logInteraction('correct_answer', { lesson: state.currentQuestion });
-                
+
                 setTimeout(() => {
                     startNewLesson();
                     render();
                 }, 3000);
             } else {
+                // Gentle, encouraging responses for young children
                 const encouragements = [
-                    'Not quite! Let us try again together! 💪',
-                    'That is okay! Let us look closely! 👀',
-                    'Good try! Want to try once more? 🙂'
+                    "Let's try again! 💪",
+                    "Oops! One more try! 🙂",
+                    "Let's look together! 👀"
                 ];
                 const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                 state.feedback = encouragement;
@@ -7448,12 +7658,31 @@
                 if (existingControls) {
                     existingControls.remove();
                 }
-                
+
                 // Add new controls
                 const controlsDiv = document.createElement('div');
                 controlsDiv.id = 'audioControlsOverlay';
                 controlsDiv.innerHTML = renderAudioControls();
                 document.body.appendChild(controlsDiv);
+            }
+
+            // Add assessment result modal if needed
+            if (state.assessmentResult) {
+                const existingModal = document.getElementById('assessmentResultModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                const modalDiv = document.createElement('div');
+                modalDiv.id = 'assessmentResultModal';
+                modalDiv.innerHTML = renderAssessmentResultModal();
+                document.body.appendChild(modalDiv);
+            } else {
+                // Remove modal if it exists but shouldn't be shown
+                const existingModal = document.getElementById('assessmentResultModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
             }
         }
 
