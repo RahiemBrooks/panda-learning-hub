@@ -1553,7 +1553,112 @@
                 try { stopColorQuestListening(); } catch(e) {}
             }
         }
-        
+
+        // ============================================================================
+        // APP MODAL & TOAST SYSTEM
+        // ============================================================================
+
+        // Show a styled modal dialog matching app design
+        // type: 'info' (blue), 'success' (green), 'warning' (orange), 'error' (red)
+        function showAppModal(title, message, type = 'info', onClose = null) {
+            const colors = {
+                info: { accent: '#4B9CD3', glow: 'rgba(75, 156, 211, 0.3)', icon: 'ℹ️' },
+                success: { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.3)', icon: '✅' },
+                warning: { accent: '#FF8C42', glow: 'rgba(255, 140, 66, 0.3)', icon: '⚠️' },
+                error: { accent: '#ef4444', glow: 'rgba(239, 68, 68, 0.3)', icon: '❌' },
+                celebration: { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.4)', icon: '🎉' }
+            };
+            const c = colors[type] || colors.info;
+
+            // Remove any existing modal
+            const existing = document.getElementById('appModalOverlay');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'appModalOverlay';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; animation: fadeIn 0.2s ease-out;';
+            modal.innerHTML = `
+                <div style="max-width: 420px; width: 100%; background: linear-gradient(135deg, #1a2744 0%, #13294B 100%); border-radius: 20px; padding: 32px 28px; border: 1px solid ${c.accent}40; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px ${c.glow}; text-align: center; animation: slideUp 0.25s ease-out;">
+                    <div style="font-size: 3rem; margin-bottom: 16px;">${c.icon}</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 700; color: white; margin-bottom: 12px;">${title}</h3>
+                    <p style="color: #94a3b8; font-size: 1rem; line-height: 1.6; margin-bottom: 24px; white-space: pre-line;">${message}</p>
+                    <button id="appModalCloseBtn" style="background: linear-gradient(135deg, ${c.accent} 0%, ${c.accent}cc 100%); color: white; padding: 14px 36px; border-radius: 12px; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; box-shadow: 0 4px 15px ${c.glow}; transition: all 0.2s;">
+                        OK
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeModal = () => {
+                modal.remove();
+                if (onClose) onClose();
+            };
+
+            modal.querySelector('#appModalCloseBtn').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+
+            // Add animation styles if not present
+            if (!document.getElementById('appModalStyles')) {
+                const style = document.createElement('style');
+                style.id = 'appModalStyles';
+                style.textContent = `
+                    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+                    @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Show a toast notification (auto-dismisses)
+        // type: 'info', 'success', 'warning', 'error'
+        function showAppToast(message, type = 'info', duration = 4000) {
+            const colors = {
+                info: { bg: 'rgba(75, 156, 211, 0.95)', icon: 'ℹ️' },
+                success: { bg: 'rgba(16, 185, 129, 0.95)', icon: '✅' },
+                warning: { bg: 'rgba(255, 140, 66, 0.95)', icon: '⚠️' },
+                error: { bg: 'rgba(239, 68, 68, 0.95)', icon: '❌' }
+            };
+            const c = colors[type] || colors.info;
+
+            // Create toast container if not exists
+            let container = document.getElementById('appToastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'appToastContainer';
+                container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `background: ${c.bg}; color: white; padding: 14px 20px; border-radius: 12px; font-size: 0.95rem; font-weight: 500; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); display: flex; align-items: center; gap: 10px; max-width: 360px; pointer-events: auto; animation: slideInRight 0.3s ease-out; backdrop-filter: blur(10px);`;
+            toast.innerHTML = `<span style="font-size: 1.2rem;">${c.icon}</span><span style="white-space: pre-line;">${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Add animation styles if not present
+            if (!document.getElementById('appModalStyles')) {
+                const style = document.createElement('style');
+                style.id = 'appModalStyles';
+                style.textContent = `
+                    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+                    @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+                `;
+                document.head.appendChild(style);
+            }
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
         function speakText(text) {
             if (!state.voiceEnabled) return;
             
@@ -1626,12 +1731,12 @@
 
         function startVoiceRecognition() {
             if (!state.voiceEnabled) {
-                alert('Please turn on Voice first by clicking the "🔊 Voice On" button.');
+                showAppToast('Please turn on Voice first by clicking the "Voice On" button.', 'warning');
                 return;
             }
 
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('⚠️ Voice recognition needs Chrome, Edge, or Safari browser.\n\nYour browser doesn\'t support voice commands, but you can still use the buttons!');
+                showAppModal('Browser Not Supported', 'Voice recognition needs Chrome, Edge, or Safari browser.\n\nYour browser doesn\'t support voice commands, but you can still use the buttons!', 'warning');
                 return;
             }
 
@@ -1660,7 +1765,7 @@
                 if (event.error === 'no-speech') {
                     speakText("I didn't hear anything. Try again!");
                 } else if (event.error === 'not-allowed') {
-                    alert('⚠️ Microphone permission denied.\n\nPlease allow microphone access in your browser settings.');
+                    showAppModal('Microphone Access Needed', 'Microphone permission denied.\n\nPlease allow microphone access in your browser settings.', 'warning');
                 }
                 render();
             };
@@ -1674,7 +1779,7 @@
                 recognition.start();
             } catch (e) {
                 console.error('Failed to start recognition:', e);
-                alert('Could not start voice recognition. Please try again.');
+                showAppToast('Could not start voice recognition. Please try again.', 'error');
                 state.isListening = false;
                 render();
             }
@@ -2526,7 +2631,7 @@
                 if (!audioContext) {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
                     if (!AudioContextClass) {
-                        alert('Your browser does not support Web Audio. Please try Chrome or Firefox.');
+                        showAppModal('Audio Not Supported', 'Your browser does not support Web Audio. Please try Chrome or Firefox.', 'warning');
                         return;
                     }
                     audioContext = new AudioContextClass();
@@ -2547,10 +2652,10 @@
                 
             } catch (error) {
                 console.error('Error in playTwinkleTwinkle:', error);
-                alert('Could not play audio: ' + error.message);
+                showAppToast('Could not play audio: ' + error.message, 'error');
             }
         }
-        
+
         function playMelodyNotes() {
             console.log('Playing melody notes...');
             
@@ -2828,7 +2933,7 @@
 
         function playPandaVoicePreview() {
             if (!window.speechSynthesis) {
-                alert('Your browser does not support voice preview.');
+                showAppToast('Your browser does not support voice preview.', 'warning');
                 return;
             }
             window.speechSynthesis.cancel();
@@ -3354,7 +3459,7 @@
             const entryText = document.getElementById('journalEntry').value.trim();
 
             if (!entryText) {
-                alert('Please write something before saving your entry.');
+                showAppToast('Please write something before saving your entry.', 'warning');
                 return;
             }
 
@@ -3409,13 +3514,13 @@
             URL.revokeObjectURL(url);
             
             logInteraction('journal_exported', { entryCount: state.journalEntries.length });
-            
-            alert(`Journal exported! ${state.journalEntries.length} entries saved.`);
+
+            showAppToast(`Journal exported! ${state.journalEntries.length} entries saved.`, 'success');
         }
 
         function emailJournal() {
             if (state.journalEntries.length === 0) {
-                alert('You have no journal entries to email yet.');
+                showAppToast('You have no journal entries to email yet.', 'info');
                 return;
             }
 
@@ -4779,7 +4884,7 @@
                             ${selectedChild ? `
                                 <!-- Start Learning Button -->
                                 <div style="margin-bottom: 24px;">
-                                    <button onclick="${selectedChild.preAssessmentComplete ? `state.activeChildId='${selectedChild.id}'; state.currentView='childLearning'; render();` : `alert('Please complete the pre-assessment first to unlock learning activities.')`}" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 24px; background: ${selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #FF8C42 0%, #f97316 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.preAssessmentComplete ? 'box-shadow: 0 4px 20px rgba(255, 140, 66, 0.4);' : ''}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(255, 140, 66, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(255, 140, 66, 0.4)'"` : ''}>
+                                    <button onclick="${selectedChild.preAssessmentComplete ? `state.activeChildId='${selectedChild.id}'; state.currentView='childLearning'; render();` : `showAppToast('Please complete the pre-assessment first to unlock learning activities.', 'info')`}" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 24px; background: ${selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #FF8C42 0%, #f97316 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.preAssessmentComplete ? 'box-shadow: 0 4px 20px rgba(255, 140, 66, 0.4);' : ''}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(255, 140, 66, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(255, 140, 66, 0.4)'"` : ''}>
                                         ${selectedChild.preAssessmentComplete ? `
                                             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
@@ -4815,7 +4920,7 @@
                                             const subjectInfo = curriculum[subject];
                                             const isLocked = !selectedChild.preAssessmentComplete;
                                             return `
-                                                <div onclick="${isLocked ? `alert('Please complete the assessment first!')` : `goToSubjectFromMyChildren('${selectedChild.id}', '${subject}')`}" style="cursor: pointer; text-align: center; transition: transform 0.3s; ${isLocked ? 'opacity: 0.5;' : ''}" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                                <div onclick="${isLocked ? `showAppToast('Please complete the assessment first!', 'info')` : `goToSubjectFromMyChildren('${selectedChild.id}', '${subject}')`}" style="cursor: pointer; text-align: center; transition: transform 0.3s; ${isLocked ? 'opacity: 0.5;' : ''}" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                                                     <div style="position: relative; width: 130px; height: 130px; margin: 0 auto 16px;">
                                                         <!-- Simple circle with gradient background -->
                                                         <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #2d3f5f 0%, #1e293b 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(75, 156, 211, 0.3); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);">
@@ -4979,7 +5084,7 @@
                                         <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px;">
                                             ${selectedChild.postAssessmentComplete ? 'Learning progress confirmed!' : selectedChild.preAssessmentComplete ? 'Measure learning progress.' : 'Complete pre-assessment first.'}
                                         </p>
-                                        <button onclick="${selectedChild.preAssessmentComplete ? `state.assessmentType='post'; startPostAssessment('${selectedChild.id}')` : `alert('Please complete the pre-assessment first.')`}" style="width: 100%; padding: 12px 20px; background: ${selectedChild.postAssessmentComplete ? 'rgba(34, 197, 94, 0.2)' : selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: ${selectedChild.preAssessmentComplete ? 'white' : '#64748b'}; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.postAssessmentComplete || !selectedChild.preAssessmentComplete ? '' : 'box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);'}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'"` : ''}>
+                                        <button onclick="${selectedChild.preAssessmentComplete ? `state.assessmentType='post'; startPostAssessment('${selectedChild.id}')` : `showAppToast('Please complete the pre-assessment first.', 'info')`}" style="width: 100%; padding: 12px 20px; background: ${selectedChild.postAssessmentComplete ? 'rgba(34, 197, 94, 0.2)' : selectedChild.preAssessmentComplete ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(100, 116, 139, 0.3)'}; color: ${selectedChild.preAssessmentComplete ? 'white' : '#64748b'}; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: ${selectedChild.preAssessmentComplete ? 'pointer' : 'not-allowed'}; transition: all 0.3s; ${selectedChild.postAssessmentComplete || !selectedChild.preAssessmentComplete ? '' : 'box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);'}" ${selectedChild.preAssessmentComplete ? `onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'"` : ''}>
                                             ${selectedChild.postAssessmentComplete ? 'Retake Post-Assessment' : selectedChild.preAssessmentComplete ? 'Start Post-Assessment →' : '🔒 Complete Pre-Assessment First'}
                                         </button>
                                     </div>
@@ -5028,12 +5133,12 @@
             const name = input.value.trim();
             
             if (!name) {
-                alert('Please enter a name for your child.');
+                showAppToast('Please enter a name for your child.', 'warning');
                 return;
             }
-            
+
             if (state.children.length >= 5) {
-                alert('Maximum of 5 children reached.');
+                showAppToast('Maximum of 5 children reached.', 'info');
                 return;
             }
             
@@ -5097,7 +5202,7 @@
             const child = state.children.find(c => c.id === childId);
             
             if (!child.preAssessmentComplete) {
-                alert('Please complete the assessment first!');
+                showAppToast('Please complete the assessment first!', 'info');
                 return;
             }
             
@@ -5421,12 +5526,12 @@
                 ? `Great job practicing with Panda today! Every session helps ${child ? child.name : 'your child'} learn.`
                 : `Amazing session! ${child ? child.name : 'Your child'} got ${correctCount} correct answer${correctCount !== 1 ? 's' : ''} in ${roundCount} round${roundCount !== 1 ? 's' : ''}. Keep up the great work!`;
 
-            alert(`🎉 Session Complete!\n\n${message}\n\nSee you next time!`);
-
-            // Reset and return to child management
-            state.colorQuest.active = false;
-            state.currentView = 'childManagement';
-            render();
+            showAppModal('Session Complete!', `${message}\n\nSee you next time!`, 'celebration', () => {
+                // Reset and return to child management after modal closes
+                state.colorQuest.active = false;
+                state.currentView = 'childManagement';
+                render();
+            });
         }
 
         function handleColorQuestVoiceInput(transcript) {
@@ -7500,11 +7605,13 @@
                     itemData.mastered = true;
                     speakText(`Amazing! You mastered ${item}! That's wonderful!`);
                     
-                    // Celebration alert
+                    // Celebration modal
                     setTimeout(() => {
-                        alert(`🎉 MASTERED: ${item}!\n\n${state.children.find(c => c.id === state.activeChildId).name} has mastered this item!\n\nGreat teaching!`);
-                        state.currentLesson = null;
-                        render();
+                        const childName = state.children.find(c => c.id === state.activeChildId).name;
+                        showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
+                            state.currentLesson = null;
+                            render();
+                        });
                     }, 100);
                 } else {
                     const remaining = 3 - itemData.consecutiveCorrect;
