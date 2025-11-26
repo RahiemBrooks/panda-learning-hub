@@ -2198,9 +2198,19 @@
         // ============================================================================
         // VOICE INTERACTION SYSTEM
         // ============================================================================
-        
+
+        // Global audio element for ElevenLabs TTS playback
+        let currentPandaAudio = null;
+
         // Global function to stop all speech - call when navigating away
         function stopAllSpeech() {
+            // Stop ElevenLabs audio playback
+            if (currentPandaAudio) {
+                currentPandaAudio.pause();
+                currentPandaAudio.currentTime = 0;
+                currentPandaAudio = null;
+            }
+            // Also stop any legacy speechSynthesis (fallback)
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
@@ -2321,40 +2331,46 @@
 
         function speakText(text) {
             if (!state.voiceEnabled) return;
-            
-            if ('speechSynthesis' in window) {
-                // Cancel any ongoing speech
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                
-                // Get available voices
-                const voices = window.speechSynthesis.getVoices();
-                
-                // PANDA VOICE: Young male, Paw Patrol style - warm, clear, encouraging
-                // Priority: Find male voices that sound young and friendly
-                let selectedVoice = voices.find(v => v.name.includes('Alex'))      // macOS young male
-                                 || voices.find(v => v.name.includes('Daniel'))    // British male
-                                 || voices.find(v => v.name.includes('David'))     // iOS male
-                                 || voices.find(v => v.name.includes('Samantha'))  // Clear, friendly
-                                 || voices.find(v => v.name.includes('Google US English'))
-                                 || voices.find(v => v.lang.startsWith('en-US'))
-                                 || voices.find(v => v.lang.startsWith('en'));
-                
-                if (selectedVoice) {
-                    utterance.voice = selectedVoice;
-                }
-                
-                // Young male "motherese" voice settings (Paw Patrol style)
-                utterance.pitch = 1.2;   // Higher than adult male, but still male
-                utterance.rate = 0.85;   // Slightly slower for warmth & clarity
-                utterance.volume = 1;
-                
-                console.log('🐼 PANDA Voice:', selectedVoice ? selectedVoice.name : 'default', 
-                           'Pitch:', utterance.pitch, 'Rate:', utterance.rate);
-                
-                window.speechSynthesis.speak(utterance);
+
+            // Stop any currently playing audio
+            if (currentPandaAudio) {
+                currentPandaAudio.pause();
+                currentPandaAudio.currentTime = 0;
             }
+
+            console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+
+            // Call ElevenLabs TTS via Netlify function
+            fetch('/.netlify/functions/elevenlabs-tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('TTS request failed: ' + response.status);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const audioUrl = URL.createObjectURL(blob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.onerror = () => {
+                    console.error('🐼 Audio playback error');
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Audio play failed:', err.message);
+                });
+            })
+            .catch(err => {
+                console.error('🐼 ElevenLabs TTS error:', err.message);
+            });
         }
 
         function toggleTeacherMode() {
@@ -3600,26 +3616,50 @@
         }
 
         function playPandaVoicePreview() {
-            if (!window.speechSynthesis) {
-                showAppToast('Your browser does not support voice preview.', 'warning');
-                return;
+            // Stop any currently playing audio
+            if (currentPandaAudio) {
+                currentPandaAudio.pause();
+                currentPandaAudio.currentTime = 0;
             }
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance("Hi there! I'm Panda, and I'm so excited to learn with you today!");
-            const voices = window.speechSynthesis.getVoices();
-            // Use same voice selection logic as speakText for consistency
-            let selectedVoice = voices.find(v => v.name.includes('Alex'))
-                             || voices.find(v => v.name.includes('Daniel'))
-                             || voices.find(v => v.name.includes('David'))
-                             || voices.find(v => v.name.includes('Junior'))
-                             || voices.find(v => v.name.includes('Nathan'))
-                             || voices.find(v => v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female'))
-                             || voices.find(v => v.lang.startsWith('en'))
-                             || voices[0];
-            if (selectedVoice) utterance.voice = selectedVoice;
-            utterance.pitch = state.voiceSettings.pitch;
-            utterance.rate = state.voiceSettings.rate;
-            window.speechSynthesis.speak(utterance);
+
+            const previewText = "Hi there! I'm Panda, and I'm so excited to learn with you today!";
+            console.log('🐼 PANDA Voice Preview (ElevenLabs)');
+
+            // Call ElevenLabs TTS via Netlify function
+            fetch('/.netlify/functions/elevenlabs-tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: previewText })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('TTS request failed: ' + response.status);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const audioUrl = URL.createObjectURL(blob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.onerror = () => {
+                    console.error('🐼 Audio playback error');
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    showAppToast('Voice preview failed to play.', 'warning');
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Audio play failed:', err.message);
+                    showAppToast('Voice preview failed to play.', 'warning');
+                });
+            })
+            .catch(err => {
+                console.error('🐼 ElevenLabs TTS error:', err.message);
+                showAppToast('Voice preview unavailable. Please try again.', 'warning');
+            });
+
             logInteraction('panda_voice_preview_played');
         }
         
@@ -6310,46 +6350,59 @@
         }
 
         function speakPanda(text, onComplete) {
-            if (!state.voiceEnabled || !window.speechSynthesis) {
+            if (!state.voiceEnabled) {
                 // If voice is disabled, just call callback after short delay
                 if (onComplete) setTimeout(onComplete, 1000);
                 return;
             }
-            
-            // Cancel any ongoing speech
-            window.speechSynthesis.cancel();
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            
-            // PANDA VOICE: Young male, Paw Patrol style - warm, clear, encouraging
-            // Same settings as speakText for consistency
-            utterance.pitch = 1.2;   // Higher than adult male, but still male
-            utterance.rate = 0.85;   // Slightly slower for warmth & clarity
-            utterance.volume = 1.0;
-            
-            // Select best male voice available
-            const voices = window.speechSynthesis.getVoices();
-            
-            // Priority order for young male voices
-            let selectedVoice = voices.find(v => v.name.includes('Alex'))      // macOS young male
-                             || voices.find(v => v.name.includes('Daniel'))    // British male
-                             || voices.find(v => v.name.includes('David'))     // iOS male
-                             || voices.find(v => v.name.includes('Samantha'))  // Clear, friendly
-                             || voices.find(v => v.name.includes('Google US English'))
-                             || voices.find(v => v.lang.startsWith('en-US'))
-                             || voices.find(v => v.lang.startsWith('en'));
-            
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-                console.log('🐼 PANDA Voice:', selectedVoice.name, 'Pitch:', utterance.pitch, 'Rate:', utterance.rate);
+
+            // Stop any currently playing audio
+            if (currentPandaAudio) {
+                currentPandaAudio.pause();
+                currentPandaAudio.currentTime = 0;
             }
-            
-            // Call onComplete callback when speech ends
-            if (onComplete) {
-                utterance.onend = onComplete;
-            }
-            
-            window.speechSynthesis.speak(utterance);
+
+            console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+
+            // Call ElevenLabs TTS via Netlify function
+            fetch('/.netlify/functions/elevenlabs-tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('TTS request failed: ' + response.status);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const audioUrl = URL.createObjectURL(blob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    // Call the onComplete callback when audio finishes
+                    if (onComplete) onComplete();
+                };
+                currentPandaAudio.onerror = () => {
+                    console.error('🐼 Audio playback error');
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    // Still call callback on error so app flow continues
+                    if (onComplete) onComplete();
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Audio play failed:', err.message);
+                    // Call callback on play failure
+                    if (onComplete) onComplete();
+                });
+            })
+            .catch(err => {
+                console.error('🐼 ElevenLabs TTS error:', err.message);
+                // Call callback on fetch error so app flow continues
+                if (onComplete) setTimeout(onComplete, 500);
+            });
         }
 
         function handleColorQuestAnswer(selectedChoice) {
