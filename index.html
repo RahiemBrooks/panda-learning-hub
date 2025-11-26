@@ -1998,7 +1998,7 @@
         // ============================================================================
         const teachingGuides = {
             colors: {
-                introduction: "Today we're learning about colors! Colors are all around us and help us describe the world.",
+                introduction: "Today, we're learning about colors. Colors are all around us, and help us describe the world.",
                 prompts: {
                     red: {
                         show: "Look at this red color! Can you point to it?",
@@ -2073,7 +2073,7 @@
                 }
             },
             shapes: {
-                introduction: "Let's explore shapes! Shapes are the forms of things around us.",
+                introduction: "Let's explore shapes. Shapes are the forms of things, all around us.",
                 prompts: {
                     circle: {
                         show: "Look at this circle! It's round and has no corners.",
@@ -2134,7 +2134,7 @@
                 }
             },
             numbers: {
-                introduction: "Let's count! Numbers help us know 'how many' of something we have.",
+                introduction: "Let's count. Numbers help us know, how many of something we have.",
                 prompts: {
                     '1': {
                         show: "Look! This is the number 1!",
@@ -3622,7 +3622,7 @@
                 currentPandaAudio.currentTime = 0;
             }
 
-            const previewText = "Hi there! I'm Panda, and I'm so excited to learn with you today!";
+            const previewText = "Hi there! I'm Panda. And I'm so excited, to learn with you today!";
             console.log('🐼 PANDA Voice Preview (ElevenLabs)');
 
             // Call ElevenLabs TTS via Netlify function
@@ -6038,7 +6038,7 @@
             
             // Welcome message with interaction
             setTimeout(() => {
-                speakPanda("Hi! I'm Panda! Let's learn together! I'll ask you questions, and you can tap the answer. Ready?", () => {
+                speakPanda("Hi! I'm Panda. Let's learn together. I'll ask you questions, and you can tap the answer. Ready?", () => {
                     // After speaking, start listening for "yes" or "ready"
                     listenForReadyResponse();
                 });
@@ -6588,7 +6588,7 @@
                             <div style="margin-bottom: 1.25rem;">
                                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                                     <button
-                                        onclick="speakText('Hi! I am Panda! I am so excited to learn with you today!');"
+                                        onclick="speakText('Hi! I am Panda. I am so excited, to learn with you today!');"
                                         style="background: rgba(75, 156, 211, 0.2); color: #7BAFD4; padding: 12px 20px; border-radius: 12px; font-size: 1rem; font-weight: 600; border: 1px solid rgba(75, 156, 211, 0.4); cursor: pointer; transition: all 0.2s;"
                                         onmouseover="this.style.background='rgba(75, 156, 211, 0.3)'; this.style.color='#93c5fd';"
                                         onmouseout="this.style.background='rgba(75, 156, 211, 0.2)'; this.style.color='#7BAFD4';">
@@ -6846,7 +6846,7 @@
         }
 
         function startMagicalLearningIntro() {
-            const magicalIntro = `Hi! It's me, Panda, again! Welcome to the magical world of learning, where everyone is on one mission: Learning! We're going to explore dazzling colors, amazing shapes, wonderful numbers, and so much more! Are you ready to discover all these magical things together?`;
+            const magicalIntro = `Hi! It's me, Panda, again. Welcome to the magical world of learning. Here, everyone is on one mission. Learning! We're going to explore dazzling colors, amazing shapes, wonderful numbers, and so much more. Are you ready, to discover all these magical things together?`;
             
             speakPanda(magicalIntro, () => {
                 // Add delay before listening to prevent picking up Panda's voice
