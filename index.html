@@ -1657,6 +1657,152 @@
         };
 
         // ============================================================================
+        // PARENT VOICE RESPONSE PHRASES
+        // ============================================================================
+        const correctResponses = [
+            "You did it!",
+            "You figured it out!",
+            "You got it right!",
+            "You found the right one!",
+            "You got all three—great job!",
+            "You learned the color red!",
+            "You know this one!",
+            "You remembered it!",
+            "You're getting so good at this!",
+            "You made a great choice!",
+            "Nice work—three in a row!",
+            "You picked the right one!",
+            "You learned it really well!",
+            "Such great thinking!",
+            "You're doing amazing!",
+            "You're getting the hang of it!",
+            "You're learning so fast!",
+            "You're really understanding this!",
+            "You're becoming a color expert!",
+            "You're getting stronger at this!",
+            "You're learning new things every day!",
+            "You did great on this one!",
+            "Awesome job—keep going!",
+            "Nice picking!",
+            "You're doing great learning!",
+            "You're getting really good at colors!",
+            "You made a smart choice!",
+            "Perfect picking!",
+            "Great job using your brain!",
+            "You're learning like a star!",
+            "That was such good thinking!",
+            "You're getting really confident!",
+            "Wow, you're learning this color!",
+            "You know this color so well!",
+            "You're doing wonderful learning!",
+            "That was right—great job!",
+            "Yes! That's the one!",
+            "You remembered the color!",
+            "You're paying great attention!",
+            "You made a great match!",
+            "You're showing great learning!",
+            "You're really getting it!",
+            "You've been practicing and it shows!",
+            "Your brain is growing!",
+            "You're making great progress!",
+            "You're becoming a color helper!",
+            "You're learning colors beautifully!",
+            "You're getting better every time!",
+            "You're doing fantastic learning!",
+            "You're amazing—great work!"
+        ];
+
+        const almostThereResponses = [
+            "You're so close! One more to go!",
+            "Almost there—let's try the last one!",
+            "Wow, two already! You just need one more!",
+            "You're right at the finish line—let's get the last one!",
+            "Great work! One more and you'll have all three!",
+            "You're doing amazing—let's try the last one together!",
+            "Two in a row! Let's go for the third!",
+            "You're on a roll! One more!",
+            "Almost finished—let's try one more answer!",
+            "You're doing it! Just one left!",
+            "Two correct! You're soooo close!",
+            "Look at you go! One more to finish!",
+            "You're almost done—let's get the last one!",
+            "Great thinking—now try the last one!",
+            "Nice job! One more and you'll be all done!",
+            "You're doing great—just one more try!",
+            "Wow, two right! Want to get the third?",
+            "You're so close! Let's go for the final one!",
+            "You're doing such strong thinking—one more!",
+            "Almost there! Let's finish this together!",
+            "You're right at the end! One more and you got it!",
+            "Almost finished—let's do one last pick!",
+            "Great job so far! Try the final one!",
+            "You've done two—let's go for three!",
+            "You're nearly there! Just one more!",
+            "Big brain moment—one more to go!",
+            "Amazing! Now just the last one!",
+            "You've got two! Let's get the third together!",
+            "You're getting it—one last try!",
+            "You're right there! Let's finish strong!"
+        ];
+
+        const wrongResponses = [
+            "Ooooh, almost! Let's try again.",
+            "That was a good try! Want to try another one?",
+            "So close! Let's look again.",
+            "Nice effort! Let's keep going.",
+            "Hmm, not that one—let's try a different one.",
+            "Good thinking, let's try again.",
+            "You're working so hard! Let's try one more time.",
+            "Aww, good try! Let's look closely.",
+            "Almost there! Want to try again?",
+            "You're learning! Let's give it another try.",
+            "Nice try! Let's look for the best one.",
+            "So close! Let's find the right one together.",
+            "Good effort! Let's try again.",
+            "You're doing great—let's try another one.",
+            "That was a strong try! Let's keep going.",
+            "Hmm, not quite. Let's check again.",
+            "That's okay! We can try again.",
+            "Good try! Let's give it one more go.",
+            "You're getting better! Let's keep trying.",
+            "Nice effort! Want to try once more?",
+            "You're thinking hard! Let's try again.",
+            "That was a brave try! Let's go again.",
+            "Good job trying! Let's try a different one.",
+            "Almost! Let's take another look.",
+            "You tried so well! Let's go again."
+        ];
+
+        const restartResponses = [
+            "You're learning like a genius—let's start at the beginning and get all three!",
+            "Wow, you're a superstar! Let's try this one again from the start.",
+            "Great effort! Let's go back to the first one and get three in a row!",
+            "You're doing amazing practice! Let's start from one and try again.",
+            "So much great thinking! Let's begin again and go for three!",
+            "You're working hard—let's start back at the beginning together!",
+            "I love how you're trying! Let's go back to number one.",
+            "Practice helps your brain grow! Let's try the first one again.",
+            "Ooooh, almost! Let's start fresh and get all three!",
+            "You've got this! Let's go back to the beginning.",
+            "Let's do a little reset—ready to get three in a row?",
+            "So close! Let's hop back to the first one.",
+            "You're doing great! Let's start over and try for three!",
+            "Nice try! Let's begin again and build your three-in-a-row tower!",
+            "You're growing your brain! Let's start back at step one.",
+            "That was a great try—let's go back and try for three again!",
+            "Let's take it from the top! You can get all three!",
+            "You're getting stronger each time. Back to the beginning we go!",
+            "Good try! Let's start again and get three in a row!",
+            "Here we go again—let's start over and make your learning streak!"
+        ];
+
+        // Helper function to pick and speak a random phrase from a given array
+        function speakRandomPhrase(phrasesArray) {
+            const phrase = phrasesArray[Math.floor(Math.random() * phrasesArray.length)];
+            speakText(phrase);
+        }
+
+        // ============================================================================
         // CURRICULUM DATA
         // ============================================================================
         const curriculum = {
@@ -7965,8 +8111,8 @@
                 // Voice feedback for correct answers
                 if (itemData.consecutiveCorrect >= 3) {
                     itemData.mastered = true;
-                    speakText(`Amazing! You mastered ${item}! That's wonderful!`);
-                    
+                    speakRandomPhrase(correctResponses);
+
                     // Celebration modal
                     setTimeout(() => {
                         const childName = state.children.find(c => c.id === state.activeChildId).name;
@@ -7975,36 +8121,35 @@
                             render();
                         });
                     }, 100);
+                } else if (itemData.consecutiveCorrect === 2) {
+                    // Almost there - 2 in a row, need 1 more
+                    speakRandomPhrase(almostThereResponses);
                 } else {
-                    const remaining = 3 - itemData.consecutiveCorrect;
-                    speakText(`Correct! Great job! Only ${remaining} more in a row!`);
+                    // First correct answer
+                    speakRandomPhrase(correctResponses);
                 }
             } else {
                 itemData.incorrect++;
                 const previousStreak = itemData.consecutiveCorrect;
                 itemData.consecutiveCorrect = 0;
-                
-                // Scaffolding feedback based on struggle
-                if (itemData.incorrect === 1) {
-                    speakText(`Not quite. This is ${item}. Let's try again together!`);
-                } else if (itemData.incorrect === 2) {
-                    speakText(`Let me help you. This is ${item}. Can you say ${item} with me?`);
-                    
-                    // Show hint if in teacher mode
-                    if (state.teacherMode) {
-                        const teachingPrompt = teachingGuides[subject]?.prompts[item];
-                        if (teachingPrompt && teachingPrompt.hints[0]) {
-                            setTimeout(() => {
-                                speakText(teachingPrompt.hints[0]);
-                            }, 2000);
-                        }
-                    }
+
+                // Wrong answer feedback
+                if (previousStreak === 2) {
+                    // Had 2 in a row, breaking the 3-in-a-row attempt
+                    speakRandomPhrase(restartResponses);
                 } else {
-                    speakText(`That's okay! Learning takes practice. This is ${item}. Let's keep trying!`);
+                    // Streak < 2 (0 or 1) - use regular wrong responses
+                    speakRandomPhrase(wrongResponses);
                 }
-                
-                if (previousStreak > 0) {
-                    speakText(`We'll get back to ${previousStreak} in a row. Keep practicing!`);
+
+                // Show hint if in teacher mode on second wrong answer
+                if (itemData.incorrect === 2 && state.teacherMode) {
+                    const teachingPrompt = teachingGuides[subject]?.prompts[item];
+                    if (teachingPrompt && teachingPrompt.hints[0]) {
+                        setTimeout(() => {
+                            speakText(teachingPrompt.hints[0]);
+                        }, 2000);
+                    }
                 }
             }
             
