@@ -6529,14 +6529,32 @@
                         
                         <!-- Progress Modules Grid (Active) -->
                         <div class="subject-progress-row">
-                            ${modules.map(mod => {
+                            ${modules.map((mod, idx) => {
+                                // Recommend the first subject with items not yet mastered
+                                const isRecommended = idx === modules.findIndex(m => m.mastered < m.total);
+                                const isComplete = mod.mastered === mod.total;
                                 return `
-                                <div class="subject-pill" onclick="selectSubject('${mod.subject}')">
-                                    <div class="subject-circle">
+                                <div class="subject-pill" onclick="selectSubject('${mod.subject}')" style="position: relative;">
+                                    ${isRecommended && !isComplete ? `
+                                        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #FF8C42 0%, #f97316 100%); color: white; font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);">
+                                            START HERE
+                                        </div>
+                                    ` : ''}
+                                    ${isComplete ? `
+                                        <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);">✓</div>
+                                    ` : ''}
+                                    <div class="subject-circle" style="${isRecommended && !isComplete ? 'border: 3px solid #FF8C42; box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);' : ''}">
                                         <div class="subject-icon">${mod.icon}</div>
                                     </div>
                                     <div class="subject-label">${mod.name}</div>
-                                    <div class="subject-count">${mod.mastered}/${mod.total}</div>
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                        <div class="subject-count" style="font-size: 0.85rem; color: ${isComplete ? '#22c55e' : '#94a3b8'};">
+                                            Mastered: ${mod.mastered}/${mod.total}
+                                        </div>
+                                        <div style="width: 60px; height: 4px; background: rgba(100, 116, 139, 0.3); border-radius: 2px; overflow: hidden;">
+                                            <div style="width: ${mod.percentage}%; height: 100%; background: ${isComplete ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #4B9CD3, #7BAFD4)'}; border-radius: 2px;"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             `}).join('')}
                         </div>
@@ -7098,14 +7116,29 @@
                             </div>
                         ` : ''}
 
-                        <!-- Question Card -->
-                        <div style="background: rgba(26, 39, 68, 0.7); backdrop-filter: blur(15px); border-radius: 24px; padding: 40px 32px; margin-bottom: 32px; border: 1px solid rgba(75, 156, 211, 0.2); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); text-align: center;">
-                            <h2 style="font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; color: white; margin-bottom: 16px; line-height: 1.3;">
-                                ${subject === 'colors' ? `Which one is <span style="color: ${qAccent.primary}; text-shadow: 0 0 20px ${qAccent.glow};">${currentItem.toUpperCase()}</span>?` : 
-                                  subject === 'shapes' ? `Which one is a <span style="color: ${qAccent.primary}; text-shadow: 0 0 20px ${qAccent.glow};">${currentItem.toUpperCase()}</span>?` : 
-                                  `Which one is <span style="color: ${qAccent.primary}; text-shadow: 0 0 20px ${qAccent.glow};">${currentItem}</span>?`}
+                        <!-- Streak Feedback Banner -->
+                        ${itemData.consecutiveCorrect > 0 ? `
+                            <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 16px;">
+                                <div style="display: flex; gap: 8px;">
+                                    ${Array.from({length: 3}, (_, i) => `
+                                        <span style="font-size: 1.5rem; ${i < itemData.consecutiveCorrect ? '' : 'opacity: 0.3; filter: grayscale(100%);'}">${i < itemData.consecutiveCorrect ? '⭐' : '☆'}</span>
+                                    `).join('')}
+                                </div>
+                                <div style="color: #22c55e; font-weight: 600; font-size: 1.1rem;">
+                                    ${itemData.consecutiveCorrect === 1 ? '1 correct in a row – 2 more for a star!' :
+                                      itemData.consecutiveCorrect === 2 ? '2 correct in a row – 1 more for a star!' : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Question Card - Big & Simple -->
+                        <div style="background: rgba(26, 39, 68, 0.7); backdrop-filter: blur(15px); border-radius: 24px; padding: 48px 32px; margin-bottom: 32px; border: 1px solid rgba(75, 156, 211, 0.2); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); text-align: center;">
+                            <h2 style="font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; color: white; margin-bottom: 12px; line-height: 1.2;">
+                                ${subject === 'colors' ? `Find <span style="color: ${qAccent.primary}; text-shadow: 0 0 20px ${qAccent.glow};">${currentItem.toUpperCase()}</span>` :
+                                  subject === 'shapes' ? `Find the <span style="color: ${qAccent.primary}; text-shadow: 0 0 20px ${qAccent.glow};">${currentItem.toUpperCase()}</span>` :
+                                  `Find <span style="color: ${qAccent.primary}; text-shadow: 0 0 20px ${qAccent.glow};">${currentItem}</span>`}
                             </h2>
-                            <p style="color: #94a3b8; font-size: 1.1rem;">Tap or click on the correct answer</p>
+                            <p style="color: #94a3b8; font-size: 1.2rem;">Tap the correct answer</p>
                         </div>
 
                         <!-- Multiple Choice Options -->
@@ -7118,26 +7151,23 @@
                             `).join('')}
                         </div>
 
-                        <!-- Progress Indicator -->
-                        <div style="background: rgba(26, 39, 68, 0.6); backdrop-filter: blur(10px); border-radius: 20px; padding: 28px; max-width: 600px; margin: 0 auto; border: 1px solid rgba(75, 156, 211, 0.15);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 8px;">
-                                <p style="font-size: 1.1rem; font-weight: 600; color: #e2e8f0;">Progress to Master "${currentItem}"</p>
-                                <p style="font-size: 0.9rem; color: #64748b;">${itemData.attempts} attempts</p>
+                        <!-- Progress Indicator - Compact -->
+                        <div style="background: rgba(26, 39, 68, 0.6); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(75, 156, 211, 0.15);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering "${currentItem}"</p>
+                                <p style="font-size: 0.85rem; color: #64748b;">${itemData.attempts} tries</p>
                             </div>
-                            <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 20px;">
+                            <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
                                 ${Array.from({length: 3}, (_, i) => `
-                                    <div style="display: flex; flex-direction: column; align-items: center;">
-                                        <div style="width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; transition: all 0.3s; ${i < itemData.consecutiveCorrect ? 'background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);' : 'background: rgba(45, 63, 95, 0.8); color: #64748b; border: 2px solid rgba(100, 116, 139, 0.3);'}">
-                                            ${i < itemData.consecutiveCorrect ? '✓' : (i + 1)}
-                                        </div>
-                                        <p style="font-size: 0.75rem; color: ${i < itemData.consecutiveCorrect ? '#10b981' : '#64748b'}; margin-top: 8px; font-weight: 500;">${i < itemData.consecutiveCorrect ? 'Done!' : 'Needed'}</p>
+                                    <div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; transition: all 0.3s; ${i < itemData.consecutiveCorrect ? 'background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);' : 'background: rgba(45, 63, 95, 0.8); color: #64748b; border: 2px solid rgba(100, 116, 139, 0.3);'}">
+                                        ${i < itemData.consecutiveCorrect ? '⭐' : (i + 1)}
                                     </div>
                                 `).join('')}
                             </div>
-                            <p style="text-align: center; font-size: 0.95rem; color: #94a3b8;">
-                                ${itemData.consecutiveCorrect === 0 ? '🎯 Need 3 correct in a row to master!' : 
-                                  itemData.consecutiveCorrect === 1 ? '🎉 Great! 2 more in a row!' : 
-                                  '🌟 Almost there! Just 1 more!'}
+                            <p style="text-align: center; font-size: 0.9rem; color: #94a3b8; margin-top: 12px;">
+                                ${itemData.consecutiveCorrect === 0 ? 'Get 3 correct in a row to earn a star!' :
+                                  itemData.consecutiveCorrect === 1 ? 'Great start! 2 more to go!' :
+                                  'Almost there! Just 1 more!'}
                             </p>
                         </div>
 
