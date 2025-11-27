@@ -8237,29 +8237,13 @@
                                 Ready to practice <span style="color: ${accent.primary}; font-weight: 600;">${subjectData.name}</span>? I'll show you different ${subjectData.name.toLowerCase()}, and you tell me which one it is!
                             </p>
                             
-                            <!-- Voice Listening Indicator -->
-                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
-                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
-                                <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-                                    <div style="display: flex; align-items: center; gap: 4px;">
-                                        <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite;"></span>
-                                        <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.1s;"></span>
-                                        <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.2s;"></span>
-                                        <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
-                                        <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
-                                    </div>
-                                    <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
-                                </div>
-                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready to start!</p>
+                            <!-- Voice Info Strip -->
+                            <div style="background: rgba(75, 156, 211, 0.1); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(75, 156, 211, 0.25);">
+                                <p style="font-size: 0.95rem; color: #94a3b8; margin: 0; line-height: 1.5;">
+                                    When you tap <span style="color: #7dd3fc; font-weight: 600;">'I'm Ready!'</span>, Panda will use voice to guide you through the activity.
+                                </p>
                             </div>
-                            
-                            <!-- Divider -->
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);"></div>
-                                <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
-                                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);"></div>
-                            </div>
-                            
+
                             <!-- Start Button -->
                             <button
                                 onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
