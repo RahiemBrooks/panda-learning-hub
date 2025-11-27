@@ -2327,6 +2327,59 @@
         }
 
         /**
+         * Number word mappings for voice recognition (spoken -> displayed)
+         * Handles both spelled numbers ("four") and display format ("4")
+         */
+        const NUMBER_WORD_MAP = {
+            'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+            'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+            'eleven': '11', 'twelve': '12', 'thirteen': '13', 'fourteen': '14',
+            'fifteen': '15', 'sixteen': '16', 'seventeen': '17', 'eighteen': '18',
+            'nineteen': '19', 'twenty': '20'
+        };
+
+        /**
+         * Find a matching choice label in the transcript
+         * Checks if the transcript contains any of the displayed choice labels
+         * For numbers, also handles spoken forms like "four" matching "4"
+         *
+         * @param {string} transcript - The transcribed speech
+         * @param {string[]} choices - Array of currently displayed choice labels
+         * @returns {string|null} - The matching choice label, or null if no match
+         */
+        function findLabelInTranscript(transcript, choices) {
+            if (!transcript || !choices || choices.length === 0) return null;
+
+            const lowerTranscript = transcript.toLowerCase().trim();
+            if (!lowerTranscript) return null;
+
+            // Check each choice
+            for (const choice of choices) {
+                const lowerChoice = choice.toLowerCase();
+
+                // Direct match: transcript contains the choice label
+                if (lowerTranscript.includes(lowerChoice)) {
+                    console.log(`🎤 Label match: Found "${choice}" directly in transcript`);
+                    return choice;
+                }
+
+                // For numeric choices, also check spoken number words
+                // e.g., "four" should match choice "4"
+                if (/^\d+$/.test(choice)) {
+                    for (const [word, numStr] of Object.entries(NUMBER_WORD_MAP)) {
+                        if (numStr === choice && lowerTranscript.includes(word)) {
+                            console.log(`🎤 Label match: Found "${word}" (${choice}) in transcript`);
+                            return choice;
+                        }
+                    }
+                }
+            }
+
+            console.log('🎤 Label match: No matching label found in transcript');
+            return null;
+        }
+
+        /**
          * Send audio to ElevenLabs STT Netlify function
          * Returns the transcript string or null on error
          */
@@ -6481,8 +6534,15 @@
             }
 
             // Add voice option instruction if microphone is enabled
+            // Children can say position ("Option 1") or the actual label ("blue", "circle", "four")
             if (state.audioSetup.microphoneEnabled) {
-                questionText += ` You can tap the answer, or say 'Option 1', 'Option 2', or 'Option 3.'`;
+                if (q.type === 'colors') {
+                    questionText += ` You can tap the answer, or say it! Try '${q.correctAnswer}' or 'Option 1'.`;
+                } else if (q.type === 'shapes') {
+                    questionText += ` You can tap the answer, or say it! Try '${q.correctAnswer}' or 'Option 1'.`;
+                } else { // numbers
+                    questionText += ` You can tap the answer, or say it! Try '${q.correctAnswer}' or 'Option 1'.`;
+                }
             }
 
             speakPanda(questionText, () => {
@@ -6492,7 +6552,7 @@
         }
 
         // ColorQuest Option Listening - Uses ElevenLabs STT for option selection
-        // Kids can say "Option 1", "Option 2", "Option 3" or just "one", "two", "three"
+        // Kids can say position ("Option 1", "first one", "three") OR the actual label ("blue", "rectangle", "four")
         function startColorQuestListening() {
             // Check if mic is available
             if (!state.audioSetup.microphoneEnabled) {
@@ -6514,48 +6574,69 @@
                     return;
                 }
 
+                const choices = state.colorQuest.choices;
+                let selectedChoice = null;
+
+                // First, try position-based interpretation (e.g., "option one", "first", "three")
                 if (typeof result.interpretation === 'number') {
-                    // Child said an option number (0, 1, or 2)
                     const optionIndex = result.interpretation;
-                    const choices = state.colorQuest.choices;
-
                     if (optionIndex >= 0 && optionIndex < choices.length) {
-                        const selectedChoice = choices[optionIndex];
-                        console.log(`🎤 ColorQuest: Voice selected option ${optionIndex + 1}: ${selectedChoice}`);
+                        selectedChoice = choices[optionIndex];
+                        console.log(`🎤 ColorQuest: Voice selected by position (option ${optionIndex + 1}): ${selectedChoice}`);
+                    }
+                }
 
-                        state.colorQuest.listening = false;
-                        stopElevenLabsSTT();
+                // If position matching didn't work, try label matching (e.g., "blue", "rectangle", "four")
+                if (!selectedChoice && result.transcript) {
+                    const labelMatch = findLabelInTranscript(result.transcript, choices);
+                    if (labelMatch) {
+                        selectedChoice = labelMatch;
+                        console.log(`🎤 ColorQuest: Voice selected by label: ${selectedChoice}`);
+                    }
+                }
 
-                        // Trigger the same logic as if they tapped that choice
-                        handleColorQuestAnswer(selectedChoice);
-                    } else {
-                        // Invalid option index, keep listening
-                        state.colorQuest.listening = false;
+                // If we found a match (by position or label), process the answer
+                if (selectedChoice) {
+                    state.colorQuest.listening = false;
+                    stopElevenLabsSTT();
+                    // Trigger the same logic as if they tapped that choice
+                    handleColorQuestAnswer(selectedChoice);
+                    return;
+                }
+
+                // No match found - provide gentle clarification and listen again
+                if (result.interpretation === 'unclear' || result.interpretation === 'unavailable' || result.transcript) {
+                    state.colorQuest.listening = false;
+
+                    // Build a helpful example based on current question type
+                    const questionType = state.colorQuest.currentQuestion?.type;
+                    let exampleHint = '';
+                    if (questionType === 'colors') {
+                        exampleHint = "like 'blue'";
+                    } else if (questionType === 'shapes') {
+                        exampleHint = "like 'circle'";
+                    } else if (questionType === 'numbers') {
+                        exampleHint = "like 'four'";
+                    }
+
+                    speakPanda(`I didn't catch which one. You can say 'Option 2' or say the answer, ${exampleHint}. Try again!`, () => {
                         render();
-                        // Restart listening after a short delay
+                        // Restart listening after the clarification
                         setTimeout(() => {
                             if (state.colorQuest.active && !state.colorQuest.showCoachingPopup) {
                                 startColorQuestListening();
                             }
-                        }, 1000);
-                    }
-                } else if (result.interpretation === 'unclear') {
-                    // Couldn't understand - encourage tapping
-                    state.colorQuest.listening = false;
-                    speakPanda("I'm not sure which one you meant. Let's tap the answer together this time.", () => {
-                        render();
-                        // Continue to let them tap - don't restart listening
+                        }, 500);
                     });
                 } else {
-                    // UNAVAILABLE - just let them tap
+                    // Unexpected state - just restart listening
                     state.colorQuest.listening = false;
                     render();
-                    // Restart listening after a delay if still on question
                     setTimeout(() => {
                         if (state.colorQuest.active && !state.colorQuest.showCoachingPopup) {
                             startColorQuestListening();
                         }
-                    }, 2000);
+                    }, 1000);
                 }
             }, 2500); // 2.5-second recording window for options
         }
