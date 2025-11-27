@@ -2681,7 +2681,11 @@
 
         function speakPrompt(promptType) {
             const subject = state.currentSubject;
-            const item = state.currentLesson || Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered)[0];
+            const childData = state.learningData[state.activeChildId][subject];
+            // Get unmastered items, but allow practice even when all are mastered
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const items = unmasteredItems.length === 0 ? Object.keys(childData) : unmasteredItems;
+            const item = state.currentLesson || items[0];
             
             if (!teachingGuides[subject] || !teachingGuides[subject].prompts[item]) return;
             
@@ -8119,12 +8123,12 @@
             if (!state.currentSubject) return;
             if (state.subjectIntro && state.subjectIntro.waitingForReady) return; // Still on intro screen
             if (state.learningIntro && state.learningIntro.waitingForReady) return; // Still on magical intro
-            
+
             const subject = state.currentSubject;
             const childData = state.learningData[state.activeChildId][subject];
-            const items = Object.keys(childData).filter(item => !childData[item].mastered);
-            
-            if (items.length === 0) return;
+            // Get unmastered items, but allow practice even when all are mastered
+            const unmasteredItems = Object.keys(childData).filter(item => !childData[item].mastered);
+            const items = unmasteredItems.length === 0 ? Object.keys(childData) : unmasteredItems;
             
             const currentItem = state.currentLesson || items[0];
             
@@ -8276,45 +8280,13 @@
             }
             
             const childData = state.learningData[state.activeChildId][subject];
-            
-            const items = Object.keys(childData).filter(item => !childData[item].mastered);
-            if (items.length === 0) {
-                return `
-                    <div style="min-height: 100vh; background: linear-gradient(180deg, #0B1120 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;">
-                        <!-- Celebration particles -->
-                        <div style="position: absolute; inset: 0; background-image: 
-                            radial-gradient(2px 2px at 20% 30%, #fbbf24 0%, transparent 100%),
-                            radial-gradient(2px 2px at 40% 20%, #34d399 0%, transparent 100%),
-                            radial-gradient(2px 2px at 60% 40%, #f472b6 0%, transparent 100%),
-                            radial-gradient(2px 2px at 80% 25%, #60a5fa 0%, transparent 100%),
-                            radial-gradient(2px 2px at 25% 60%, #a78bfa 0%, transparent 100%),
-                            radial-gradient(2px 2px at 75% 70%, #fbbf24 0%, transparent 100%);
-                            animation: twinkle 2s ease-in-out infinite; pointer-events: none;"></div>
-                        
-                        <div style="position: relative; z-index: 1; text-align: center; background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); padding: 48px; border-radius: 32px; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 60px rgba(16, 185, 129, 0.2);">
-                            <div style="font-size: 5rem; margin-bottom: 24px; animation: celebrate 1s ease-in-out infinite;">🎉</div>
-                            <h3 style="font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px;">All Mastered!</h3>
-                            <p style="color: #94a3b8; font-size: 1.2rem; margin-bottom: 32px;">Amazing work! You've mastered all the ${subjectData.name.toLowerCase()}!</p>
-                            <button onclick="stopAllSpeech(); state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();" style="padding: 16px 32px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border-radius: 14px; font-size: 1.1rem; font-weight: 600; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(75, 156, 211, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(75, 156, 211, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(75, 156, 211, 0.3)'">
-                                ← Back to My Children
-                            </button>
-                        </div>
-                        
-                        <style>
-                            @keyframes celebrate {
-                                0%, 100% { transform: scale(1) rotate(0deg); }
-                                25% { transform: scale(1.1) rotate(-5deg); }
-                                75% { transform: scale(1.1) rotate(5deg); }
-                            }
-                            @keyframes twinkle {
-                                0%, 100% { opacity: 0.4; }
-                                50% { opacity: 1; }
-                            }
-                        </style>
-                    </div>
-                `;
-            }
-            
+
+            // Get unmastered items, but allow practice even when all are mastered
+            const unmasteredItems = Object.keys(childData).filter(item => !childData[item].mastered);
+            const allMastered = unmasteredItems.length === 0;
+            // Use all items when subject is mastered, otherwise prioritize unmastered items
+            const items = allMastered ? Object.keys(childData) : unmasteredItems;
+
             const currentItem = state.currentLesson || items[0];
             const itemData = childData[currentItem];
             const teachingPrompt = teachingGuides[subject]?.prompts[currentItem];
@@ -8357,6 +8329,7 @@
                             <h3 style="font-size: 1.75rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 12px;">
                                 <span style="font-size: 2rem;">${subjectData.icon}</span>
                                 Practice: ${subjectData.name}
+                                ${allMastered ? '<span style="margin-left: 12px; padding: 6px 14px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; font-size: 0.85rem; border-radius: 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">All Mastered!</span>' : ''}
                             </h3>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                 <button onclick="toggleVoice()" style="padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.2s; ${state.voiceEnabled ? 'background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);' : 'background: rgba(30, 41, 59, 0.8); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3);'}">
@@ -8512,7 +8485,10 @@
 
         function selectAnswer(selectedItem) {
             const subject = state.currentSubject;
-            const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
+            const childData = state.learningData[state.activeChildId][subject];
+            // Get unmastered items, but allow practice even when all are mastered
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const items = unmasteredItems.length === 0 ? Object.keys(childData) : unmasteredItems;
             const correctItem = state.currentLesson || items[0];
             
             const isCorrect = selectedItem === correctItem;
@@ -8521,7 +8497,10 @@
 
         function askForHelp() {
             const subject = state.currentSubject;
-            const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
+            const childData = state.learningData[state.activeChildId][subject];
+            // Get unmastered items, but allow practice even when all are mastered
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const items = unmasteredItems.length === 0 ? Object.keys(childData) : unmasteredItems;
             const item = state.currentLesson || items[0];
             const teachingPrompt = teachingGuides[subject]?.prompts[item];
             
@@ -8529,13 +8508,15 @@
                 speakText(`Here's how to teach ${item}. ${teachingPrompt.tips}`);
             }
         }
-            const subject = state.currentSubject;
 
         function checkAnswer(isCorrect) {
             const subject = state.currentSubject;
-            const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
+            const childData = state.learningData[state.activeChildId][subject];
+            // Get unmastered items, but allow practice even when all are mastered
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const items = unmasteredItems.length === 0 ? Object.keys(childData) : unmasteredItems;
             const item = state.currentLesson || items[0];
-            const itemData = state.learningData[state.activeChildId][subject][item];
+            const itemData = childData[item];
             
             itemData.attempts++;
             
