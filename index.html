@@ -2247,8 +2247,23 @@
         };
 
         // YES/NO interpretation patterns (for toddler speech)
-        const YES_PATTERNS = ['yes', 'yeah', 'yep', 'yup', 'ready', 'let\'s go', 'lets go', 'i\'m ready', 'im ready', 'ok', 'okay', 'sure', 'uh huh', 'uh-huh', 'go'];
-        const NO_PATTERNS = ['no', 'nope', 'not yet', 'wait', 'i\'m not ready', 'im not ready', 'not ready', 'nah'];
+        const YES_PATTERNS = [
+          'yes', 'yeah', 'yep', 'yup',
+          'ready', "i'm ready", 'im ready',
+          'ok', 'okay', 'sure',
+          'uh huh', 'uh-huh',
+          'go'
+        ];
+
+        const NO_PATTERNS = [
+          'no', 'nope', 'nah',
+          'not yet',
+          'wait',
+          "i'm not ready", 'im not ready',
+          'not ready',
+          "i don't know", 'i dont know',
+          'maybe later'
+        ];
 
         // OPTION interpretation patterns (for multiple choice)
         const OPTION_PATTERNS = {
@@ -2711,7 +2726,7 @@
 
             recognition.onstart = function() {
                 state.isListening = true;
-                speakText("I'm listening. You can say: help, correct, incorrect, or next.");
+                speakText("I'm listening. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
                 render();
             };
 
@@ -2747,40 +2762,81 @@
             }
         }
 
-        function handleVoiceCommand(transcript) {
-            console.log('Voice command:', transcript);
-            
-            // Check for help requests
-            if (transcript.includes('help') || transcript.includes('hint') || transcript.includes('what do i say')) {
-                const subject = state.currentSubject;
-                const item = state.currentLesson || Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered)[0];
-                
-                if (teachingGuides[subject] && teachingGuides[subject].prompts[item]) {
-                    speakText(teachingGuides[subject].prompts[item].tips);
-                }
-                return;
-            }
-            
-            // Check for navigation
-            if (transcript.includes('next') || transcript.includes('skip')) {
-                speakText("Moving to the next item");
-                checkAnswer(false); // Mark as incorrect to move on
-                return;
-            }
-            
-            // Check for correct/incorrect marking
-            if (transcript.includes('correct') || transcript.includes('right') || transcript.includes('yes')) {
-                checkAnswer(true);
-                return;
-            }
-            
-            if (transcript.includes('wrong') || transcript.includes('incorrect') || transcript.includes('no')) {
-                checkAnswer(false);
-                return;
-            }
+        function handleVoiceCommand(transcriptRaw) {
+          // Normalize transcript
+          const transcript = (transcriptRaw || '').toLowerCase().trim();
+          console.log('Voice command:', transcript);
 
-            // Provide general guidance
-            speakText("I didn't understand that. You can say 'correct', 'incorrect', 'help', or 'next'.");
+          if (!transcript) {
+            speakText("I didn't hear anything. You can say 'help', 'next', 'yes', or 'no'.");
+            return;
+          }
+
+          // Helper to reuse ElevenLabs YES/NO patterns
+          const matchesPattern = (patterns) => {
+            if (!Array.isArray(patterns)) return false;
+            return patterns.some(pattern => transcript.includes(pattern));
+          };
+
+          // 1. Help requests
+          if (transcript.includes('help') || transcript.includes('hint') || transcript.includes('what do i say')) {
+            const subject = state.currentSubject;
+            const item = state.currentLesson || (
+              state.activeChildId &&
+              state.learningData[state.activeChildId] &&
+              state.learningData[state.activeChildId][subject]
+                ? Object.keys(state.learningData[state.activeChildId][subject])[0]
+                : null
+            );
+
+            if (subject && item && teachingGuides[subject] && teachingGuides[subject].prompts[item]) {
+              speakText(teachingGuides[subject].prompts[item].tips);
+            } else {
+              speakText("You can try saying 'yes', 'no', 'next', or 'help'.");
+            }
+            return;
+          }
+
+          // 2. Navigation
+          if (transcript.includes('next') || transcript.includes('skip')) {
+            speakText("Okay, let's move to the next one.");
+            // Treat as an incorrect/skip so the system advances
+            checkAnswer(false);
+            return;
+          }
+
+          // 3. Correct / "yes" intents
+          // Use both explicit words and ElevenLabs YES_PATTERNS
+          const isYesIntent =
+            transcript.includes('correct') ||
+            transcript.includes('right') ||
+            transcript.includes('yes') ||
+            matchesPattern(typeof YES_PATTERNS !== 'undefined' ? YES_PATTERNS : []);
+
+          if (isYesIntent) {
+            checkAnswer(true);
+            return;
+          }
+
+          // 4. Incorrect / "no / not yet / I don't know" intents
+          const isNoIntent =
+            transcript.includes('wrong') ||
+            transcript.includes('incorrect') ||
+            transcript.includes('no') ||
+            transcript.includes('not yet') ||
+            transcript.includes("i'm not ready") ||
+            transcript.includes('im not ready') ||
+            transcript.includes("i don't know") ||
+            transcript.includes('i dont know') ||
+            matchesPattern(typeof NO_PATTERNS !== 'undefined' ? NO_PATTERNS : []);
+
+          if (isNoIntent) {
+            checkAnswer(false);
+            return;
+          }
+
+          // 5. Fallback
+          speakText("I didn't understand that. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
         }
 
         function logInteraction(action, data) {
