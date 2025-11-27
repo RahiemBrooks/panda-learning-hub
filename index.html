@@ -8394,7 +8394,54 @@
                                 <h4 style="font-size: 1.25rem; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
                                     👨‍🏫 Parent Guide: Teaching "${currentItem}"
                                 </h4>
-                                
+
+                                ${subject === 'colors' ? `
+                                <!-- Color Chooser - Jump to any color -->
+                                <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(139, 92, 246, 0.2); margin-bottom: 20px;">
+                                    <p style="font-weight: 700; color: #c4b5fd; margin-bottom: 12px; font-size: 0.95rem;">🎯 Jump to Any Color:</p>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                        ${(() => {
+                                            const colorHexMap = {
+                                                red: '#EF4444',
+                                                blue: '#3B82F6',
+                                                yellow: '#EAB308',
+                                                green: '#22C55E',
+                                                orange: '#F97316',
+                                                purple: '#A855F7',
+                                                pink: '#EC4899',
+                                                brown: '#924000',
+                                                black: '#000000',
+                                                white: '#FFFFFF'
+                                            };
+                                            return curriculum.colors.items.map(color => {
+                                                const isCurrent = color === currentItem;
+                                                const isMastered = childData[color]?.mastered;
+                                                const colorHex = colorHexMap[color] || '#888';
+                                                const textColor = (color === 'white' || color === 'yellow') ? '#1e293b' : 'white';
+                                                const borderStyle = color === 'white' ? '2px solid #64748b' : (isCurrent ? '3px solid #c4b5fd' : '2px solid transparent');
+                                                return \`
+                                                    <button onclick="jumpToItem('\${color}')" style="
+                                                        padding: 8px 16px;
+                                                        background: \${colorHex};
+                                                        color: \${textColor};
+                                                        border: \${borderStyle};
+                                                        border-radius: 20px;
+                                                        font-size: 0.85rem;
+                                                        font-weight: 600;
+                                                        cursor: pointer;
+                                                        transition: all 0.2s;
+                                                        box-shadow: \${isCurrent ? '0 4px 12px rgba(139, 92, 246, 0.4)' : '0 2px 6px rgba(0,0,0,0.2)'};
+                                                        transform: \${isCurrent ? 'scale(1.1)' : 'scale(1)'};
+                                                        position: relative;
+                                                    " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='\${isCurrent ? 'scale(1.1)' : 'scale(1)'}'">\${color.charAt(0).toUpperCase() + color.slice(1)}\${isMastered ? ' ⭐' : ''}</button>
+                                                \`;
+                                            }).join('');
+                                        })()}
+                                    </div>
+                                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px;">Tap any color to practice it. ⭐ = mastered</p>
+                                </div>
+                                ` : ''}
+
                                 <div style="display: grid; gap: 16px;">
                                     <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(139, 92, 246, 0.2);">
                                         <p style="font-weight: 700; color: #c4b5fd; margin-bottom: 8px; font-size: 0.95rem;">1️⃣ Say to Your Child:</p>
@@ -8541,12 +8588,32 @@
             const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
             const item = state.currentLesson || items[0];
             const teachingPrompt = teachingGuides[subject]?.prompts[item];
-            
+
             if (teachingPrompt) {
                 speakText(`Here's how to teach ${item}. ${teachingPrompt.tips}`);
             }
         }
+
+        // Jump to a specific item (color, shape, etc.) - parent-driven navigation
+        function jumpToItem(itemName) {
             const subject = state.currentSubject;
+            if (!subject) return;
+
+            // Verify the item exists in the curriculum
+            const allItems = curriculum[subject]?.items || [];
+            if (!allItems.includes(itemName)) return;
+
+            // Set the current lesson to the selected item
+            state.currentLesson = itemName;
+
+            logInteraction('parent_jump_to_item', {
+                childId: state.activeChildId,
+                subject: subject,
+                item: itemName
+            });
+
+            render();
+        }
 
         function checkAnswer(isCorrect) {
             const subject = state.currentSubject;
