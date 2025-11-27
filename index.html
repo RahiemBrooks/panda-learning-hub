@@ -8102,25 +8102,34 @@
               return;
             }
 
-            // Extract interpretation, defaulting to 'unclear' if missing
-            const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
-            console.log('🎤 SubjectIntro: Using interpretation:', interpretation);
+            // Extract interpretation - use existing if valid, otherwise call interpretYesNo on transcript
+            const validInterpretations = ['yes', 'no', 'unclear', 'unavailable'];
+            let interpretation;
+
+            if (result && result.interpretation && validInterpretations.includes(result.interpretation)) {
+              // Use existing valid interpretation
+              interpretation = result.interpretation;
+            } else if (result && typeof result.transcript === 'string' && result.transcript.trim()) {
+              // Have transcript but no valid interpretation - use interpretYesNo
+              interpretation = interpretYesNo(result.transcript);
+              console.log('🎤 SubjectIntro: Called interpretYesNo on transcript:', result.transcript, '-> ', interpretation);
+            } else if (typeof result === 'string' && result.trim()) {
+              // Result is a raw transcript string
+              interpretation = interpretYesNo(result);
+              console.log('🎤 SubjectIntro: Called interpretYesNo on raw string:', result, '->', interpretation);
+            } else {
+              // Fallback to unclear
+              interpretation = 'unclear';
+            }
+            console.log('🎤 SubjectIntro: Final interpretation:', interpretation);
 
             if (interpretation === 'yes') {
-              // Child is ready – start the subject practice
+              // Child is ready – start the subject practice (same as I'M READY button)
               stopAllSpeech();
-              speakPanda("Great! Let's start learning!", () => {
-                state.subjectIntro.waitingForReady = false;
-                state.subjectIntro.shown = true;
-                render();
-                setTimeout(() => {
-                  try {
-                    askCurrentQuestion();
-                  } catch (e) {
-                    console.log('Error asking first question:', e);
-                  }
-                }, 500);
-              });
+              state.subjectIntro.waitingForReady = false;
+              state.subjectIntro.shown = true;
+              render();
+              setTimeout(() => askCurrentQuestion(), 500);
             } else if (interpretation === 'no') {
               // Child said no / not yet / I don't know – reassure and wait
               speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the I'm Ready button.", () => {
