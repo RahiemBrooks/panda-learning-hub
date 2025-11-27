@@ -8482,7 +8482,7 @@
                         <!-- Progress Indicator - Compact -->
                         <div style="background: rgba(26, 39, 68, 0.6); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(75, 156, 211, 0.15);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering "${currentItem}"</p>
+                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering ${subject === 'numbers' ? 'the number' : subject === 'colors' ? 'the color' : ''} "${currentItem}"</p>
                                 <p style="font-size: 0.85rem; color: #64748b;">${itemData.attempts} tries</p>
                             </div>
                             <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
@@ -8588,7 +8588,16 @@
                     // Celebration modal
                     setTimeout(() => {
                         const childName = state.children.find(c => c.id === state.activeChildId).name;
-                        showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
+                        // Use subject-appropriate wording for the mastery message
+                        let masteryMessage;
+                        if (subject === 'numbers') {
+                            masteryMessage = `${childName} has mastered the number ${item}!\n\nGreat teaching!`;
+                        } else if (subject === 'colors') {
+                            masteryMessage = `${childName} has mastered the color ${item}!\n\nGreat teaching!`;
+                        } else {
+                            masteryMessage = `${childName} has mastered ${item}!\n\nGreat teaching!`;
+                        }
+                        showAppModal(`MASTERED: ${item}!`, masteryMessage, 'celebration', () => {
                             state.currentLesson = null;
                             render();
                         });
