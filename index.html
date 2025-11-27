@@ -6852,7 +6852,7 @@
                                     </div>
                                     <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
                                 </div>
-                                <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready!</p>
+                                <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" when you're ready, or "Not yet" if you want to wait!</p>
                             </div>
 
                             <div style="margin-bottom: 1.25rem;">
@@ -8102,74 +8102,60 @@
         }
 
         function listenForSubjectReadyResponse() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                // Speech recognition not supported - user must click the Start button
-                return;
+          // Use ElevenLabs STT instead of browser SpeechRecognition
+          if (!state.audioSetup || !state.audioSetup.microphoneEnabled) {
+            console.log('🎤 SubjectIntro: Microphone not enabled, waiting for button tap');
+            return;
+          }
+
+          startElevenLabsSTT('yesNo', (result) => {
+            console.log('🎤 SubjectIntro STT result:', result);
+
+            // Make sure we're still on the subject intro and waiting
+            if (!state.subjectIntro || !state.subjectIntro.waitingForReady || !state.currentSubject) {
+              console.log('🎤 SubjectIntro: No longer waiting for ready');
+              return;
             }
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript.toLowerCase();
-                
-                // Safety check - ensure we're still on the intro screen
-                if (!state.subjectIntro || !state.subjectIntro.waitingForReady) {
-                    console.log('Already proceeded past subject intro');
-                    return;
-                }
-                
-                if (transcript.includes('yes') || 
-                    transcript.includes('ready') || 
-                    transcript.includes('yeah') || 
-                    transcript.includes('ok') ||
-                    transcript.includes('okay') ||
-                    transcript.includes('sure') ||
-                    transcript.includes('yep') ||
-                    transcript.includes('go')) {
-                    
-                    stopAllSpeech();
-                    speakPanda("Great! Let's start learning!", () => {
-                        state.subjectIntro.waitingForReady = false;
-                        state.subjectIntro.shown = true;
-                        render();
-                        // Ask first question after render
-                        setTimeout(() => askCurrentQuestion(), 500);
-                    });
-                } else {
-                    // Didn't hear clear yes, keep listening
-                    console.log('Did not recognize affirmative for subject intro');
-                }
-            };
-            
-            recognition.onerror = (event) => {
-                console.log('Speech recognition error:', event.error);
-                // Don't auto-proceed - user can click the Start button
-            };
-            
-            recognition.onend = () => {
-                // Restart listening if still on this screen
-                if (state.subjectIntro.waitingForReady && state.currentSubject) {
-                    setTimeout(() => {
-                        try {
-                            listenForSubjectReadyResponse();
-                        } catch(e) {
-                            console.log('Could not restart subject listening');
-                        }
-                    }, 1000);
-                }
-            };
-            
-            try {
-                recognition.start();
-            } catch (e) {
-                console.log('Could not start subject recognition:', e);
-                // Don't auto-proceed - user can click the Start button
+            const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
+
+            if (interpretation === 'yes') {
+              // Child is ready – start the subject practice
+              stopAllSpeech();
+              speakPanda("Great! Let's start learning!", () => {
+                state.subjectIntro.waitingForReady = false;
+                state.subjectIntro.shown = true;
+                render();
+                setTimeout(() => {
+                  try {
+                    askCurrentQuestion();
+                  } catch (e) {
+                    console.log('Error asking first question:', e);
+                  }
+                }, 500);
+              });
+            } else if (interpretation === 'no') {
+              // Child said no / not yet / I don't know – reassure and wait
+              speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the I'm Ready button.", () => {
+                render();
+                setTimeout(() => {
+                  if (state.subjectIntro && state.subjectIntro.waitingForReady && state.currentSubject) {
+                    listenForSubjectReadyResponse();
+                  }
+                }, 1500);
+              });
+            } else {
+              // UNCLEAR or UNAVAILABLE – gently prompt again
+              speakPanda("I didn't quite hear that. You can say 'Yes' or 'Not yet', or tap the buttons.", () => {
+                render();
+                setTimeout(() => {
+                  if (state.subjectIntro && state.subjectIntro.waitingForReady && state.currentSubject) {
+                    listenForSubjectReadyResponse();
+                  }
+                }, 1500);
+              });
             }
+          });
         }
 
         function askCurrentQuestion() {
