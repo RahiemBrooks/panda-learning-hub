@@ -1677,7 +1677,8 @@
                 recognition: null,
                 currentQuestion: null,
                 choices: [],
-                correctChoice: null
+                correctChoice: null,
+                highlightCorrectOption: false // Temporary glow on correct option when question is asked
             },
             // Learning section intro
             learningIntro: {
@@ -6468,18 +6469,24 @@
             const q = state.colorQuest.currentQuestion;
             let questionText = '';
 
+            // Updated question wording that matches what's on screen
             if (q.type === 'colors') {
-                questionText = `Can you find the ${q.correctAnswer} one?`;
+                questionText = `Can you find the ${q.correctAnswer} one? Say '${q.correctAnswer}' or tap it.`;
             } else if (q.type === 'shapes') {
-                questionText = `Can you find the ${q.correctAnswer}?`;
+                questionText = `Can you find the ${q.correctAnswer}? Say '${q.correctAnswer}' or tap it.`;
             } else {
-                questionText = `Can you find the number ${q.correctAnswer}?`;
+                questionText = `Can you find the number ${q.correctAnswer}? Say '${q.correctAnswer}' or tap it.`;
             }
 
-            // Add voice option instruction if microphone is enabled
-            if (state.audioSetup.microphoneEnabled) {
-                questionText += ` You can tap the answer, or say 'Option 1', 'Option 2', or 'Option 3.'`;
-            }
+            // Trigger the brief glow highlight on the correct option
+            state.colorQuest.highlightCorrectOption = true;
+            render();
+
+            // Remove the highlight after 1.5 seconds
+            setTimeout(() => {
+                state.colorQuest.highlightCorrectOption = false;
+                render();
+            }, 1500);
 
             speakPanda(questionText, () => {
                 // After asking question, start listening for responses
@@ -6947,11 +6954,15 @@
                                 ${state.colorQuest.choices.map(choice => {
                                     const isCorrect = choice === state.colorQuest.correctChoice;
                                     const shouldFade = state.colorQuest.hintLevel === 3 && !isCorrect;
-                                    
+                                    const shouldGlow = state.colorQuest.highlightCorrectOption && isCorrect;
+
+                                    // Glow style for correct option when question is asked
+                                    const glowStyle = shouldGlow ? 'box-shadow: 0 0 20px 8px rgba(16, 185, 129, 0.6), 0 0 40px 16px rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.8);' : '';
+
                                     return `
-                                    <button 
+                                    <button
                                         onclick="handleColorQuestAnswer('${choice}')"
-                                        style="background: rgba(45, 63, 95, 0.6); border: 3px solid ${shouldFade ? 'rgba(100, 116, 139, 0.3)' : 'rgba(75, 156, 211, 0.4)'}; border-radius: 20px; padding: 1.5rem; cursor: pointer; transition: all 0.3s; min-height: 180px; display: flex; align-items: center; justify-content: center; opacity: ${shouldFade ? '0.25' : '1'}; transform: scale(${shouldFade ? '0.95' : '1'});"
+                                        style="background: rgba(45, 63, 95, 0.6); border: 3px solid ${shouldFade ? 'rgba(100, 116, 139, 0.3)' : (shouldGlow ? 'rgba(16, 185, 129, 0.8)' : 'rgba(75, 156, 211, 0.4)')}; border-radius: 20px; padding: 1.5rem; cursor: pointer; transition: all 0.3s; min-height: 180px; display: flex; align-items: center; justify-content: center; opacity: ${shouldFade ? '0.25' : '1'}; transform: scale(${shouldFade ? '0.95' : (shouldGlow ? '1.02' : '1')}); ${glowStyle}"
                                         onmouseover="if (!${shouldFade}) { this.style.transform='scale(1.05)'; this.style.borderColor='rgba(75, 156, 211, 0.7)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.3), 0 0 20px rgba(75, 156, 211, 0.2)'; }"
                                         onmouseout="if (!${shouldFade}) { this.style.transform='scale(1)'; this.style.borderColor='rgba(75, 156, 211, 0.4)'; this.style.boxShadow='none'; }">
                                         ${renderColorQuestChoice(q.type, choice)}
