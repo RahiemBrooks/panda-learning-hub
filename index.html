@@ -5991,34 +5991,6 @@
                                 </div>
                                 
                                 ${state.childManagementView === 'progress' ? `
-                                    <!-- Circular Progress Modules -->
-                                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 32px; margin-bottom: 48px;">
-                                        ${['colors', 'shapes', 'numbers'].map(subject => {
-                                            const progress = getSubjectProgress(selectedChild.id, subject);
-                                            const subjectInfo = curriculum[subject];
-                                            const isLocked = !selectedChild.preAssessmentComplete;
-                                            return `
-                                                <div onclick="${isLocked ? `showAppToast('Please complete the assessment first!', 'info')` : `goToSubjectFromMyChildren('${selectedChild.id}', '${subject}')`}" style="cursor: pointer; text-align: center; transition: transform 0.3s; ${isLocked ? 'opacity: 0.5;' : ''}" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                                    <div style="position: relative; width: 130px; height: 130px; margin: 0 auto 16px;">
-                                                        <!-- Simple circle with gradient background -->
-                                                        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #2d3f5f 0%, #1e293b 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(75, 156, 211, 0.3); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);">
-                                                            <span style="font-size: 2.5rem;">${subjectInfo.icon}</span>
-                                                        </div>
-                                                        ${isLocked ? `
-                                                            <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 50%;">
-                                                                <svg width="32" height="32" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                                                                </svg>
-                                                            </div>
-                                                        ` : ''}
-                                                    </div>
-                                                    <div style="color: #e2e8f0; font-size: 1rem; font-weight: 500;">${subjectInfo.name}</div>
-                                                    <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px;">${isLocked ? '🔒 Locked' : `${progress.mastered}/${progress.total}`}</div>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                    
                                     <!-- Linear Progress with Dots -->
                                     <div style="background: rgba(26, 39, 68, 0.6); border-radius: 20px; padding: 32px; border: 1px solid rgba(75, 156, 211, 0.15); ${selectedChild.preAssessmentComplete ? '' : 'opacity: 0.5;'}">
                                         ${!selectedChild.preAssessmentComplete ? `
