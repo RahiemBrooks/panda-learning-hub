@@ -2487,6 +2487,13 @@
 
                     // Call the result callback
                     if (elevenLabsSTT.onResult) {
+                        console.log('🎤 ELEVENLABS STT CALLBACK INVOKED:', {
+                            mode: elevenLabsSTT.currentMode,
+                            interpretation: interpretation,
+                            interpretationType: typeof interpretation,
+                            transcript: transcript,
+                            transcriptType: typeof transcript
+                        });
                         elevenLabsSTT.onResult({ interpretation, transcript });
                     }
                 };
@@ -6365,6 +6372,13 @@
 
             // Use ElevenLabs STT with 2-second recording window for yes/no
             startElevenLabsSTT('yesNo', (result) => {
+                console.log('🎤 COLORQUEST YESNO CALLBACK:', {
+                    result: result,
+                    resultType: typeof result,
+                    interpretation: result ? result.interpretation : 'NO_RESULT',
+                    transcript: result ? result.transcript : 'NO_RESULT'
+                });
+
                 state.colorQuest.listening = false;
 
                 // Safety check - make sure we're still waiting for ready
@@ -6373,14 +6387,18 @@
                     return;
                 }
 
-                if (result.interpretation === 'yes') {
+                // Extract interpretation, defaulting to 'unclear' if missing
+                const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
+                console.log('🎤 ColorQuest: Using interpretation:', interpretation);
+
+                if (interpretation === 'yes') {
                     // Child said YES - proceed with enthusiasm
                     speakPanda("Awesome, you're ready! Let's go!", () => {
                         state.colorQuest.waitingForReady = false;
                         generateColorQuestQuestion();
                         render();
                     });
-                } else if (result.interpretation === 'no') {
+                } else if (interpretation === 'no') {
                     // Child said NO - acknowledge and wait
                     speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the Ready button.", () => {
                         render();
@@ -6393,6 +6411,7 @@
                     });
                 } else {
                     // UNCLEAR or UNAVAILABLE - encourage tapping
+                    console.log('🎤 ColorQuest: Falling back to unclear/unavailable path');
                     speakPanda("I didn't quite hear that. You can say 'Yes' or 'No,' or tap the buttons.", () => {
                         render();
                         // Listen again after a delay
@@ -7106,6 +7125,13 @@
 
             // Use ElevenLabs STT with 2-second recording window for yes/no
             startElevenLabsSTT('yesNo', (result) => {
+                console.log('🎤 LEARNINGINTRO YESNO CALLBACK:', {
+                    result: result,
+                    resultType: typeof result,
+                    interpretation: result ? result.interpretation : 'NO_RESULT',
+                    transcript: result ? result.transcript : 'NO_RESULT'
+                });
+
                 state.learningIntro.listening = false;
 
                 // Safety check - make sure we're still waiting for ready
@@ -7114,13 +7140,17 @@
                     return;
                 }
 
-                if (result.interpretation === 'yes') {
+                // Extract interpretation, defaulting to 'unclear' if missing
+                const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
+                console.log('🎤 LearningIntro: Using interpretation:', interpretation);
+
+                if (interpretation === 'yes') {
                     // Child said YES - proceed with enthusiasm
                     stopAllSpeech();
                     speakPanda("Fantastic! Let's begin our magical adventure!", () => {
                         completeMagicalIntro();
                     });
-                } else if (result.interpretation === 'no') {
+                } else if (interpretation === 'no') {
                     // Child said NO - acknowledge and wait
                     speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the Ready button.", () => {
                         render();
@@ -7133,6 +7163,7 @@
                     });
                 } else {
                     // UNCLEAR or UNAVAILABLE - encourage tapping
+                    console.log('🎤 LearningIntro: Falling back to unclear/unavailable path');
                     speakPanda("I didn't quite hear that. You can say 'Yes' or 'No,' or tap the buttons.", () => {
                         render();
                         // Listen again after a delay
@@ -8072,7 +8103,12 @@
           }
 
           startElevenLabsSTT('yesNo', (result) => {
-            console.log('🎤 SubjectIntro STT result:', result);
+            console.log('🎤 SUBJECTINTRO YESNO CALLBACK:', {
+              result: result,
+              resultType: typeof result,
+              interpretation: result ? result.interpretation : 'NO_RESULT',
+              transcript: result ? result.transcript : 'NO_RESULT'
+            });
 
             // Make sure we're still on the subject intro and waiting
             if (!state.subjectIntro || !state.subjectIntro.waitingForReady || !state.currentSubject) {
@@ -8080,7 +8116,9 @@
               return;
             }
 
+            // Extract interpretation, defaulting to 'unclear' if missing
             const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
+            console.log('🎤 SubjectIntro: Using interpretation:', interpretation);
 
             if (interpretation === 'yes') {
               // Child is ready – start the subject practice
@@ -8109,6 +8147,7 @@
               });
             } else {
               // UNCLEAR or UNAVAILABLE – gently prompt again
+              console.log('🎤 SubjectIntro: Falling back to unclear/unavailable path');
               speakPanda("I didn't quite hear that. You can say 'Yes' or 'Not yet', or tap the buttons.", () => {
                 render();
                 setTimeout(() => {
