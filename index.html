@@ -8539,6 +8539,24 @@
           });
         }
 
+        // BEGIN SANITY CHECK HELPER
+        // This function logs a warning if the color question components are mismatched.
+        // Call this after setting up a question to verify header, voice, and answer all match.
+        function verifyColorQuestionConsistency(headerColor, voiceColor, correctAnswerColor, context) {
+            if (state.currentSubject !== 'colors') return; // Only check for colors
+
+            const allMatch = (headerColor === voiceColor) && (voiceColor === correctAnswerColor);
+
+            if (!allMatch) {
+                console.error(`PANDA COLOR WARNING (${context}): MISMATCH DETECTED!`);
+                console.error(`  headerColor="${headerColor}", voiceColor="${voiceColor}", correctAnswerColor="${correctAnswerColor}"`);
+                console.error(`  state.currentLesson="${state.currentLesson}"`);
+            } else {
+                console.log(`PANDA COLOR CHECK (${context}): All match - "${headerColor}"`);
+            }
+        }
+        // END SANITY CHECK HELPER
+
         function askCurrentQuestion() {
             // Safety check - only ask questions when we're actually ready
             if (!state.voiceEnabled) return;
@@ -8568,14 +8586,19 @@
 
             if (items.length === 0) return;
 
-            // In fun mode, pick a random item; in normal mode, use currentLesson or first unmastered
-            let currentItem;
-            if (state.subjectPracticeMode === 'fun') {
-                currentItem = state.currentLesson || items[Math.floor(Math.random() * items.length)];
-            } else {
-                currentItem = state.currentLesson || items[0];
+            // BEGIN SINGLE SOURCE OF TRUTH FIX
+            // state.currentLesson is the SINGLE SOURCE OF TRUTH for the current target item.
+            // We SET it here if not already set, so all other functions (render, selectAnswer,
+            // checkAnswer) read from the same value. This prevents voice/header/answer desync.
+            if (!state.currentLesson) {
+                if (state.subjectPracticeMode === 'fun') {
+                    state.currentLesson = items[Math.floor(Math.random() * items.length)];
+                } else {
+                    state.currentLesson = items[0];
+                }
             }
-            // END FUN PRACTICE MODE
+            const currentItem = state.currentLesson;
+            // END SINGLE SOURCE OF TRUTH FIX
 
             let question = '';
             if (subject === 'colors') {
@@ -8587,6 +8610,12 @@
             } else {
                 question = `Can you find ${currentItem}?`;
             }
+
+            // BEGIN SANITY CHECK - Verify voice prompt uses correct target
+            if (subject === 'colors') {
+                console.log(`PANDA COLOR DEBUG: askCurrentQuestion using target="${currentItem}" (state.currentLesson="${state.currentLesson}")`);
+            }
+            // END SANITY CHECK
 
             speakPanda(question);
         }
@@ -8785,17 +8814,31 @@
                 `;
             }
 
-            // BEGIN FUN PRACTICE MODE
-            // In fun mode, pick a random item instead of using currentLesson or first unmastered
+            // BEGIN SINGLE SOURCE OF TRUTH FIX
+            // state.currentLesson is the SINGLE SOURCE OF TRUTH for the current target item.
+            // We only READ from it here. The value is SET in askCurrentQuestion().
+            // If it's somehow null, we set a fallback, but askCurrentQuestion should always set it first.
             let currentItem;
-            if (state.subjectPracticeMode === 'fun') {
-                // Pick a random item from all items
-                currentItem = state.currentLesson || items[Math.floor(Math.random() * items.length)];
+            if (state.currentLesson) {
+                currentItem = state.currentLesson;
             } else {
-                // Normal mode: use currentLesson or first unmastered item
-                currentItem = state.currentLesson || items[0];
+                // Fallback: if no currentLesson set, pick one and set it
+                if (state.subjectPracticeMode === 'fun') {
+                    currentItem = items[Math.floor(Math.random() * items.length)];
+                } else {
+                    currentItem = items[0];
+                }
+                state.currentLesson = currentItem;
+                console.warn('PANDA COLOR WARNING: renderSubjectPractice had to set currentLesson - should have been set by askCurrentQuestion');
             }
-            // END FUN PRACTICE MODE
+            // END SINGLE SOURCE OF TRUTH FIX
+
+            // BEGIN SANITY CHECK - Log the header target for debugging
+            if (subject === 'colors') {
+                console.log(`PANDA COLOR DEBUG: renderSubjectPractice header using target="${currentItem}" (state.currentLesson="${state.currentLesson}")`);
+            }
+            // END SANITY CHECK
+
             const itemData = childData[currentItem];
             const teachingPrompt = teachingGuides[subject]?.prompts[currentItem];
             
@@ -8998,28 +9041,22 @@
             ensureLearningDataForChild(state.activeChildId);
             // END FIX FOR BLANK SCREEN
 
-            const childData = state.learningData[state.activeChildId][subject];
+            // BEGIN SINGLE SOURCE OF TRUTH FIX
+            // state.currentLesson is the SINGLE SOURCE OF TRUTH for the correct answer.
+            // We only READ from it here. It was SET by askCurrentQuestion().
+            const correctItem = state.currentLesson;
 
-            // BEGIN FUN PRACTICE MODE
-            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
-            const allItems = Object.keys(childData);
-
-            // Determine which items to use based on mode
-            let items;
-            if (state.subjectPracticeMode === 'fun') {
-                items = allItems;
-            } else {
-                items = unmasteredItems;
+            if (!correctItem) {
+                console.error('PANDA COLOR ERROR: selectAnswer called but state.currentLesson is null!');
+                return;
             }
 
-            // In fun mode, use currentLesson; in normal mode, use currentLesson or first unmastered
-            let correctItem;
-            if (state.subjectPracticeMode === 'fun') {
-                correctItem = state.currentLesson || items[Math.floor(Math.random() * items.length)];
-            } else {
-                correctItem = state.currentLesson || items[0];
+            // BEGIN SANITY CHECK - Log answer validation for debugging
+            if (subject === 'colors') {
+                console.log(`PANDA COLOR DEBUG: selectAnswer checking "${selectedItem}" against correctItem="${correctItem}" (state.currentLesson="${state.currentLesson}")`);
             }
-            // END FUN PRACTICE MODE
+            // END SANITY CHECK
+            // END SINGLE SOURCE OF TRUTH FIX
 
             const isCorrect = selectedItem === correctItem;
             checkAnswer(isCorrect, selectedItem);
@@ -9059,27 +9096,24 @@
             // END FIX FOR BLANK SCREEN
 
             const childData = state.learningData[state.activeChildId][subject];
-
-            // BEGIN FUN PRACTICE MODE
-            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
             const allItems = Object.keys(childData);
 
-            // Determine which items to use based on mode
-            let items;
-            if (state.subjectPracticeMode === 'fun') {
-                items = allItems;
-            } else {
-                items = unmasteredItems;
+            // BEGIN SINGLE SOURCE OF TRUTH FIX
+            // state.currentLesson is the SINGLE SOURCE OF TRUTH for the current item.
+            // We only READ from it here. It was SET by askCurrentQuestion().
+            const item = state.currentLesson;
+
+            if (!item) {
+                console.error('PANDA COLOR ERROR: checkAnswer called but state.currentLesson is null!');
+                return;
             }
 
-            // Determine current item based on mode
-            let item;
-            if (state.subjectPracticeMode === 'fun') {
-                item = state.currentLesson || items[Math.floor(Math.random() * items.length)];
-            } else {
-                item = state.currentLesson || items[0];
+            // BEGIN SANITY CHECK - Log for debugging
+            if (subject === 'colors') {
+                console.log(`PANDA COLOR DEBUG: checkAnswer recording stats for item="${item}" (state.currentLesson="${state.currentLesson}")`);
             }
-            // END FUN PRACTICE MODE
+            // END SANITY CHECK
+            // END SINGLE SOURCE OF TRUTH FIX
 
             const itemData = childData[item];
 
@@ -9131,6 +9165,11 @@
 
                     // In fun mode, just give praise (items are already mastered)
                     speakRandomPhrase(getCorrectResponsesForSubject(subject));
+
+                    // BEGIN SINGLE SOURCE OF TRUTH FIX
+                    // Reset currentLesson so next question picks a new random item
+                    state.currentLesson = null;
+                    // END SINGLE SOURCE OF TRUTH FIX
                 }
                 // END FUN PRACTICE MODE
                 else {
