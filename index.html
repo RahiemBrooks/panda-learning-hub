@@ -5693,34 +5693,74 @@
             render();
         }
 
-        function exportJournal() {
-            const exportData = {
-                userId: state.userId,
-                participantInfo: {
-                    totalEntries: state.journalEntries.length,
-                    currentDay: state.currentDay,
-                    exportDate: new Date().toISOString()
-                },
+        async function exportJournal() {
+            if (state.journalEntries.length === 0) {
+                showAppToast('No journal entries to export yet.', 'info');
+                return;
+            }
+
+            // Show loading state
+            showAppToast('Generating PDF...', 'info');
+
+            // Get the active child's name if available
+            const selectedChild = state.children.find(c => c.id === state.activeChildId);
+            const childName = selectedChild ? selectedChild.name : null;
+
+            // Prepare entries data for the PDF generator
+            const requestData = {
+                participantId: state.userId,
+                childName: childName,
                 entries: state.journalEntries.map(entry => ({
                     day: entry.day,
-                    date: new Date(entry.timestamp).toLocaleDateString(),
-                    time: new Date(entry.timestamp).toLocaleTimeString(),
-                    content: entry.text
+                    timestamp: entry.timestamp,
+                    text: entry.text,
+                    tag: entry.tag || null
                 }))
             };
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `panda-journal-${state.userId}-${Date.now()}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-            
-            logInteraction('journal_exported', { entryCount: state.journalEntries.length });
 
-            showAppToast(`Journal exported! ${state.journalEntries.length} entries saved.`, 'success');
+            try {
+                const response = await fetch('/.netlify/functions/export-journal-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to generate PDF');
+                }
+
+                // Get the PDF blob from response
+                const pdfBlob = await response.blob();
+
+                // Extract filename from Content-Disposition header or generate one
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `notes-${childName || state.userId}-${new Date().toISOString().split('T')[0]}.pdf`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                // Create download link and trigger download
+                const url = URL.createObjectURL(pdfBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                logInteraction('journal_exported', { entryCount: state.journalEntries.length, format: 'pdf' });
+                showAppToast(`Journal exported as PDF! ${state.journalEntries.length} entries saved.`, 'success');
+            } catch (error) {
+                console.error('PDF export failed:', error);
+                showAppToast('Failed to export journal. Please try again.', 'error');
+            }
         }
 
         function emailJournal() {

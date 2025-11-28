@@ -4,6 +4,7 @@
   "description": "PANDA Learning Hub - Early childhood learning research application",
   "private": true,
   "dependencies": {
-    "@netlify/blobs": "^8.1.0"
+    "@netlify/blobs": "^8.1.0",
+    "pdfkit": "^0.15.0"
   }
 }
