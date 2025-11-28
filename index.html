@@ -1287,7 +1287,32 @@
             color: #ffffff;
             transform: translateY(-1px);
         }
-        
+
+        /* Ready Button - for starting activities */
+        .ready-button {
+            padding: 14px 32px;
+            border-radius: 999px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .ready-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.45);
+        }
+
+        .ready-button:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        }
+
         .exit-btn {
             width: 36px;
             height: 36px;
@@ -8478,40 +8503,13 @@
                                 </div>
                             </div>
 
-                            <!-- Voice Listening Indicator -->
-                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
-                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
-                                <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-                                    <div style="display: flex; align-items: center; gap: 4px;">
-                                        <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite;"></span>
-                                        <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.1s;"></span>
-                                        <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.2s;"></span>
-                                        <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
-                                        <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
-                                    </div>
-                                    <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
-                                </div>
-                                <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" when you're ready, or "Not yet" if you want to wait!</p>
-                            </div>
-
-                            <div style="margin-bottom: 1.25rem;">
-                                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                                    <button
-                                        onclick="speakText('Hi! I am Panda. I am so excited, to learn with you today!');"
-                                        style="background: rgba(75, 156, 211, 0.2); color: #7BAFD4; padding: 12px 20px; border-radius: 12px; font-size: 1rem; font-weight: 600; border: 1px solid rgba(75, 156, 211, 0.4); cursor: pointer; transition: all 0.2s;"
-                                        onmouseover="this.style.background='rgba(75, 156, 211, 0.3)'; this.style.color='#93c5fd';"
-                                        onmouseout="this.style.background='rgba(75, 156, 211, 0.2)'; this.style.color='#7BAFD4';">
-                                        🔊 Test Voice
-                                    </button>
-
-                                    <button
-                                        onclick="stopAllSpeech(); state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
-                                        style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; border-radius: 14px; font-size: 1.2rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3); transition: all 0.3s;"
-                                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(16, 185, 129, 0.4)'"
-                                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(16, 185, 129, 0.3)'">
-                                        ✓ I'M READY!
-                                    </button>
-                                </div>
+                            <!-- Start Button -->
+                            <div style="margin-bottom: 1.5rem; display: flex; justify-content: center;">
+                                <button
+                                    onclick="stopAllSpeech(); state.colorQuest.waitingForReady=false; generateColorQuestQuestion(); render();"
+                                    class="ready-button">
+                                    I'm ready
+                                </button>
                             </div>
 
                             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
@@ -8916,25 +8914,10 @@
                             <p style="font-size: 1.15rem; font-weight: 600; color: #e2e8f0; margin-top: 1rem;">Ready to start? ✨</p>
                         </div>
                         
-                        <!-- Voice Listening Indicator -->
-                        <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
-                            <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
-                            <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite;"></span>
-                                    <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.1s;"></span>
-                                    <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.2s;"></span>
-                                    <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
-                                    <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
-                                </div>
-                                <span style="font-size: 1rem; font-weight: 600; color: #14b8a6;">Listening...</span>
-                            </div>
-                            <p style="font-size: 0.85rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" to begin!</p>
-                        </div>
-                        
-                        <div style="margin-bottom: 1.5rem;">
-                            <button onclick="completeMagicalIntro();" class="std-btn-success std-btn-lg">
-                                ✨ LET'S GO! ✨
+                        <!-- Start Button -->
+                        <div style="margin-bottom: 1.5rem; display: flex; justify-content: center;">
+                            <button onclick="completeMagicalIntro();" class="ready-button">
+                                I'm ready
                             </button>
                         </div>
 
@@ -10046,39 +10029,9 @@
                                 Ready to practice <span style="color: ${accent.primary}; font-weight: 600;">${subjectData.name}</span>? I'll show you different ${subjectData.name.toLowerCase()}, and you tell me which one it is!
                             </p>
                             
-                            <!-- Voice Listening Indicator -->
-                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
-                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
-                                <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-                                    <div style="display: flex; align-items: center; gap: 4px;">
-                                        <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite;"></span>
-                                        <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.1s;"></span>
-                                        <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.2s;"></span>
-                                        <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
-                                        <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
-                                    </div>
-                                    <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
-                                </div>
-                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready to start!</p>
-                            </div>
-                            
-                            <!-- Divider -->
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);"></div>
-                                <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
-                                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);"></div>
-                            </div>
-                            
                             <!-- Start Button -->
-                            <button
-                                onclick="startSubjectPractice();"
-                                style="background: ${accent.gradient}; color: white; padding: 1.25rem 3rem; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.1) inset; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; letter-spacing: 0.02em;"
-                                onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 32px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.2) inset'"
-                                onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 24px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.1) inset'">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke-width: 2.5;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                I'M READY!
+                            <button onclick="startSubjectPractice();" class="ready-button">
+                                I'm ready
                             </button>
 
                             <!-- Skip and Back Buttons -->
