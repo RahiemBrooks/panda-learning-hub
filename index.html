@@ -1704,7 +1704,10 @@
         const STORAGE_KEYS = {
             CONSENT_GIVEN: 'pandaConsentGiven',
             PARTICIPATION_CODE: 'pandaParticipationCode',
-            APP_STATE: 'pandaAppState'
+            APP_STATE: 'pandaAppState',
+            // BEGIN NAVIGATION PERSISTENCE
+            NAV_STATE: 'pandaNavState' // For storing currentView, activeChildId, currentSubject
+            // END NAVIGATION PERSISTENCE
         };
 
         // Save consent and participation code to localStorage
@@ -1783,7 +1786,15 @@
 
                     // Skip to role selection (audio setup is not re-required)
                     state.audioSetup.setupComplete = true;
-                    state.currentView = 'roleSelection';
+
+                    // BEGIN NAVIGATION PERSISTENCE - Restore last view on reload
+                    // Try to restore navigation state (currentView, activeChildId, currentSubject)
+                    const restoredView = loadNavStateFromStorage();
+                    if (!restoredView) {
+                        // Fallback to role selection if no valid nav state
+                        state.currentView = 'roleSelection';
+                    }
+                    // END NAVIGATION PERSISTENCE
 
                     return true; // Consent was restored
                 }
@@ -1792,6 +1803,114 @@
             }
             return false; // No saved consent, show normal flow
         }
+
+        // ============================================================================
+        // BEGIN NAVIGATION PERSISTENCE - Save/restore view state for refresh
+        // ============================================================================
+
+        // Save navigation state (view, activeChildId, currentSubject) to localStorage
+        function saveNavStateToStorage() {
+            try {
+                // Only save meaningful views that we want to restore on refresh
+                const restorableViews = ['roleSelection', 'parentDashboard', 'childManagement', 'childLearning', 'assessment'];
+                if (!restorableViews.includes(state.currentView)) {
+                    return; // Don't save intermediate/setup views
+                }
+
+                const navState = {
+                    currentView: state.currentView,
+                    activeChildId: state.activeChildId,
+                    currentSubject: state.currentSubject,
+                    selectedChildForProgress: state.selectedChildForProgress
+                };
+                localStorage.setItem(STORAGE_KEYS.NAV_STATE, JSON.stringify(navState));
+            } catch (e) {
+                console.warn('PANDA: Could not save nav state to localStorage', e);
+            }
+        }
+
+        // Load navigation state from localStorage - returns true if state was restored
+        function loadNavStateFromStorage() {
+            try {
+                const savedNav = localStorage.getItem(STORAGE_KEYS.NAV_STATE);
+                if (!savedNav) return false;
+
+                const navState = JSON.parse(savedNav);
+
+                // Validate the saved view is still valid
+                const restorableViews = ['roleSelection', 'parentDashboard', 'childManagement', 'childLearning', 'assessment'];
+                if (!navState.currentView || !restorableViews.includes(navState.currentView)) {
+                    return false;
+                }
+
+                // For views that require an active child, validate child still exists
+                const childRequiredViews = ['childLearning', 'assessment'];
+                if (childRequiredViews.includes(navState.currentView)) {
+                    if (!navState.activeChildId) return false;
+                    const childExists = state.children.some(c => c.id === navState.activeChildId);
+                    if (!childExists) {
+                        // Child was deleted, fall back to childManagement
+                        state.currentView = 'childManagement';
+                        return true;
+                    }
+                }
+
+                // Restore the navigation state
+                state.currentView = navState.currentView;
+                if (navState.activeChildId) {
+                    state.activeChildId = navState.activeChildId;
+                }
+                if (navState.currentSubject) {
+                    state.currentSubject = navState.currentSubject;
+                }
+                if (navState.selectedChildForProgress) {
+                    state.selectedChildForProgress = navState.selectedChildForProgress;
+                }
+
+                console.log('PANDA: Restored navigation state:', navState.currentView);
+                return true;
+            } catch (e) {
+                console.warn('PANDA: Could not load nav state from localStorage', e);
+                return false;
+            }
+        }
+
+        // ============================================================================
+        // END NAVIGATION PERSISTENCE
+        // ============================================================================
+
+        // ============================================================================
+        // BEGIN MASTERY HELPERS - Check if subject is fully mastered
+        // ============================================================================
+
+        // Get mastery status for a subject: { mastered, total, percentage, isComplete }
+        function getSubjectMasteryStatus(childId, subject) {
+            if (!state.learningData[childId] || !state.learningData[childId][subject]) {
+                return { mastered: 0, total: 0, percentage: 0, isComplete: false };
+            }
+            const subjectData = state.learningData[childId][subject];
+            let mastered = 0, total = 0;
+            Object.keys(subjectData).forEach(item => {
+                total++;
+                if (subjectData[item].mastered) mastered++;
+            });
+            const percentage = total > 0 ? Math.round((mastered / total) * 100) : 0;
+            return { mastered, total, percentage, isComplete: mastered === total && total > 0 };
+        }
+
+        // Get mastery status for all subjects for a child
+        function getAllSubjectsMasteryStatus(childId) {
+            const subjects = ['colors', 'shapes', 'numbers'];
+            return subjects.map(subject => ({
+                subject,
+                name: curriculum[subject]?.name || subject,
+                ...getSubjectMasteryStatus(childId, subject)
+            }));
+        }
+
+        // ============================================================================
+        // END MASTERY HELPERS
+        // ============================================================================
 
         // ============================================================================
         // PARENT VOICE RESPONSE PHRASES
@@ -7129,8 +7248,26 @@
         }
 
         function startMagicalLearningIntro() {
-            const magicalIntro = `Hi! It's me, Panda, again. Welcome to the magical world of learning. Here, everyone is on one mission. Learning! We're going to explore dazzling colors, amazing shapes, wonderful numbers, and so much more. Are you ready, to discover all these magical things together?`;
-            
+            // BEGIN MASTERY-AWARE MAGICAL INTRO - Adjust message based on mastery
+            let magicalIntro;
+            const allStatuses = getAllSubjectsMasteryStatus(state.activeChildId);
+            const notMastered = allStatuses.filter(s => !s.isComplete);
+            const mastered = allStatuses.filter(s => s.isComplete);
+
+            if (notMastered.length === 0) {
+                // All subjects mastered - celebration mode!
+                magicalIntro = `Hi! It's me, Panda, again. Wow! You've mastered colors, shapes, and numbers! That's incredible! Want to review and keep practicing? Are you ready to have some fun together?`;
+            } else if (mastered.length > 0) {
+                // Some mastered - acknowledge progress
+                const masteredNames = mastered.map(s => s.name.toLowerCase()).join(' and ');
+                const notMasteredNames = notMastered.map(s => s.name.toLowerCase()).join(', ');
+                magicalIntro = `Hi! It's me, Panda, again. Welcome back! You've already mastered ${masteredNames} - amazing job! We're going to keep exploring ${notMasteredNames}. Are you ready to discover more magical things together?`;
+            } else {
+                // Nothing mastered - default intro
+                magicalIntro = `Hi! It's me, Panda, again. Welcome to the magical world of learning. Here, everyone is on one mission. Learning! We're going to explore dazzling colors, amazing shapes, wonderful numbers, and so much more. Are you ready, to discover all these magical things together?`;
+            }
+            // END MASTERY-AWARE MAGICAL INTRO
+
             speakPanda(magicalIntro, () => {
                 // Add delay before listening to prevent picking up Panda's voice
                 setTimeout(() => {
@@ -7198,12 +7335,42 @@
 
         function renderMagicalLearningIntro() {
             const child = state.children.find(c => c.id === state.activeChildId);
-            
+
+            // BEGIN MASTERY-AWARE DISPLAY TEXT - Generate dynamic message based on mastery
+            const allStatuses = getAllSubjectsMasteryStatus(state.activeChildId);
+            const notMastered = allStatuses.filter(s => !s.isComplete);
+            const mastered = allStatuses.filter(s => s.isComplete);
+
+            let introMessage;
+            let titleText = 'Welcome to Learning!';
+            if (notMastered.length === 0) {
+                // All mastered - celebration
+                titleText = 'Welcome Back, Champion!';
+                introMessage = `<p style="margin-bottom: 0.75rem;">You've <span style="color: #22c55e; font-weight: 600;">mastered</span> all the colors, shapes, and numbers!</p>
+                    <p style="margin-bottom: 0.75rem;">Want to <span style="color: #fbbf24; font-weight: 600;">review</span> and keep your skills sharp?</p>`;
+            } else if (mastered.length > 0) {
+                // Some mastered - acknowledge and encourage
+                const masteredParts = mastered.map(s => {
+                    const colors = { colors: '#ec4899', shapes: '#14b8a6', numbers: '#4B9CD3' };
+                    return `<span style="color: ${colors[s.subject] || '#22c55e'}; font-weight: 600;">${s.name.toLowerCase()} ✓</span>`;
+                }).join(', ');
+                const notMasteredParts = notMastered.map(s => {
+                    const colors = { colors: '#ec4899', shapes: '#14b8a6', numbers: '#4B9CD3' };
+                    return `<span style="color: ${colors[s.subject] || '#94a3b8'}; font-weight: 600;">${s.name.toLowerCase()}</span>`;
+                }).join(', ');
+                introMessage = `<p style="margin-bottom: 0.75rem;">Great job! You've mastered ${masteredParts}!</p>
+                    <p style="margin-bottom: 0.75rem;">Let's keep exploring ${notMasteredParts}!</p>`;
+            } else {
+                // Nothing mastered - default
+                introMessage = `<p style="margin-bottom: 0.75rem;">We're going to explore <span style="color: #ec4899; font-weight: 600;">colors</span>, <span style="color: #14b8a6; font-weight: 600;">shapes</span>, <span style="color: #4B9CD3; font-weight: 600;">numbers</span>, and more!</p>`;
+            }
+            // END MASTERY-AWARE DISPLAY TEXT
+
             return `
                 <div style="min-height: 100vh; background: linear-gradient(180deg, #0B1120 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;">
-                    
+
                     <!-- Starfield Background -->
-                    <div style="position: absolute; inset: 0; background-image: 
+                    <div style="position: absolute; inset: 0; background-image:
                         radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 30% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
                         radial-gradient(1.5px 1.5px at 50% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
@@ -7213,7 +7380,7 @@
                         radial-gradient(1.5px 1.5px at 40% 85%, rgba(255,255,255,0.4) 0%, transparent 100%),
                         radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.25) 0%, transparent 100%);
                         pointer-events: none; z-index: 0;"></div>
-                    
+
                     <!-- Floating sparkles -->
                     <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1;">
                         <div style="position: absolute; top: 10%; left: 10%; font-size: 1.5rem; animation: float 3s ease-in-out infinite; opacity: 0.7;">✨</div>
@@ -7221,9 +7388,9 @@
                         <div style="position: absolute; bottom: 20%; left: 20%; font-size: 1.8rem; animation: float 3.5s ease-in-out infinite 0.5s; opacity: 0.7;">🌟</div>
                         <div style="position: absolute; top: 60%; right: 10%; font-size: 1.5rem; animation: float 4.5s ease-in-out infinite 1.5s; opacity: 0.6;">💫</div>
                     </div>
-                    
+
                     <div style="position: relative; z-index: 10; max-width: 480px; text-align: center; background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); padding: 48px 40px; border-radius: 32px; border: 1px solid rgba(75, 156, 211, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-                        
+
                         <!-- Panda with glow ring -->
                         <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 24px;">
                             <div style="position: absolute; inset: -8px; border-radius: 50%; background: conic-gradient(from 0deg, #ec4899, #f472b6, #14b8a6, #4B9CD3, #ec4899); animation: spin 4s linear infinite; opacity: 0.6;"></div>
@@ -7231,14 +7398,14 @@
                                 <span style="font-size: 4rem; animation: gentle-bounce 2s ease-in-out infinite;">🐼</span>
                             </div>
                         </div>
-                        
+
                         <h1 style="font-size: 1.75rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 1.5rem;">
-                            Welcome to Learning!
+                            ${titleText}
                         </h1>
-                        
+
                         <div style="font-size: 1.1rem; color: #94a3b8; margin-bottom: 2rem; line-height: 1.8;">
                             <p style="margin-bottom: 0.75rem;">Hi <span style="color: #e2e8f0; font-weight: 600;">${child.name}</span>! It's me, <span style="color: #4B9CD3; font-weight: 600;">Panda</span>!</p>
-                            <p style="margin-bottom: 0.75rem;">We're going to explore <span style="color: #ec4899; font-weight: 600;">colors</span>, <span style="color: #14b8a6; font-weight: 600;">shapes</span>, <span style="color: #4B9CD3; font-weight: 600;">numbers</span>, and more!</p>
+                            ${introMessage}
                             <p style="font-size: 1.15rem; font-weight: 600; color: #e2e8f0; margin-top: 1rem;">Ready to start? ✨</p>
                         </div>
                         
@@ -7998,8 +8165,26 @@
 
         function startSubjectSelectionGreeting() {
             try {
-                const greeting = "Hi! Let's have some fun today! Do you want to have fun with shapes, colors, numbers, or something else? You can say what you want or click on it!";
-                
+                // BEGIN MASTERY-AWARE GREETING - Adjust greeting based on what's not yet mastered
+                let greeting;
+                const allStatuses = getAllSubjectsMasteryStatus(state.activeChildId);
+                const notMastered = allStatuses.filter(s => !s.isComplete);
+                const mastered = allStatuses.filter(s => s.isComplete);
+
+                if (notMastered.length === 0) {
+                    // All subjects mastered!
+                    greeting = "Hi! Amazing job! You've mastered everything! Want to review colors, shapes, or numbers for fun? Click on any one you'd like!";
+                } else if (mastered.length > 0) {
+                    // Some mastered, some not
+                    const notMasteredNames = notMastered.map(s => s.name.toLowerCase()).join(', ');
+                    const masteredNames = mastered.map(s => s.name.toLowerCase()).join(' and ');
+                    greeting = `Hi! Let's have some fun today! You've already mastered ${masteredNames} - great job! Want to practice ${notMasteredNames}? You can say what you want or click on it!`;
+                } else {
+                    // Nothing mastered - default greeting
+                    greeting = "Hi! Let's have some fun today! Do you want to have fun with shapes, colors, numbers, or something else? You can say what you want or click on it!";
+                }
+                // END MASTERY-AWARE GREETING
+
                 speakPanda(greeting, () => {
                     // Start listening for subject selection
                     listenForSubjectSelection();
@@ -8100,10 +8285,22 @@
                 'shapes': 'shapes',
                 'numbers': 'numbers'
             };
-            
+
             const subjectName = subjectNames[subject] || subject;
-            const intro = `Hi! It's me, Panda! Ready to practice ${subjectName}? I'll show you different ${subjectName}, and you tell me which one it is. Ready to start?`;
-            
+
+            // BEGIN MASTERY-AWARE INTRO - Use different message if subject is 100% mastered
+            let intro;
+            const masteryStatus = getSubjectMasteryStatus(state.activeChildId, subject);
+
+            if (masteryStatus.isComplete) {
+                // Subject is fully mastered - use a celebration/review message
+                intro = `Hi! It's me, Panda! Wow, you've already mastered all the ${subjectName}! That's amazing! Want to review them for fun? Ready?`;
+            } else {
+                // Subject is not mastered - use normal practice message
+                intro = `Hi! It's me, Panda! Ready to practice ${subjectName}? I'll show you different ${subjectName}, and you tell me which one it is. Ready to start?`;
+            }
+            // END MASTERY-AWARE INTRO
+
             speakPanda(intro, () => {
                 // Add delay before listening to prevent picking up Panda's voice
                 setTimeout(() => {
@@ -8745,16 +8942,49 @@
         // MAIN RENDER FUNCTION
         // ============================================================================
         let previousView = null; // Track view changes
-        
+        let isPopStateNavigation = false; // Flag to prevent pushState during popstate
+
         function render() {
             const app = document.getElementById('app');
-            
+
             // Stop all speech when view changes
             if (previousView !== null && previousView !== state.currentView) {
                 stopAllSpeech();
             }
+
+            // BEGIN HISTORY INTEGRATION - Push state when view changes
+            // Only push state if this is NOT a popstate navigation
+            const historyViews = ['roleSelection', 'parentDashboard', 'childManagement', 'childLearning', 'assessment'];
+            if (!isPopStateNavigation && previousView !== null && previousView !== state.currentView && historyViews.includes(state.currentView)) {
+                const historyState = {
+                    view: state.currentView,
+                    activeChildId: state.activeChildId,
+                    currentSubject: state.currentSubject,
+                    selectedChildForProgress: state.selectedChildForProgress
+                };
+                const hashMap = {
+                    'roleSelection': '#home',
+                    'parentDashboard': '#parent-dashboard',
+                    'childManagement': '#my-children',
+                    'childLearning': '#learning',
+                    'assessment': '#assessment'
+                };
+                const hash = hashMap[state.currentView] || '#';
+                try {
+                    history.pushState(historyState, '', hash);
+                } catch (e) {
+                    console.warn('PANDA: Could not push history state', e);
+                }
+            }
+            isPopStateNavigation = false; // Reset flag after render
+            // END HISTORY INTEGRATION
+
             previousView = state.currentView;
-            
+
+            // BEGIN NAVIGATION PERSISTENCE - Save nav state after meaningful view changes
+            saveNavStateToStorage();
+            // END NAVIGATION PERSISTENCE
+
             if (state.currentView === 'opening') {
                 app.innerHTML = renderOpeningPage();
             } else if (state.currentView === 'consent') {
@@ -8767,7 +8997,7 @@
                 app.innerHTML = renderRoleSelection();
             } else if (state.currentView === 'parentDashboard') {
                 app.innerHTML = renderParentDashboard();
-                
+
                 // Render tab content
                 const tabContent = document.getElementById('tabContent');
                 if (state.activeTab === 'coaching') {
@@ -8796,7 +9026,7 @@
             } else if (state.currentView === 'colorQuest') {
                 app.innerHTML = renderColorQuest();
             }
-            
+
             // Add audio controls overlay on all pages after setup is complete
             if (state.audioSetup.setupComplete) {
                 // Remove existing controls if any
@@ -8830,7 +9060,158 @@
                     existingModal.remove();
                 }
             }
+
+            // BEGIN SANITY CHECKS - Run after each render (won't interrupt UI)
+            runSanityChecks();
+            // END SANITY CHECKS
         }
+
+        // ============================================================================
+        // BEGIN HISTORY INTEGRATION - Handle browser back/forward buttons
+        // ============================================================================
+        window.onpopstate = function(event) {
+            // Only handle popstate if consent is given (don't let back bypass consent)
+            if (!state.consentGiven || !state.participantId) {
+                console.log('PANDA: Ignoring popstate - consent not given');
+                return;
+            }
+
+            if (event.state && event.state.view) {
+                // Validate the view is allowed
+                const allowedViews = ['roleSelection', 'parentDashboard', 'childManagement', 'childLearning', 'assessment'];
+                if (allowedViews.includes(event.state.view)) {
+                    // For views requiring an active child, validate child exists
+                    const childRequiredViews = ['childLearning', 'assessment'];
+                    if (childRequiredViews.includes(event.state.view) && event.state.activeChildId) {
+                        const childExists = state.children.some(c => c.id === event.state.activeChildId);
+                        if (!childExists) {
+                            // Child deleted, go to childManagement instead
+                            state.currentView = 'childManagement';
+                            isPopStateNavigation = true;
+                            render();
+                            return;
+                        }
+                    }
+
+                    // Restore state from history
+                    state.currentView = event.state.view;
+                    if (event.state.activeChildId !== undefined) {
+                        state.activeChildId = event.state.activeChildId;
+                    }
+                    if (event.state.currentSubject !== undefined) {
+                        state.currentSubject = event.state.currentSubject;
+                    }
+                    if (event.state.selectedChildForProgress !== undefined) {
+                        state.selectedChildForProgress = event.state.selectedChildForProgress;
+                    }
+
+                    // Reset subject intro state when navigating back
+                    state.subjectIntro = null;
+                    state.learningIntro = { shown: false, waitingForReady: false, listening: false };
+
+                    // Mark as popstate navigation to avoid re-pushing to history
+                    isPopStateNavigation = true;
+                    render();
+                }
+            } else {
+                // No state in event - default to roleSelection
+                state.currentView = 'roleSelection';
+                isPopStateNavigation = true;
+                render();
+            }
+        };
+        // ============================================================================
+        // END HISTORY INTEGRATION
+        // ============================================================================
+
+        // ============================================================================
+        // BEGIN SANITY CHECKS - Internal consistency validation
+        // ============================================================================
+
+        // Debug mode flag - set to true to show toast warnings for mismatches
+        const DEBUG_SANITY = false;
+
+        function runSanityChecks() {
+            try {
+                const warnings = [];
+
+                // Check 1: For active child, validate mastery vs. any "learning" intro text mismatch
+                if (state.activeChildId && state.learningData[state.activeChildId]) {
+                    const subjects = ['colors', 'shapes', 'numbers'];
+                    subjects.forEach(subject => {
+                        const masteryStatus = getSubjectMasteryStatus(state.activeChildId, subject);
+                        if (masteryStatus.isComplete) {
+                            // Subject is 100% mastered - check for intro text mismatches
+                            // Note: This is a design check - if we're showing "learn [subject]" text
+                            // for a fully mastered subject, log it as a warning
+                            // Since we now have mastery-aware intro functions, this should rarely fire
+                            // unless there's a bug or new text added that doesn't use the helpers
+
+                            // Check if current view is childLearning and has a pending intro for this subject
+                            if (state.currentSubject === subject && state.subjectIntro && state.subjectIntro.waitingForReady) {
+                                // The intro should be mastery-aware now, but log for visibility
+                                console.log(`PANDA SANITY INFO: Subject intro active for 100% mastered subject "${subject}" - should use mastery-aware message`);
+                            }
+                        }
+                    });
+                }
+
+                // Check 2: activeChildId is set but selectedChildForProgress is null
+                if (state.activeChildId && !state.selectedChildForProgress && state.children.length > 0) {
+                    warnings.push(`PANDA SANITY WARNING: activeChildId is set (${state.activeChildId}) but selectedChildForProgress is null`);
+                }
+
+                // Check 3: Assessment marked in-progress but no currentAssessment data
+                if (state.assessmentInProgress && !state.currentAssessment) {
+                    warnings.push(`PANDA SANITY WARNING: assessmentInProgress is true but currentAssessment object is missing`);
+                }
+
+                // Check 4: currentSubject set but not in childLearning view
+                if (state.currentSubject && state.currentView !== 'childLearning' && state.currentView !== 'colorQuest') {
+                    warnings.push(`PANDA SANITY WARNING: currentSubject is set (${state.currentSubject}) but currentView is ${state.currentView}`);
+                }
+
+                // Check 5: activeChildId refers to non-existent child
+                if (state.activeChildId) {
+                    const childExists = state.children.some(c => c.id === state.activeChildId);
+                    if (!childExists) {
+                        warnings.push(`PANDA SANITY WARNING: activeChildId (${state.activeChildId}) refers to non-existent child`);
+                    }
+                }
+
+                // Check 6: selectedChildForProgress refers to non-existent child
+                if (state.selectedChildForProgress) {
+                    const childExists = state.children.some(c => c.id === state.selectedChildForProgress);
+                    if (!childExists) {
+                        warnings.push(`PANDA SANITY WARNING: selectedChildForProgress (${state.selectedChildForProgress}) refers to non-existent child`);
+                    }
+                }
+
+                // Check 7: learningData exists for child that doesn't exist
+                Object.keys(state.learningData).forEach(childId => {
+                    const childExists = state.children.some(c => c.id === childId);
+                    if (!childExists) {
+                        warnings.push(`PANDA SANITY WARNING: learningData exists for orphaned childId: ${childId}`);
+                    }
+                });
+
+                // Log all warnings to console
+                warnings.forEach(warning => console.warn(warning));
+
+                // If DEBUG_SANITY is enabled, show a toast for first warning
+                if (DEBUG_SANITY && warnings.length > 0 && typeof showAppToast === 'function') {
+                    showAppToast(`Sanity Check: ${warnings.length} issue(s) found. Check console.`, 'warning');
+                }
+
+            } catch (e) {
+                // Sanity check itself failed - log but don't break the app
+                console.warn('PANDA: Sanity check function failed (this is a bug in sanity checks):', e);
+            }
+        }
+
+        // ============================================================================
+        // END SANITY CHECKS
+        // ============================================================================
 
         // Initialize app
         // Load speech synthesis voices
