@@ -1435,22 +1435,52 @@
             box-shadow: 0 0 0 3px rgba(75, 156, 211, 0.2);
         }
 
-        .object-card-img {
+        /* Word Box for DIY Labels - replaces image */
+        .label-word-box {
             width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #1a2744;
+            height: 140px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
             margin-bottom: 10px;
         }
 
-        .object-card-word {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: white;
-            text-transform: uppercase;
+        .label-word-main {
+            font-size: 1.9rem;
+            font-weight: 800;
+            text-transform: lowercase;
+            letter-spacing: 0.05em;
+            color: #ffffff;
             text-align: center;
-            margin-bottom: 8px;
+            line-height: 1.1;
+        }
+
+        /* Room color-coded backgrounds */
+        .label-word-box.room-kitchen {
+            background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+        }
+
+        .label-word-box.room-living {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+
+        .label-word-box.room-bedroom {
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+        }
+
+        .label-word-box.room-bathroom {
+            background: linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%);
+        }
+
+        .label-word-box.room-playroom {
+            background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+        }
+
+        .label-word-box.room-dining {
+            background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
         }
 
         .object-card-controls {
@@ -1736,22 +1766,58 @@
             padding: 12px;
             margin-bottom: 12px;
             background: #fafafa;
+            gap: 16px;
         }
 
-        .label-strip-img {
-            width: 80px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 12px;
+        /* Word box for preview labels */
+        .label-strip-box {
+            width: 120px;
+            height: 70px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            flex-shrink: 0;
+        }
+
+        .label-strip-box.room-kitchen {
+            background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+        }
+
+        .label-strip-box.room-living {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+
+        .label-strip-box.room-bedroom {
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+        }
+
+        .label-strip-box.room-bathroom {
+            background: linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%);
+        }
+
+        .label-strip-box.room-playroom {
+            background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+        }
+
+        .label-strip-box.room-dining {
+            background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
         }
 
         .label-strip-word {
-            font-size: 2rem;
+            font-size: 1.3rem;
             font-weight: 800;
-            color: #1e293b;
-            flex: 1;
-            text-transform: uppercase;
+            color: #ffffff;
+            text-transform: lowercase;
+            letter-spacing: 0.03em;
+            text-align: center;
+        }
+
+        .label-strip-room {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-transform: capitalize;
         }
 
         .label-strip-write {
@@ -6583,11 +6649,29 @@
             return objects;
         }
 
-        function getObjectImageUrl(searchTerm) {
-            const base = 'https://source.unsplash.com/400x250/';
-            const query = encodeURIComponent(searchTerm || '');
-            const sig = Math.floor(Math.random() * 1000000);
-            return `${base}?${query}&sig=${sig}`;
+        // Room color gradients for DIY labels
+        const roomColors = {
+            kitchen: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
+            living: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+            bedroom: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+            bathroom: 'linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%)',
+            playroom: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
+            dining: 'linear-gradient(135deg, #14b8a6 0%, #10b981 100%)'
+        };
+
+        // Slightly lighter versions for print
+        const roomColorsPrint = {
+            kitchen: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+            living: 'linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%)',
+            bedroom: 'linear-gradient(135deg, #a855f7 0%, #c084fc 100%)',
+            bathroom: 'linear-gradient(135deg, #22d3ee 0%, #4ade80 100%)',
+            playroom: 'linear-gradient(135deg, #f472b6 0%, #fb923c 100%)',
+            dining: 'linear-gradient(135deg, #2dd4bf 0%, #34d399 100%)'
+        };
+
+        function getRoomColorGradient(room, forPrint = false) {
+            const colors = forPrint ? roomColorsPrint : roomColors;
+            return colors[room] || 'linear-gradient(135deg, #475569 0%, #64748b 100%)';
         }
 
         function toggleDIYObject(key) {
@@ -6671,43 +6755,45 @@
 
             const labelsHtml = pages.map((pageObjects, pageIndex) => {
                 if (isPaperStrips) {
-                    // 2x6" paper strip layout - 8 per page
+                    // 2x6" paper strip layout - 8 per page (word-only, color-coded)
                     return `
                         <div class="page" style="page-break-after: always; padding: 0.5in;">
                             <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 20px;">
-                                PANDA Learning Hub - DIY Labels (Page ${pageIndex + 1}) - Cut along dashed lines
+                                PANDA Learning Hub - DIY Word Labels (Page ${pageIndex + 1}) - Cut along dashed lines
                             </div>
-                            ${pageObjects.map(obj => `
-                                <div style="border: 2px dashed #ccc; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; height: 1.3in; box-sizing: border-box;">
-                                    <img src="${getObjectImageUrl(obj.searchTerm)}"
-                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
-                                         alt="${obj.word} label photo"
-                                         style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; margin-right: 15px;">
-                                    <div style="font-size: 36px; font-weight: 800; text-transform: uppercase; flex: 1;">${obj.word}</div>
-                                    <div style="flex: 1; border-bottom: 2px solid #999; height: 50px; position: relative;">
-                                        <span style="position: absolute; bottom: -18px; left: 0; font-size: 9px; color: #999;">child writes here</span>
+                            ${pageObjects.map(obj => {
+                                const displayWord = obj.word.toLowerCase();
+                                const bgColor = getRoomColorGradient(obj.room, true);
+                                return `
+                                <div style="border: 2px dashed #ccc; margin-bottom: 15px; display: flex; align-items: center; height: 1.3in; box-sizing: border-box; border-radius: 12px; overflow: hidden;">
+                                    <div style="width: 2in; height: 100%; background: ${bgColor}; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                                        <span style="font-size: 32px; font-weight: 800; color: white; text-transform: lowercase; letter-spacing: 0.03em;">${displayWord}</span>
+                                    </div>
+                                    <div style="flex: 1; padding: 15px;">
+                                        <div style="border-bottom: 2px solid #999; height: 50px; position: relative;">
+                                            <span style="position: absolute; bottom: -18px; left: 0; font-size: 9px; color: #999;">child writes here</span>
+                                        </div>
                                     </div>
                                 </div>
-                            `).join('')}
+                            `}).join('')}
                         </div>
                     `;
                 } else {
-                    // Avery 5160 layout - 30 per page (3 columns x 10 rows)
+                    // Avery 5160 layout - 30 per page (3 columns x 10 rows, word-only, color-coded)
                     return `
                         <div class="page" style="page-break-after: always; padding: 0.5in 0.2in;">
                             <div style="font-size: 8px; color: #666; text-align: center; margin-bottom: 10px;">
-                                PANDA Learning Hub - Avery 5160 Labels (Page ${pageIndex + 1})
+                                PANDA Learning Hub - Avery 5160 Word Labels (Page ${pageIndex + 1})
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(3, 2.6in); gap: 0; justify-content: center;">
-                                ${pageObjects.map(obj => `
-                                    <div style="width: 2.6in; height: 1in; border: 1px dashed #ddd; padding: 5px; display: flex; align-items: center; box-sizing: border-box;">
-                                        <img src="${getObjectImageUrl(obj.searchTerm)}"
-                                             onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
-                                             alt="${obj.word} label photo"
-                                             style="width: 50px; height: 40px; object-fit: cover; border-radius: 2px; margin-right: 8px;">
-                                        <div style="font-size: 14px; font-weight: 700; text-transform: uppercase;">${obj.word}</div>
+                                ${pageObjects.map(obj => {
+                                    const displayWord = obj.word.toLowerCase();
+                                    const bgColor = getRoomColorGradient(obj.room, true);
+                                    return `
+                                    <div style="width: 2.6in; height: 1in; border: 1px dashed #ddd; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: ${bgColor}; border-radius: 8px;">
+                                        <span style="font-size: 18px; font-weight: 800; color: white; text-transform: lowercase; letter-spacing: 0.03em;">${displayWord}</span>
                                     </div>
-                                `).join('')}
+                                `}).join('')}
                             </div>
                         </div>
                     `;
@@ -6718,20 +6804,22 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>PANDA DIY Labels</title>
+                    <title>PANDA DIY Word Labels</title>
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
                         body { font-family: Arial, sans-serif; }
                         @media print {
                             .page { page-break-after: always; }
                             .no-print { display: none; }
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         }
                     </style>
                 </head>
                 <body>
                     <div class="no-print" style="background: #f0f0f0; padding: 20px; text-align: center; margin-bottom: 20px;">
-                        <h2>PANDA DIY Labels Preview</h2>
+                        <h2>PANDA DIY Word Labels Preview</h2>
                         <p style="margin: 10px 0;">${template.instructions}</p>
+                        <p style="margin: 10px 0; color: #666; font-size: 14px;">Color-coded by room: <span style="color: #3b82f6;">Kitchen</span> | <span style="color: #f59e0b;">Living Room</span> | <span style="color: #a855f7;">Bedroom</span> | <span style="color: #22c55e;">Bathroom</span> | <span style="color: #f97316;">Playroom</span> | <span style="color: #10b981;">Dining</span></p>
                         <button onclick="window.print()" style="padding: 12px 24px; background: #4B9CD3; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-right: 10px;">
                             Print Labels
                         </button>
@@ -6813,19 +6901,17 @@
                 <div class="object-grid">
                     ${filteredObjects.map(obj => {
                         const isSelected = state.diyLabels.selectedObjects.includes(obj.key);
-                        const imgUrl = getObjectImageUrl(obj.searchTerm);
+                        const displayWord = obj.word.toLowerCase();
                         return `
                             <div class="object-card ${isSelected ? 'selected' : ''}" onclick="toggleDIYObject('${obj.key}')">
-                                <img class="object-card-img"
-                                     src="${imgUrl}"
-                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
-                                     alt="${obj.word} label photo">
-                                <div class="object-card-word">${obj.word}</div>
+                                <div class="label-word-box room-${obj.room}">
+                                    <span class="label-word-main">${displayWord}</span>
+                                </div>
                                 <div class="object-card-controls">
                                     <input type="checkbox" class="object-checkbox"
                                            ${isSelected ? 'checked' : ''}
                                            onclick="event.stopPropagation(); toggleDIYObject('${obj.key}')">
-                                    <button class="audio-btn" onclick="event.stopPropagation(); speakDIYWord('${obj.word}')" title="Listen">
+                                    <button class="audio-btn" onclick="event.stopPropagation(); speakDIYWord('${displayWord}')" title="Listen">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
                                         </svg>
@@ -6883,34 +6969,36 @@
                 <div class="preview-overlay" onclick="closeDIYPreview()">
                     <div class="preview-modal" onclick="event.stopPropagation()">
                         <div class="preview-header">
-                            <div class="preview-title">Label Preview (${selectedObjects.length} labels)</div>
+                            <div class="preview-title">Word Label Preview (${selectedObjects.length} labels)</div>
                             <button class="preview-close" onclick="closeDIYPreview()">&times;</button>
                         </div>
                         <div class="preview-content">
                             <div class="preview-instructions">
                                 <h4>${template.icon} ${template.label}</h4>
                                 <p>${template.instructions}</p>
+                                <p style="margin-top: 8px; font-size: 0.85rem; color: #6b7280;">Labels are color-coded by room for easy sorting.</p>
                             </div>
 
                             <div class="print-sheet">
                                 <div class="print-sheet-title">
                                     ${isPaperStrips ? '2" x 6" Paper Strips (8 per page) - Cut along dashed lines' : 'Avery 5160 Layout (30 per sheet)'}
                                 </div>
-                                ${selectedObjects.slice(0, isPaperStrips ? 8 : 6).map(obj => `
+                                ${selectedObjects.slice(0, isPaperStrips ? 8 : 6).map(obj => {
+                                    const displayWord = obj.word.toLowerCase();
+                                    return `
                                     <div class="label-strip">
-                                        <img class="label-strip-img"
-                                             src="${getObjectImageUrl(obj.searchTerm)}"
-                                             onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
-                                             alt="${obj.word} label photo">
-                                        <div class="label-strip-word">${obj.word}</div>
-                                        ${isPaperStrips ? `
-                                            <div style="flex: 1;">
+                                        <div class="label-strip-box room-${obj.room}">
+                                            <span class="label-strip-word">${displayWord}</span>
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <div class="label-strip-room">${roomLabels[obj.room] || obj.room}</div>
+                                            ${isPaperStrips ? `
                                                 <div class="label-strip-write"></div>
                                                 <div class="label-strip-write-label">child writes here</div>
-                                            </div>
-                                        ` : ''}
+                                            ` : ''}
+                                        </div>
                                     </div>
-                                `).join('')}
+                                `}).join('')}
                                 ${selectedObjects.length > (isPaperStrips ? 8 : 6) ? `
                                     <div style="text-align: center; color: #6b7280; padding: 10px;">
                                         + ${selectedObjects.length - (isPaperStrips ? 8 : 6)} more labels on additional pages
