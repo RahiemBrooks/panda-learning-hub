@@ -8408,42 +8408,6 @@
                             </div>
                         </div>
 
-                        ${state.teacherMode && teachingPrompt ? `
-                            <!-- Parent Teaching Guide -->
-                            <div style="background: rgba(139, 92, 246, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; margin-bottom: 32px; border: 1px solid rgba(139, 92, 246, 0.3);">
-                                <h4 style="font-size: 1.25rem; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                                    👨‍🏫 Parent Guide: Teaching "${currentItem}"
-                                </h4>
-                                
-                                <div style="display: grid; gap: 16px;">
-                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(139, 92, 246, 0.2);">
-                                        <p style="font-weight: 700; color: #c4b5fd; margin-bottom: 8px; font-size: 0.95rem;">1️⃣ Say to Your Child:</p>
-                                        <p style="color: #e2e8f0; font-size: 1.1rem; line-height: 1.6;">"${teachingPrompt.say}"</p>
-                                        <button onclick="speakText('${teachingPrompt.say.replace(/'/g, "\\'")}');" style="font-size: 0.85rem; color: #a78bfa; margin-top: 12px; padding: 8px 14px; background: rgba(139, 92, 246, 0.2); border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">🔊 Play Audio</button>
-                                    </div>
-                                    
-                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(59, 130, 246, 0.2);">
-                                        <p style="font-weight: 700; color: #93c5fd; margin-bottom: 8px; font-size: 0.95rem;">2️⃣ Point & Show:</p>
-                                        <p style="color: #e2e8f0; line-height: 1.6;">${teachingPrompt.show}</p>
-                                    </div>
-                                    
-                                    <div style="background: rgba(251, 191, 36, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(251, 191, 36, 0.3);">
-                                        <p style="font-weight: 700; color: #fcd34d; margin-bottom: 8px; font-size: 0.95rem;">💡 Tips:</p>
-                                        <p style="color: #fef3c7; font-size: 0.95rem; line-height: 1.6;">${teachingPrompt.tips}</p>
-                                    </div>
-                                    
-                                    ${itemData.incorrect > 1 ? `
-                                        <div style="background: rgba(249, 115, 22, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(249, 115, 22, 0.3);">
-                                            <p style="font-weight: 700; color: #fdba74; margin-bottom: 8px; font-size: 0.95rem;">🆘 Helpful Hints:</p>
-                                            <ul style="font-size: 0.95rem; color: #fed7aa; line-height: 1.8; padding-left: 20px;">
-                                                ${teachingPrompt.hints.map(hint => `<li>${hint}</li>`).join('')}
-                                            </ul>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        ` : ''}
-
                         <!-- Streak Feedback Banner -->
                         ${itemData.consecutiveCorrect > 0 ? `
                             <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 16px;">
@@ -8482,7 +8446,7 @@
                         <!-- Progress Indicator - Compact -->
                         <div style="background: rgba(26, 39, 68, 0.6); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(75, 156, 211, 0.15);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering "${currentItem}"</p>
+                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering ${subject === 'numbers' ? 'the number' : subject === 'colors' ? 'the color' : ''} "${currentItem}"</p>
                                 <p style="font-size: 0.85rem; color: #64748b;">${itemData.attempts} tries</p>
                             </div>
                             <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
@@ -8498,6 +8462,42 @@
                                   'Almost there! Just 1 more!'}
                             </p>
                         </div>
+
+                        ${state.teacherMode && teachingPrompt ? `
+                            <!-- Parent Teaching Guide -->
+                            <div style="background: rgba(139, 92, 246, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; margin-top: 32px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                                <h4 style="font-size: 1.25rem; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                                    👨‍🏫 Parent Guide: Teaching "${currentItem}"
+                                </h4>
+
+                                <div style="display: grid; gap: 16px;">
+                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                                        <p style="font-weight: 700; color: #c4b5fd; margin-bottom: 8px; font-size: 0.95rem;">1️⃣ Say to Your Child:</p>
+                                        <p style="color: #e2e8f0; font-size: 1.1rem; line-height: 1.6;">"${teachingPrompt.say}"</p>
+                                        <button onclick="speakText('${teachingPrompt.say.replace(/'/g, "\\'")}');" style="font-size: 0.85rem; color: #a78bfa; margin-top: 12px; padding: 8px 14px; background: rgba(139, 92, 246, 0.2); border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">🔊 Play Audio</button>
+                                    </div>
+
+                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                                        <p style="font-weight: 700; color: #93c5fd; margin-bottom: 8px; font-size: 0.95rem;">2️⃣ Point & Show:</p>
+                                        <p style="color: #e2e8f0; line-height: 1.6;">${teachingPrompt.show}</p>
+                                    </div>
+
+                                    <div style="background: rgba(251, 191, 36, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(251, 191, 36, 0.3);">
+                                        <p style="font-weight: 700; color: #fcd34d; margin-bottom: 8px; font-size: 0.95rem;">💡 Tips:</p>
+                                        <p style="color: #fef3c7; font-size: 0.95rem; line-height: 1.6;">${teachingPrompt.tips}</p>
+                                    </div>
+
+                                    ${itemData.incorrect > 1 ? `
+                                        <div style="background: rgba(249, 115, 22, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(249, 115, 22, 0.3);">
+                                            <p style="font-weight: 700; color: #fdba74; margin-bottom: 8px; font-size: 0.95rem;">🆘 Helpful Hints:</p>
+                                            <ul style="font-size: 0.95rem; color: #fed7aa; line-height: 1.8; padding-left: 20px;">
+                                                ${teachingPrompt.hints.map(hint => `<li>${hint}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <!-- Voice Help Button -->
                         ${state.voiceEnabled ? `
@@ -8588,7 +8588,16 @@
                     // Celebration modal
                     setTimeout(() => {
                         const childName = state.children.find(c => c.id === state.activeChildId).name;
-                        showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
+                        // Use subject-appropriate wording for the mastery message
+                        let masteryMessage;
+                        if (subject === 'numbers') {
+                            masteryMessage = `${childName} has mastered the number ${item}!\n\nGreat teaching!`;
+                        } else if (subject === 'colors') {
+                            masteryMessage = `${childName} has mastered the color ${item}!\n\nGreat teaching!`;
+                        } else {
+                            masteryMessage = `${childName} has mastered ${item}!\n\nGreat teaching!`;
+                        }
+                        showAppModal(`MASTERED: ${item}!`, masteryMessage, 'celebration', () => {
                             state.currentLesson = null;
                             render();
                         });
