@@ -1782,6 +1782,24 @@
                     }
                     // END REPEAT MASTERY COUNTS
 
+                    // BEGIN FIX FOR BLANK SCREEN
+                    // Ensure learning data exists for all children (handles old/corrupted data)
+                    state.children.forEach(child => {
+                        if (child && child.id) {
+                            ensureLearningDataForChild(child.id);
+                            ensureRepeatMasteriesForChild(child.id);
+                        }
+                    });
+
+                    // Ensure funPracticeSession is always initialized
+                    ensureFunPracticeSession();
+
+                    // Ensure subjectPracticeMode has a default
+                    if (!state.subjectPracticeMode) {
+                        state.subjectPracticeMode = 'normal';
+                    }
+                    // END FIX FOR BLANK SCREEN
+
                     // Set first child as selected if exists
                     if (state.children.length > 0) {
                         state.selectedChildForProgress = state.children[0].id;
@@ -2873,8 +2891,14 @@
 
         function speakPrompt(promptType) {
             const subject = state.currentSubject;
+
+            // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+            if (!state.activeChildId || !subject) return;
+            ensureLearningDataForChild(state.activeChildId);
+            // END FIX FOR BLANK SCREEN
+
             const item = state.currentLesson || Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered)[0];
-            
+
             if (!teachingGuides[subject] || !teachingGuides[subject].prompts[item]) return;
             
             const prompts = teachingGuides[subject].prompts[item];
@@ -6509,6 +6533,76 @@
             return data;
         }
 
+        // BEGIN FIX FOR BLANK SCREEN
+        // Helper function to ensure learning data exists for a child
+        // This prevents crashes when accessing state.learningData[childId][subject]
+        function ensureLearningDataForChild(childId) {
+            if (!childId) return;
+
+            // If no learning data exists for this child, initialize it
+            if (!state.learningData[childId]) {
+                state.learningData[childId] = initializeLearningData();
+                return;
+            }
+
+            // Validate that each subject exists in the child's learning data
+            const subjects = ['colors', 'shapes', 'numbers', 'letters', 'clothing', 'household', 'animals', 'opposites'];
+            subjects.forEach(subject => {
+                if (!state.learningData[childId][subject]) {
+                    // Initialize missing subject
+                    state.learningData[childId][subject] = {};
+                    if (curriculum[subject]) {
+                        if (subject === 'opposites' && curriculum[subject].pairs) {
+                            curriculum[subject].pairs.forEach(pair => {
+                                const key = `${pair.a}/${pair.b}`;
+                                state.learningData[childId][subject][key] = {
+                                    attempts: 0,
+                                    correct: 0,
+                                    incorrect: 0,
+                                    consecutiveCorrect: 0,
+                                    mastered: false,
+                                    lastAttempt: null
+                                };
+                            });
+                        } else if (curriculum[subject].items) {
+                            curriculum[subject].items.forEach(item => {
+                                state.learningData[childId][subject][item] = {
+                                    attempts: 0,
+                                    correct: 0,
+                                    incorrect: 0,
+                                    consecutiveCorrect: 0,
+                                    mastered: false,
+                                    lastAttempt: null
+                                };
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        // Helper function to ensure funPracticeSession is initialized
+        function ensureFunPracticeSession() {
+            if (!state.funPracticeSession || typeof state.funPracticeSession !== 'object') {
+                state.funPracticeSession = { answeredItems: [], subject: null };
+            }
+            if (!Array.isArray(state.funPracticeSession.answeredItems)) {
+                state.funPracticeSession.answeredItems = [];
+            }
+        }
+
+        // Helper function to ensure repeatMasteries structure for a child
+        function ensureRepeatMasteriesForChild(childId) {
+            if (!childId) return;
+            if (!state.repeatMasteries) {
+                state.repeatMasteries = {};
+            }
+            if (!state.repeatMasteries[childId]) {
+                state.repeatMasteries[childId] = { colors: 0, shapes: 0, numbers: 0 };
+            }
+        }
+        // END FIX FOR BLANK SCREEN
+
         function calculateProgress(childId) {
             const data = state.learningData[childId];
             if (!data) return 0;
@@ -8005,9 +8099,13 @@
             if (!child) {
                 return '<div>Loading...</div>';
             }
-            
+
+            // BEGIN FIX FOR BLANK SCREEN - Ensure learning data exists before accessing
+            ensureLearningDataForChild(state.activeChildId);
+            // END FIX FOR BLANK SCREEN
+
             const progress = calculateProgress(state.activeChildId);
-            
+
             // Check if we should show the greeting
             if (!state.subjectSelectionGreeting) {
                 state.subjectSelectionGreeting = {
@@ -8163,7 +8261,11 @@
                     console.error(`No curriculum data for subject: ${subject}`);
                     return '';
                 }
-                
+
+                // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+                ensureLearningDataForChild(state.activeChildId);
+                // END FIX FOR BLANK SCREEN
+
                 const childData = state.learningData[state.activeChildId][subject];
                 if (!childData) {
                     console.error(`No child data for subject: ${subject}`);
@@ -8444,6 +8546,11 @@
             if (state.subjectIntro && state.subjectIntro.waitingForReady) return; // Still on intro screen
             if (state.learningIntro && state.learningIntro.waitingForReady) return; // Still on magical intro
 
+            // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+            if (!state.activeChildId) return;
+            ensureLearningDataForChild(state.activeChildId);
+            // END FIX FOR BLANK SCREEN
+
             const subject = state.currentSubject;
             const childData = state.learningData[state.activeChildId][subject];
 
@@ -8616,7 +8723,11 @@
                     </div>
                 `;
             }
-            
+
+            // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+            ensureLearningDataForChild(state.activeChildId);
+            // END FIX FOR BLANK SCREEN
+
             const childData = state.learningData[state.activeChildId][subject];
 
             // BEGIN FUN PRACTICE MODE
@@ -8689,8 +8800,8 @@
             const teachingPrompt = teachingGuides[subject]?.prompts[currentItem];
             
             // Generate 3 multiple choice options
-            const allItems = curriculum[subject].items || (subject === 'opposites' ? curriculum[subject].pairs.map(p => `${p.a}/${p.b}`) : []);
-            const otherItems = allItems.filter(item => item !== currentItem);
+            const curriculumItems = curriculum[subject].items || (subject === 'opposites' ? curriculum[subject].pairs.map(p => `${p.a}/${p.b}`) : []);
+            const otherItems = curriculumItems.filter(item => item !== currentItem);
             const incorrectOptions = [];
             while (incorrectOptions.length < 2 && otherItems.length > 0) {
                 const randomIndex = Math.floor(Math.random() * otherItems.length);
@@ -8881,6 +8992,12 @@
 
         function selectAnswer(selectedItem) {
             const subject = state.currentSubject;
+
+            // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+            if (!state.activeChildId || !subject) return;
+            ensureLearningDataForChild(state.activeChildId);
+            // END FIX FOR BLANK SCREEN
+
             const childData = state.learningData[state.activeChildId][subject];
 
             // BEGIN FUN PRACTICE MODE
@@ -8910,6 +9027,12 @@
 
         function askForHelp() {
             const subject = state.currentSubject;
+
+            // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+            if (!state.activeChildId || !subject) return;
+            ensureLearningDataForChild(state.activeChildId);
+            // END FIX FOR BLANK SCREEN
+
             const childData = state.learningData[state.activeChildId][subject];
 
             // BEGIN FUN PRACTICE MODE
@@ -8928,6 +9051,13 @@
         }
         function checkAnswer(isCorrect, answeredItem) {
             const subject = state.currentSubject;
+
+            // BEGIN FIX FOR BLANK SCREEN - Ensure data exists
+            if (!state.activeChildId || !subject) return;
+            ensureLearningDataForChild(state.activeChildId);
+            ensureFunPracticeSession();
+            // END FIX FOR BLANK SCREEN
+
             const childData = state.learningData[state.activeChildId][subject];
 
             // BEGIN FUN PRACTICE MODE
@@ -8978,7 +9108,8 @@
 
                         // Celebration for completing fun practice cycle
                         const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
-                        const childName = state.children.find(c => c.id === childId).name;
+                        const childObj = state.children.find(c => c.id === childId);
+                        const childName = childObj ? childObj.name : 'learner';
                         speakPanda(`Amazing ${childName}! You've mastered ${subjectName} ${repeatCount + 1} times now!`);
 
                         // Reset fun practice session for another round
