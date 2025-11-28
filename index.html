@@ -2146,7 +2146,7 @@
         // Helper function to pick and speak a random phrase from a given array
         function speakRandomPhrase(phrasesArray) {
             const phrase = phrasesArray[Math.floor(Math.random() * phrasesArray.length)];
-            speakText(phrase);
+            speakTextSafely(phrase);
         }
 
         // ============================================================================
@@ -2414,6 +2414,9 @@
         let currentPandaAudio = null;
 
         // Global function to stop all speech - call when navigating away
+        // DEBUG_MODE flag for voice sync debugging
+        const DEBUG_MODE = false;
+
         function stopAllSpeech() {
             // Stop ElevenLabs audio playback
             if (currentPandaAudio) {
@@ -2422,18 +2425,27 @@
                 currentPandaAudio = null;
             }
             // Also stop any legacy speechSynthesis (fallback)
-            if ('speechSynthesis' in window) {
+            if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
             }
-            // Also stop any listening
-            if (state.isListening) {
-                state.isListening = false;
+            // Stop ElevenLabs STT recording if active
+            if (elevenLabsSTT?.mediaRecorder) {
+                try {
+                    elevenLabsSTT.mediaRecorder.stop();
+                } catch(e) {}
+                elevenLabsSTT.isRecording = false;
             }
+            // Clear any pending recording timeout
+            if (elevenLabsSTT?.recordingTimeout) {
+                clearTimeout(elevenLabsSTT.recordingTimeout);
+            }
+            // Reset listening state
+            state.isListening = false;
             // Stop ColorQuest listening if active
             if (typeof stopColorQuestListening === 'function') {
                 try { stopColorQuestListening(); } catch(e) {}
             }
-            // Stop ElevenLabs STT recording if active
+            // Stop ElevenLabs STT recording if active (full cleanup)
             if (typeof stopElevenLabsSTT === 'function') {
                 try { stopElevenLabsSTT(); } catch(e) {}
             }
@@ -2475,6 +2487,14 @@
           'maybe later'
         ];
 
+        // Fuzzy match dictionary for toddler speech patterns
+        const FUZZY_MATCH = {
+            'y': 'yes', 'ye': 'yes', 'ya': 'yes', 'yeah': 'yes', 'yea': 'yes',
+            'n': 'no', 'na': 'no', 'nah': 'no', 'nope': 'no',
+            'mm': 'yes', 'mmhm': 'yes', 'uhhuh': 'yes', 'uh huh': 'yes',
+            'mhm': 'yes', 'mmm': 'yes', 'da': 'yes', 'dah': 'yes'
+        };
+
         // OPTION interpretation patterns (for multiple choice)
         const OPTION_PATTERNS = {
             0: ['one', '1', 'option one', 'option 1', 'first one', 'first', 'the first'],
@@ -2484,17 +2504,27 @@
 
         /**
          * Interpret a transcript for yes/no responses
+         * Enhanced with fuzzy matching for toddler speech patterns
          * Returns: 'yes', 'no', 'unclear', or 'unavailable'
          */
         function interpretYesNo(transcript) {
             if (!transcript || typeof transcript !== 'string') return 'unavailable';
 
-            const lowerTranscript = transcript.toLowerCase().trim();
-            if (!lowerTranscript) return 'unclear';
+            // Clean up transcript for fuzzy matching
+            let clean = transcript.toLowerCase().replace(/[.!?,]/g, '').trim();
+            if (!clean) return 'unclear';
+
+            // Check fuzzy matches FIRST (for toddler speech)
+            for (let [fuzzy, intent] of Object.entries(FUZZY_MATCH)) {
+                if (clean === fuzzy || clean.includes(fuzzy)) {
+                    console.log('🎤 ElevenLabs STT: Fuzzy matched "' + fuzzy + '" as ' + intent.toUpperCase() + ' from:', transcript);
+                    return intent;
+                }
+            }
 
             // Check for YES patterns
             for (const pattern of YES_PATTERNS) {
-                if (lowerTranscript.includes(pattern)) {
+                if (clean.includes(pattern)) {
                     console.log('🎤 ElevenLabs STT: Interpreted as YES from:', transcript);
                     return 'yes';
                 }
@@ -2502,7 +2532,7 @@
 
             // Check for NO patterns
             for (const pattern of NO_PATTERNS) {
-                if (lowerTranscript.includes(pattern)) {
+                if (clean.includes(pattern)) {
                     console.log('🎤 ElevenLabs STT: Interpreted as NO from:', transcript);
                     return 'no';
                 }
@@ -2884,6 +2914,15 @@
             });
         }
 
+        /**
+         * Safe wrapper for speakText that stops all overlapping speech first
+         * Use this instead of speakText() directly to prevent TTS/STT overlaps
+         */
+        async function speakTextSafely(text) {
+            stopAllSpeech(); // Kill overlaps FIRST
+            await speakText(text); // Existing TTS function
+        }
+
         function toggleTeacherMode() {
             state.teacherMode = !state.teacherMode;
             render();
@@ -2919,7 +2958,7 @@
                     break;
             }
             
-            speakText(textToSpeak);
+            speakTextSafely(textToSpeak);
         }
 
         function startVoiceRecognition() {
@@ -2942,7 +2981,7 @@
 
             recognition.onstart = function() {
                 state.isListening = true;
-                speakText("I'm listening. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
+                speakTextSafely("I'm listening. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
                 render();
             };
 
@@ -2956,7 +2995,7 @@
                 console.error('Speech recognition error:', event.error);
                 state.isListening = false;
                 if (event.error === 'no-speech') {
-                    speakText("I didn't hear anything. Try again!");
+                    speakTextSafely("I didn't hear anything. Try again!");
                 } else if (event.error === 'not-allowed') {
                     showAppModal('Microphone Access Needed', 'Microphone permission denied.\n\nPlease allow microphone access in your browser settings.', 'warning');
                 }
@@ -2984,7 +3023,7 @@
           console.log('Voice command:', transcript);
 
           if (!transcript) {
-            speakText("I didn't hear anything. You can say 'help', 'next', 'yes', or 'no'.");
+            speakTextSafely("I didn't hear anything. You can say 'help', 'next', 'yes', or 'no'.");
             return;
           }
 
@@ -3006,16 +3045,16 @@
             );
 
             if (subject && item && teachingGuides[subject] && teachingGuides[subject].prompts[item]) {
-              speakText(teachingGuides[subject].prompts[item].tips);
+              speakTextSafely(teachingGuides[subject].prompts[item].tips);
             } else {
-              speakText("You can try saying 'yes', 'no', 'next', or 'help'.");
+              speakTextSafely("You can try saying 'yes', 'no', 'next', or 'help'.");
             }
             return;
           }
 
           // 2. Navigation
           if (transcript.includes('next') || transcript.includes('skip')) {
-            speakText("Okay, let's move to the next one.");
+            speakTextSafely("Okay, let's move to the next one.");
             // Treat as an incorrect/skip so the system advances
             checkAnswer(false);
             return;
@@ -3052,7 +3091,7 @@
           }
 
           // 5. Fallback
-          speakText("I didn't understand that. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
+          speakTextSafely("I didn't understand that. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
         }
 
         function logInteraction(action, data) {
@@ -5894,7 +5933,7 @@
 
                             <!-- Voice Input -->
                             <div class="mt-8 text-center">
-                                <button onclick="handleVoiceInput()" ${state.isListening ? 'disabled' : ''} class="px-12 py-6 rounded-3xl font-bold text-xl shadow-xl transform transition-all ${
+                                <button onclick="setTimeout(handleVoiceInput, 250)" ${state.isListening ? 'disabled' : ''} class="px-12 py-6 rounded-3xl font-bold text-xl shadow-xl transform transition-all ${
                                     state.isListening
                                         ? 'bg-red-500 text-white animate-pulse'
                                         : 'bg-panda-orange hover:bg-orange-600 text-white hover:scale-105'
@@ -9083,7 +9122,7 @@
             const teachingPrompt = teachingGuides[subject]?.prompts[item];
 
             if (teachingPrompt) {
-                speakText(`Here's how to teach ${item}. ${teachingPrompt.tips}`);
+                speakTextSafely(`Here's how to teach ${item}. ${teachingPrompt.tips}`);
             }
         }
         function checkAnswer(isCorrect, answeredItem) {
@@ -9214,7 +9253,7 @@
                     const teachingPrompt = teachingGuides[subject]?.prompts[item];
                     if (teachingPrompt && teachingPrompt.hints[0]) {
                         setTimeout(() => {
-                            speakText(teachingPrompt.hints[0]);
+                            speakTextSafely(teachingPrompt.hints[0]);
                         }, 2000);
                     }
                 }
@@ -9267,7 +9306,7 @@
             state.currentQuestion = randomLesson;
             state.feedback = '';
             logInteraction('lesson_started', { lesson: randomLesson });
-            speakText(randomLesson.question);
+            speakTextSafely(randomLesson.question);
         }
 
         function handleAnswer(isCorrect) {
@@ -9284,7 +9323,7 @@
                 ];
                 const praise = praises[Math.floor(Math.random() * praises.length)];
                 state.feedback = praise;
-                speakText(praise);
+                speakTextSafely(praise);
                 logInteraction('correct_answer', { lesson: state.currentQuestion });
 
                 setTimeout(() => {
@@ -9300,22 +9339,40 @@
                 ];
                 const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                 state.feedback = encouragement;
-                speakText(encouragement);
+                speakTextSafely(encouragement);
                 logInteraction('incorrect_answer', { lesson: state.currentQuestion });
             }
             render();
         }
 
         function handleVoiceInput() {
+            stopAllSpeech(); // Kill any overlapping speech/STT FIRST
             state.isListening = true;
             render();
-            speakText('Tell me your answer!');
-            
-            setTimeout(() => {
-                state.isListening = false;
-                const isCorrect = Math.random() > 0.3;
-                handleAnswer(isCorrect);
-            }, 2000);
+            speakTextSafely("Tell me your answer!");
+
+            // Wait for speech END before starting STT
+            const checkSpeechEnd = () => {
+                if (!currentPandaAudio || currentPandaAudio.ended || currentPandaAudio.paused) {
+                    // Speech finished, now start listening
+                    startElevenLabsSTT('yesNo', (result) => {
+                        state.isListening = false;
+                        if (result && result.interpretation) {
+                            const isCorrect = result.interpretation === 'yes';
+                            handleAnswer(isCorrect);
+                        } else {
+                            // Fallback to random if unclear
+                            const isCorrect = Math.random() > 0.3;
+                            handleAnswer(isCorrect);
+                        }
+                        render();
+                    });
+                } else {
+                    // Speech still playing, check again in 100ms
+                    setTimeout(checkSpeechEnd, 100);
+                }
+            };
+            checkSpeechEnd();
         }
 
         // ============================================================================
@@ -9440,6 +9497,18 @@
                     existingModal.remove();
                 }
             }
+
+            // BEGIN DEBUG MONITOR - Voice sync debugging
+            if (DEBUG_MODE) {
+                console.table({
+                    'TTS Active': !!currentPandaAudio,
+                    'STT Recording': elevenLabsSTT?.isRecording,
+                    'Listening': state.isListening,
+                    'Lesson State': state.currentLesson,
+                    'Audio Duration': currentPandaAudio?.duration || 0
+                });
+            }
+            // END DEBUG MONITOR
 
             // BEGIN SANITY CHECKS - Run after each render (won't interrupt UI)
             runSanityChecks();
