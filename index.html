@@ -1796,13 +1796,13 @@
         // ============================================================================
         // PARENT VOICE RESPONSE PHRASES
         // ============================================================================
-        const correctResponses = [
+        // Generic praise responses (work for all subjects)
+        const correctResponsesGeneric = [
             "You did it!",
             "You figured it out!",
             "You got it right!",
             "You found the right one!",
             "You got all three—great job!",
-            "You learned the color red!",
             "You know this one!",
             "You remembered it!",
             "You're getting so good at this!",
@@ -1815,26 +1815,21 @@
             "You're getting the hang of it!",
             "You're learning so fast!",
             "You're really understanding this!",
-            "You're becoming a color expert!",
             "You're getting stronger at this!",
             "You're learning new things every day!",
             "You did great on this one!",
             "Awesome job—keep going!",
             "Nice picking!",
             "You're doing great learning!",
-            "You're getting really good at colors!",
             "You made a smart choice!",
             "Perfect picking!",
             "Great job using your brain!",
             "You're learning like a star!",
             "That was such good thinking!",
             "You're getting really confident!",
-            "Wow, you're learning this color!",
-            "You know this color so well!",
             "You're doing wonderful learning!",
             "That was right—great job!",
             "Yes! That's the one!",
-            "You remembered the color!",
             "You're paying great attention!",
             "You made a great match!",
             "You're showing great learning!",
@@ -1842,12 +1837,66 @@
             "You've been practicing and it shows!",
             "Your brain is growing!",
             "You're making great progress!",
-            "You're becoming a color helper!",
-            "You're learning colors beautifully!",
             "You're getting better every time!",
             "You're doing fantastic learning!",
             "You're amazing—great work!"
         ];
+
+        // Color-specific praise responses
+        const correctResponsesColors = [
+            ...correctResponsesGeneric,
+            "You learned this color!",
+            "You're becoming a color expert!",
+            "You're getting really good at colors!",
+            "Wow, you're learning this color!",
+            "You know this color so well!",
+            "You remembered the color!",
+            "You're becoming a color helper!",
+            "You're learning colors beautifully!"
+        ];
+
+        // Number-specific praise responses
+        const correctResponsesNumbers = [
+            ...correctResponsesGeneric,
+            "You learned this number!",
+            "You're becoming a number expert!",
+            "You're getting really good at numbers!",
+            "Wow, you're learning this number!",
+            "You know this number so well!",
+            "You remembered the number!",
+            "You're becoming a number helper!",
+            "You're learning numbers beautifully!"
+        ];
+
+        // Shape-specific praise responses
+        const correctResponsesShapes = [
+            ...correctResponsesGeneric,
+            "You learned this shape!",
+            "You're becoming a shape expert!",
+            "You're getting really good at shapes!",
+            "Wow, you're learning this shape!",
+            "You know this shape so well!",
+            "You remembered the shape!",
+            "You're becoming a shape helper!",
+            "You're learning shapes beautifully!"
+        ];
+
+        // Helper function to get the appropriate praise array for current subject
+        function getCorrectResponsesForSubject(subject) {
+            switch (subject) {
+                case 'colors':
+                    return correctResponsesColors;
+                case 'numbers':
+                    return correctResponsesNumbers;
+                case 'shapes':
+                    return correctResponsesShapes;
+                default:
+                    return correctResponsesGeneric;
+            }
+        }
+
+        // Legacy alias for backward compatibility (uses generic responses)
+        const correctResponses = correctResponsesGeneric;
 
         const almostThereResponses = [
             "You're so close! One more to go!",
@@ -8555,7 +8604,7 @@
                 // Voice feedback for correct answers
                 if (itemData.consecutiveCorrect >= 3) {
                     itemData.mastered = true;
-                    speakRandomPhrase(correctResponses);
+                    speakRandomPhrase(getCorrectResponsesForSubject(subject));
 
                     // Celebration modal
                     setTimeout(() => {
@@ -8570,7 +8619,7 @@
                     speakRandomPhrase(almostThereResponses);
                 } else {
                     // First correct answer
-                    speakRandomPhrase(correctResponses);
+                    speakRandomPhrase(getCorrectResponsesForSubject(subject));
                 }
             } else {
                 itemData.incorrect++;
