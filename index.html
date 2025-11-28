@@ -1525,11 +1525,6 @@
             background: rgba(75, 156, 211, 0.15);
         }
 
-        .print-option.recommended {
-            border-color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
-        }
-
         .print-option-icon {
             font-size: 1.5rem;
             width: 40px;
@@ -1543,17 +1538,6 @@
         .print-option-name {
             font-weight: 600;
             color: white;
-            margin-bottom: 2px;
-        }
-
-        .print-option-cost {
-            font-size: 0.85rem;
-            color: #10b981;
-            font-weight: 600;
-        }
-
-        .print-option-cost.paid {
-            color: #f59e0b;
         }
 
         .print-option-radio {
@@ -2224,44 +2208,34 @@
 
         const printTemplates = {
             'paper-strips': {
-                cost: '$0',
-                costLabel: 'FREE',
-                instructions: 'Cut paper rectangles with scissors. Child writes word + tapes up with masking tape.',
+                label: 'Paper strips you cut at home',
+                instructions: 'Print on regular paper. Cut rectangles with scissors. Your child can help write the words and tape them to objects.',
                 layout: '2x6in-8perpage',
-                icon: '✂️',
-                description: 'FREE Paper Strips'
+                icon: '✂️'
             },
             'library': {
-                cost: '$0.10/page',
-                costLabel: '$0.10/page',
-                instructions: 'Print at public library, cut with scissors.',
+                label: 'Print at a library or community space',
+                instructions: 'Print on regular paper at a public printer. Cut the labels with scissors and tape them to objects.',
                 layout: '2x6in-8perpage',
-                icon: '🏛️',
-                description: 'Public Library Printing'
+                icon: '🏛️'
             },
-            'neighbor': {
-                cost: 'Free',
-                costLabel: 'Free',
-                instructions: "Borrow friend's printer, cut paper strips.",
+            'home-printer': {
+                label: 'Use regular printer paper at home',
+                instructions: 'Print on plain paper, cut with scissors, and attach with tape.',
                 layout: '2x6in-8perpage',
-                icon: '🤝',
-                description: 'Neighbor/Friend Printer'
+                icon: '🖨️'
             },
             'avery-5160': {
-                cost: '$25/100 sheets',
-                costLabel: '$25/100',
-                instructions: 'Buy Avery 5160 sheets at Walmart.',
+                label: 'Use label sheets (if you have them)',
+                instructions: 'Print on standard label sheets. Peel and stick onto objects.',
                 layout: 'avery5160-30perpage',
-                icon: '🏷️',
-                description: 'Avery 5160 Labels'
+                icon: '🏷️'
             },
-            'online': {
-                cost: '$40+/100',
-                costLabel: '$40+',
-                instructions: 'Order custom printed labels online.',
-                layout: 'custom',
-                icon: '🛒',
-                description: 'Online Custom Labels'
+            'online-order': {
+                label: 'Order printed labels (optional)',
+                instructions: 'Use this list to order labels online if that\'s available to your family.',
+                layout: 'text-list',
+                icon: '📦'
             }
         };
 
@@ -6610,12 +6584,14 @@
         }
 
         function getObjectImageUrl(searchTerm) {
-            const encoded = encodeURIComponent(searchTerm);
-            return `https://source.unsplash.com/400x250/?${encoded}`;
+            const base = 'https://source.unsplash.com/400x250/';
+            const query = encodeURIComponent(searchTerm || '');
+            const sig = Math.floor(Math.random() * 100000);
+            return `${base}?${query}&sig=${sig}`;
         }
 
         function getObjectFallbackUrl(word) {
-            return `https://via.placeholder.com/400x250/4B9CD3/white?text=${encodeURIComponent(word.toUpperCase())}`;
+            return `https://via.placeholder.com/400x250/1f2937/ffffff?text=${encodeURIComponent(word.toUpperCase())}`;
         }
 
         function toggleDIYObject(key) {
@@ -6708,7 +6684,8 @@
                             ${pageObjects.map(obj => `
                                 <div style="border: 2px dashed #ccc; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; height: 1.3in; box-sizing: border-box;">
                                     <img src="${getObjectImageUrl(obj.searchTerm)}"
-                                         onerror="this.src='${getObjectFallbackUrl(obj.word)}'"
+                                         onerror="this.onerror=null; this.src='${getObjectFallbackUrl(obj.word)}';"
+                                         alt="${obj.word} label photo"
                                          style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; margin-right: 15px;">
                                     <div style="font-size: 36px; font-weight: 800; text-transform: uppercase; flex: 1;">${obj.word}</div>
                                     <div style="flex: 1; border-bottom: 2px solid #999; height: 50px; position: relative;">
@@ -6729,7 +6706,8 @@
                                 ${pageObjects.map(obj => `
                                     <div style="width: 2.6in; height: 1in; border: 1px dashed #ddd; padding: 5px; display: flex; align-items: center; box-sizing: border-box;">
                                         <img src="${getObjectImageUrl(obj.searchTerm)}"
-                                             onerror="this.src='${getObjectFallbackUrl(obj.word)}'"
+                                             onerror="this.onerror=null; this.src='${getObjectFallbackUrl(obj.word)}';"
+                                             alt="${obj.word} label photo"
                                              style="width: 50px; height: 40px; object-fit: cover; border-radius: 2px; margin-right: 8px;">
                                         <div style="font-size: 14px; font-weight: 700; text-transform: uppercase;">${obj.word}</div>
                                     </div>
@@ -6782,25 +6760,24 @@
             return `
                 <div class="mb-6">
                     <h2 class="text-3xl font-bold text-panda-blue mb-3">DIY Home Labels</h2>
-                    <p style="color: #cbd5e1;" class="text-lg">Create free printable labels to help your child learn words around your home</p>
+                    <p style="color: #cbd5e1;" class="text-lg">Create printable labels to help your child learn words around your home</p>
                 </div>
 
-                <!-- Print Options (Low-SES Priority - Most prominent) -->
+                <!-- Print Options -->
                 <div class="print-options">
                     <div class="print-options-title">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                         </svg>
-                        Choose Your Print Method (Cheapest First)
+                        Choose Your Print Method
                     </div>
 
-                    ${Object.entries(printTemplates).map(([key, template], index) => `
-                        <label class="print-option ${currentMethod === key ? 'selected' : ''} ${index === 0 ? 'recommended' : ''}"
+                    ${Object.entries(printTemplates).map(([key, template]) => `
+                        <label class="print-option ${currentMethod === key ? 'selected' : ''}"
                                onclick="updateDIYPrintMethod('${key}')">
                             <span class="print-option-icon">${template.icon}</span>
                             <div class="print-option-info">
-                                <div class="print-option-name">${template.description}</div>
-                                <div class="print-option-cost ${template.cost !== '$0' && template.cost !== 'Free' ? 'paid' : ''}">${template.costLabel}</div>
+                                <div class="print-option-name">${template.label}</div>
                             </div>
                             <input type="radio" name="printMethod" class="print-option-radio"
                                    ${currentMethod === key ? 'checked' : ''}>
@@ -6846,8 +6823,8 @@
                             <div class="object-card ${isSelected ? 'selected' : ''}" onclick="toggleDIYObject('${obj.key}')">
                                 <img class="object-card-img"
                                      src="${imageUrl}"
-                                     onerror="this.src='${fallbackUrl}'"
-                                     alt="${obj.word}">
+                                     onerror="this.onerror=null; this.src='${fallbackUrl}';"
+                                     alt="${obj.word} label photo">
                                 <div class="object-card-word">${obj.word}</div>
                                 <div class="object-card-controls">
                                     <input type="checkbox" class="object-checkbox"
@@ -6916,7 +6893,7 @@
                         </div>
                         <div class="preview-content">
                             <div class="preview-instructions">
-                                <h4>${template.icon} ${template.description}</h4>
+                                <h4>${template.icon} ${template.label}</h4>
                                 <p>${template.instructions}</p>
                             </div>
 
@@ -6928,8 +6905,8 @@
                                     <div class="label-strip">
                                         <img class="label-strip-img"
                                              src="${getObjectImageUrl(obj.searchTerm)}"
-                                             onerror="this.src='${getObjectFallbackUrl(obj.word)}'"
-                                             alt="${obj.word}">
+                                             onerror="this.onerror=null; this.src='${getObjectFallbackUrl(obj.word)}';"
+                                             alt="${obj.word} label photo">
                                         <div class="label-strip-word">${obj.word}</div>
                                         ${isPaperStrips ? `
                                             <div style="flex: 1;">
