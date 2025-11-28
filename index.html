@@ -2273,8 +2273,12 @@
             // BEGIN REPEAT MASTERY COUNTS
             // Track how many times a child has completed fun practice for each subject
             // Structure: { childId: { colors: 0, shapes: 0, numbers: 0 } }
-            repeatMasteries: {}
+            repeatMasteries: {},
             // END REPEAT MASTERY COUNTS
+            // BEGIN MIC PRIVACY STATE
+            // True only while MediaRecorder is actually recording
+            micActive: false
+            // END MIC PRIVACY STATE
         };
 
         // ============================================================================
@@ -3509,6 +3513,119 @@
          */
         function isElevenLabsSTTRecording() {
             return elevenLabsSTT.isRecording;
+        }
+
+        // ============================================================================
+        // MIC PRIVACY CONTROLS
+        // Central start/stop for all microphone activity
+        // ============================================================================
+
+        /**
+         * Hard stop all microphone activity - call when user disables voice,
+         * leaves activity views, or app goes to background
+         */
+        function hardStopAllMicActivity() {
+            console.log('🎤 PANDA: hardStopAllMicActivity called');
+
+            // Stop ElevenLabs STT
+            if (typeof stopElevenLabsSTT === 'function') {
+                try { stopElevenLabsSTT(); } catch (e) {
+                    console.log('🎤 PANDA: Error stopping ElevenLabs STT:', e);
+                }
+            }
+
+            // Stop any Web Speech Recognition (legacy fallback)
+            try {
+                if (window.recognition && typeof window.recognition.stop === 'function') {
+                    window.recognition.stop();
+                }
+            } catch (e) {
+                console.log('🎤 PANDA: Error stopping Web Speech Recognition:', e);
+            }
+
+            // Close any live getUserMedia stream
+            if (elevenLabsSTT && elevenLabsSTT.stream) {
+                try {
+                    elevenLabsSTT.stream.getTracks().forEach(t => t.stop());
+                } catch (e) {
+                    console.log('🎤 PANDA: Error stopping stream tracks:', e);
+                }
+                elevenLabsSTT.stream = null;
+            }
+
+            // Clean up ElevenLabs STT state
+            if (elevenLabsSTT) {
+                elevenLabsSTT.isRecording = false;
+                if (elevenLabsSTT.mediaRecorder) {
+                    try { elevenLabsSTT.mediaRecorder.stop(); } catch (e) {}
+                    elevenLabsSTT.mediaRecorder = null;
+                }
+                if (elevenLabsSTT.recordingTimeout) {
+                    clearTimeout(elevenLabsSTT.recordingTimeout);
+                    elevenLabsSTT.recordingTimeout = null;
+                }
+            }
+
+            // Reset global mic state
+            state.micActive = false;
+            state.isListening = false;
+
+            // Also reset activity-specific listening states
+            if (state.colorQuest) {
+                state.colorQuest.listening = false;
+            }
+            if (state.learningIntro) {
+                state.learningIntro.listening = false;
+            }
+        }
+
+        /**
+         * Check if microphone is actually active (recording)
+         */
+        function isMicActuallyActive() {
+            return !!(
+                (elevenLabsSTT && elevenLabsSTT.isRecording) ||
+                (elevenLabsSTT && elevenLabsSTT.stream) ||
+                state.micActive
+            );
+        }
+
+        /**
+         * Central wrapper to start listening - ensures voice is enabled
+         * and tracks mic state properly
+         * @param {string} mode - 'yesNo' or 'option'
+         * @param {function} onResult - Callback with result
+         * @param {number} durationMs - Recording duration in ms
+         */
+        async function startListening(mode, onResult, durationMs) {
+            // Check if voice/mic is enabled
+            if (!state.voiceEnabled || !state.audioSetup.microphoneEnabled) {
+                console.log('🎤 PANDA: Voice disabled, not starting mic.');
+                if (onResult) onResult({ interpretation: 'unavailable', transcript: '' });
+                return;
+            }
+
+            // If somehow already active, stop first
+            hardStopAllMicActivity();
+
+            // Set mic active state
+            state.micActive = true;
+            state.isListening = true;
+
+            // Call existing startElevenLabsSTT with given mode
+            await startElevenLabsSTT(mode, (result) => {
+                // Reset mic state when recording finishes
+                state.micActive = false;
+                state.isListening = false;
+                if (onResult) onResult(result);
+            }, durationMs);
+        }
+
+        /**
+         * Central wrapper to stop listening
+         */
+        function stopListening() {
+            hardStopAllMicActivity();
         }
 
         // ============================================================================
@@ -4857,13 +4974,19 @@
         
         function toggleVoice() {
             state.voiceEnabled = !state.voiceEnabled;
-            
+
             if (!state.voiceEnabled) {
+                // Stop all speech AND all microphone activity
                 stopAllSpeech();
+                // Disable mic when voice is turned off (privacy)
+                state.audioSetup.microphoneEnabled = false;
+                // Hard stop any active mic recording
+                hardStopAllMicActivity();
             }
-            
+
             logInteraction('toggle_voice', { enabled: state.voiceEnabled });
             updateAudioControls();
+            render();
         }
         
         function updateAudioControls() {
@@ -8199,8 +8322,8 @@
             state.colorQuest.listening = true;
             render();
 
-            // Use ElevenLabs STT with 2-second recording window for yes/no
-            startElevenLabsSTT('yesNo', (result) => {
+            // Use central startListening with 2-second recording window for yes/no
+            startListening('yesNo', (result) => {
                 state.colorQuest.listening = false;
 
                 // Safety check - make sure we're still waiting for ready
@@ -8332,8 +8455,8 @@
             state.colorQuest.listening = true;
             render();
 
-            // Use ElevenLabs STT with 2.5-second recording window for option selection
-            startElevenLabsSTT('option', (result) => {
+            // Use central startListening with 2.5-second recording window for option selection
+            startListening('option', (result) => {
                 // Safety check - make sure ColorQuest is still active
                 if (!state.colorQuest.active || state.colorQuest.showCoachingPopup) {
                     state.colorQuest.listening = false;
@@ -8351,7 +8474,7 @@
                         console.log(`🎤 ColorQuest: Voice selected option ${optionIndex + 1}: ${selectedChoice}`);
 
                         state.colorQuest.listening = false;
-                        stopElevenLabsSTT();
+                        stopListening();
 
                         // Trigger the same logic as if they tapped that choice
                         handleColorQuestAnswer(selectedChoice);
@@ -8388,8 +8511,8 @@
         }
 
         function stopColorQuestListening() {
-            // Stop ElevenLabs STT if active
-            stopElevenLabsSTT();
+            // Stop all mic activity using central function
+            stopListening();
             state.colorQuest.listening = false;
             console.log('🎤 ColorQuest: Stopped listening');
         }
@@ -8931,8 +9054,8 @@
             state.learningIntro.listening = true;
             render();
 
-            // Use ElevenLabs STT with 2-second recording window for yes/no
-            startElevenLabsSTT('yesNo', (result) => {
+            // Use central startListening with 2-second recording window for yes/no
+            startListening('yesNo', (result) => {
                 state.learningIntro.listening = false;
 
                 // Safety check - make sure we're still waiting for ready
@@ -9970,7 +10093,8 @@
             return;
           }
 
-          startElevenLabsSTT('yesNo', (result) => {
+          // Use central startListening for subject intro
+          startListening('yesNo', (result) => {
             console.log('🎤 SubjectIntro STT result:', result);
 
             // Make sure we're still on the subject intro and waiting
@@ -10776,8 +10900,8 @@
             // Wait for speech END before starting STT
             const checkSpeechEnd = () => {
                 if (!currentPandaAudio || currentPandaAudio.ended || currentPandaAudio.paused) {
-                    // Speech finished, now start listening
-                    startElevenLabsSTT('yesNo', (result) => {
+                    // Speech finished, now start listening (use central startListening)
+                    startListening('yesNo', (result) => {
                         state.isListening = false;
                         if (result && result.interpretation) {
                             const isCorrect = result.interpretation === 'yes';
@@ -10809,6 +10933,18 @@
             // Stop all speech when view changes
             if (previousView !== null && previousView !== state.currentView) {
                 stopAllSpeech();
+
+                // MIC PRIVACY: Stop all mic activity when leaving activity views
+                // Activity views that may use mic: childLearning, colorQuest, childTutor, assessment
+                const activityViews = ['childLearning', 'colorQuest', 'childTutor', 'assessment'];
+                const wasInActivity = activityViews.includes(previousView);
+                const nowInActivity = activityViews.includes(state.currentView);
+
+                // If leaving an activity view (or switching between non-activity views), stop mic
+                if (wasInActivity && !nowInActivity) {
+                    console.log('🎤 PANDA: Left activity view, stopping mic activity');
+                    hardStopAllMicActivity();
+                }
             }
 
             // BEGIN HISTORY INTEGRATION - Push state when view changes
@@ -11108,6 +11244,35 @@
             loadServerStateForParticipant(state.participantId);
         }
         // END CROSS-DEVICE SYNC
+
+        // ============================================================================
+        // MIC PRIVACY GLOBAL EVENT LISTENERS
+        // Stop all mic activity when app goes to background or is closed
+        // ============================================================================
+
+        // Stop mic when tab/app goes to background (phone locked, tab switched, etc.)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('🎤 PANDA: Tab hidden, stopping all mic activity');
+                hardStopAllMicActivity();
+            }
+        });
+
+        // Stop mic when window is being unloaded/closed
+        window.addEventListener('beforeunload', () => {
+            console.log('🎤 PANDA: Window unloading, stopping all mic activity');
+            hardStopAllMicActivity();
+        });
+
+        // Also handle page hide (iOS Safari, some mobile browsers)
+        window.addEventListener('pagehide', () => {
+            console.log('🎤 PANDA: Page hidden, stopping all mic activity');
+            hardStopAllMicActivity();
+        });
+
+        // ============================================================================
+        // END MIC PRIVACY GLOBAL EVENT LISTENERS
+        // ============================================================================
 
         render();
     </script>
