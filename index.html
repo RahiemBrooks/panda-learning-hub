@@ -2206,6 +2206,20 @@
         // Global audio element for ElevenLabs TTS playback
         let currentPandaAudio = null;
 
+        // Audio cache to store fetched TTS audio and avoid repeat network calls
+        const ttsAudioCache = new Map();
+
+        // Simple hash function for cache keys
+        function hashText(text) {
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                const char = text.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return 'tts_' + hash;
+        }
+
         // Global function to stop all speech - call when navigating away
         function stopAllSpeech() {
             // Stop ElevenLabs audio playback
@@ -2634,10 +2648,46 @@
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
             }
+            // Also stop browser TTS if speaking
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
 
-            console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+            const cacheKey = hashText(text);
+            console.log('🐼 PANDA Voice: Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
-            // Call ElevenLabs TTS via Netlify function
+            // Check cache first - instant playback if available
+            if (ttsAudioCache.has(cacheKey)) {
+                console.log('🐼 Playing from cache (instant)');
+                const cachedBlob = ttsAudioCache.get(cacheKey);
+                const audioUrl = URL.createObjectURL(cachedBlob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Cached audio play failed:', err.message);
+                });
+                return;
+            }
+
+            // Not cached: use browser TTS as immediate fallback while fetching ElevenLabs
+            let browserTTSPlaying = false;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                browserTTSPlaying = true;
+                window.speechSynthesis.speak(utterance);
+                console.log('🐼 Browser TTS started (immediate fallback)');
+            }
+
+            // Fetch ElevenLabs TTS and cache for future use
             fetch('/.netlify/functions/elevenlabs-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2650,6 +2700,17 @@
                 return response.blob();
             })
             .then(blob => {
+                // Cache the audio for future instant playback
+                ttsAudioCache.set(cacheKey, blob);
+                console.log('🐼 ElevenLabs audio cached for future use');
+
+                // If browser TTS was playing, don't interrupt with ElevenLabs
+                // The next time this phrase is spoken, it will play from cache instantly
+                if (browserTTSPlaying) {
+                    return;
+                }
+
+                // Play the ElevenLabs audio
                 const audioUrl = URL.createObjectURL(blob);
                 currentPandaAudio = new Audio(audioUrl);
                 currentPandaAudio.onended = () => {
@@ -2667,6 +2728,7 @@
             })
             .catch(err => {
                 console.error('🐼 ElevenLabs TTS error:', err.message);
+                // Browser TTS already provided fallback, so just log the error
             });
         }
 
@@ -3950,11 +4012,47 @@
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
             }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
 
             const previewText = "Hi there! I'm Panda. And I'm so excited, to learn with you today!";
-            console.log('🐼 PANDA Voice Preview (ElevenLabs)');
+            const cacheKey = hashText(previewText);
+            console.log('🐼 PANDA Voice Preview');
 
-            // Call ElevenLabs TTS via Netlify function
+            // Check cache first - instant playback if available
+            if (ttsAudioCache.has(cacheKey)) {
+                console.log('🐼 Playing preview from cache (instant)');
+                const cachedBlob = ttsAudioCache.get(cacheKey);
+                const audioUrl = URL.createObjectURL(cachedBlob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    showAppToast('Voice preview failed to play.', 'warning');
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Cached audio play failed:', err.message);
+                    showAppToast('Voice preview failed to play.', 'warning');
+                });
+                logInteraction('panda_voice_preview_played');
+                return;
+            }
+
+            // Not cached: use browser TTS as immediate fallback
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(previewText);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                window.speechSynthesis.speak(utterance);
+                console.log('🐼 Browser TTS started for preview');
+            }
+
+            // Fetch ElevenLabs TTS and cache for future use
             fetch('/.netlify/functions/elevenlabs-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -3967,26 +4065,12 @@
                 return response.blob();
             })
             .then(blob => {
-                const audioUrl = URL.createObjectURL(blob);
-                currentPandaAudio = new Audio(audioUrl);
-                currentPandaAudio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                };
-                currentPandaAudio.onerror = () => {
-                    console.error('🐼 Audio playback error');
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                    showAppToast('Voice preview failed to play.', 'warning');
-                };
-                currentPandaAudio.play().catch(err => {
-                    console.error('🐼 Audio play failed:', err.message);
-                    showAppToast('Voice preview failed to play.', 'warning');
-                });
+                // Cache the audio for future instant playback
+                ttsAudioCache.set(cacheKey, blob);
+                console.log('🐼 Preview audio cached for future use');
             })
             .catch(err => {
                 console.error('🐼 ElevenLabs TTS error:', err.message);
-                showAppToast('Voice preview unavailable. Please try again.', 'warning');
             });
 
             logInteraction('panda_voice_preview_played');
@@ -6608,10 +6692,59 @@
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
             }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
 
-            console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+            const cacheKey = hashText(text);
+            console.log('🐼 PANDA Voice: Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
-            // Call ElevenLabs TTS via Netlify function
+            // Check cache first - instant playback if available
+            if (ttsAudioCache.has(cacheKey)) {
+                console.log('🐼 Playing from cache (instant)');
+                const cachedBlob = ttsAudioCache.get(cacheKey);
+                const audioUrl = URL.createObjectURL(cachedBlob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    if (onComplete) onComplete();
+                };
+                currentPandaAudio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    if (onComplete) onComplete();
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Cached audio play failed:', err.message);
+                    if (onComplete) onComplete();
+                });
+                return;
+            }
+
+            // Not cached: use browser TTS as immediate fallback with callback support
+            let callbackCalled = false;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                utterance.onend = () => {
+                    if (!callbackCalled && onComplete) {
+                        callbackCalled = true;
+                        onComplete();
+                    }
+                };
+                utterance.onerror = () => {
+                    if (!callbackCalled && onComplete) {
+                        callbackCalled = true;
+                        onComplete();
+                    }
+                };
+                window.speechSynthesis.speak(utterance);
+                console.log('🐼 Browser TTS started (immediate fallback)');
+            }
+
+            // Fetch ElevenLabs TTS and cache for future use
             fetch('/.netlify/functions/elevenlabs-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -6624,31 +6757,17 @@
                 return response.blob();
             })
             .then(blob => {
-                const audioUrl = URL.createObjectURL(blob);
-                currentPandaAudio = new Audio(audioUrl);
-                currentPandaAudio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                    // Call the onComplete callback when audio finishes
-                    if (onComplete) onComplete();
-                };
-                currentPandaAudio.onerror = () => {
-                    console.error('🐼 Audio playback error');
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                    // Still call callback on error so app flow continues
-                    if (onComplete) onComplete();
-                };
-                currentPandaAudio.play().catch(err => {
-                    console.error('🐼 Audio play failed:', err.message);
-                    // Call callback on play failure
-                    if (onComplete) onComplete();
-                });
+                // Cache the audio for future instant playback
+                ttsAudioCache.set(cacheKey, blob);
+                console.log('🐼 ElevenLabs audio cached for future use');
             })
             .catch(err => {
                 console.error('🐼 ElevenLabs TTS error:', err.message);
-                // Call callback on fetch error so app flow continues
-                if (onComplete) setTimeout(onComplete, 500);
+                // If browser TTS wasn't available and callback not called, call it now
+                if (!callbackCalled && onComplete) {
+                    callbackCalled = true;
+                    setTimeout(onComplete, 500);
+                }
             });
         }
 
