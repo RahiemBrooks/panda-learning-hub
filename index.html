@@ -1693,7 +1693,21 @@
             // Subject selection greeting
             subjectSelectionGreeting: null,
             // Pending subject (when user clicks subject from My Children before intro)
-            pendingSubject: null
+            pendingSubject: null,
+            // BEGIN FUN PRACTICE MODE
+            // Mode for subject practice: 'normal' = only unmastered items, 'fun' = all items after mastery
+            subjectPracticeMode: 'normal',
+            // Track items answered correctly in current fun practice session
+            funPracticeSession: {
+                answeredItems: [], // items answered correctly this session
+                subject: null
+            },
+            // END FUN PRACTICE MODE
+            // BEGIN REPEAT MASTERY COUNTS
+            // Track how many times a child has completed fun practice for each subject
+            // Structure: { childId: { colors: 0, shapes: 0, numbers: 0 } }
+            repeatMasteries: {}
+            // END REPEAT MASTERY COUNTS
         };
 
         // ============================================================================
@@ -1728,7 +1742,10 @@
                 const persistentState = {
                     children: state.children,
                     learningData: state.learningData,
-                    journalEntries: state.journalEntries
+                    journalEntries: state.journalEntries,
+                    // BEGIN REPEAT MASTERY COUNTS
+                    repeatMasteries: state.repeatMasteries
+                    // END REPEAT MASTERY COUNTS
                 };
                 localStorage.setItem(STORAGE_KEYS.APP_STATE, JSON.stringify(persistentState));
             } catch (e) {
@@ -1757,6 +1774,13 @@
                     if (Array.isArray(parsed.journalEntries)) {
                         state.journalEntries = parsed.journalEntries;
                     }
+
+                    // BEGIN REPEAT MASTERY COUNTS
+                    // Validate and merge repeatMasteries object
+                    if (parsed.repeatMasteries && typeof parsed.repeatMasteries === 'object') {
+                        state.repeatMasteries = parsed.repeatMasteries;
+                    }
+                    // END REPEAT MASTERY COUNTS
 
                     // Set first child as selected if exists
                     if (state.children.length > 0) {
@@ -6165,12 +6189,23 @@
                                             const progress = getSubjectProgress(selectedChild.id, subject);
                                             const subjectInfo = curriculum[subject];
                                             const iconMap = { colors: '🎨', shapes: '⬡', numbers: '123' };
+                                            // BEGIN REPEAT MASTERY COUNTS
+                                            const repeatCount = state.repeatMasteries[selectedChild.id] && state.repeatMasteries[selectedChild.id][subject] ? state.repeatMasteries[selectedChild.id][subject] : 0;
+                                            const isFullyMastered = progress.percentage === 100;
+                                            // END REPEAT MASTERY COUNTS
                                             return `
                                                 <div style="margin-bottom: 28px;">
                                                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                                                         <span style="font-size: 1.25rem;">${iconMap[subject]}</span>
                                                         <span style="color: white; font-weight: 600; font-size: 1.1rem;">${subjectInfo.name}</span>
-                                                        <span style="color: #64748b; font-size: 0.9rem; margin-left: auto;">${progress.percentage}%</span>
+                                                        <div style="margin-left: auto; text-align: right;">
+                                                            <span style="color: #64748b; font-size: 0.9rem;">${progress.percentage}%</span>
+                                                            ${/* BEGIN REPEAT MASTERY COUNTS */ ''}
+                                                            ${isFullyMastered && repeatCount > 0 ? `
+                                                                <div style="color: #a78bfa; font-size: 0.75rem; margin-top: 2px;">Practiced again ${repeatCount}×</div>
+                                                            ` : ''}
+                                                            ${/* END REPEAT MASTERY COUNTS */ ''}
+                                                        </div>
                                                     </div>
                                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                                                         ${progress.items.map(item => `
@@ -8251,20 +8286,44 @@
                 // Silently fail - user can still click
             }
         }
+        // BEGIN FUN PRACTICE MODE
+        // Helper function to start subject practice - sets fun mode if subject is fully mastered
+        function startSubjectPractice() {
+            stopAllSpeech();
+            // Check if subject is fully mastered - if so, enable fun practice mode
+            const masteryStatus = getSubjectMasteryStatus(state.activeChildId, state.currentSubject);
+            if (masteryStatus.isComplete) {
+                state.subjectPracticeMode = 'fun';
+                state.funPracticeSession = { answeredItems: [], subject: state.currentSubject };
+            }
+            state.subjectIntro.waitingForReady = false;
+            state.subjectIntro.shown = true;
+            render();
+            setTimeout(() => askCurrentQuestion(), 500);
+        }
+        // END FUN PRACTICE MODE
+
         function selectSubject(subject) {
             // Stop any ongoing speech
             stopAllSpeech();
-            
+
             // Reset subject intro state completely for fresh start
             state.subjectIntro = null;
-            
+
+            // BEGIN FUN PRACTICE MODE
+            // Reset practice mode to normal when selecting a subject
+            state.subjectPracticeMode = 'normal';
+            // Reset fun practice session tracking
+            state.funPracticeSession = { answeredItems: [], subject: null };
+            // END FUN PRACTICE MODE
+
             state.currentSubject = subject;
             state.currentLesson = null;
             state.currentView = 'childLearning'; // Set the view to childLearning
-            
+
             // Auto-enable voice for interactive learning
             state.voiceEnabled = true;
-            
+
             // Set up for intro greeting - create fresh state
             state.subjectIntro = {
                 shown: false,
@@ -8332,6 +8391,16 @@
             if (interpretation === 'yes') {
               // Child is ready – start the subject practice
               stopAllSpeech();
+
+              // BEGIN FUN PRACTICE MODE
+              // Check if subject is fully mastered - if so, enable fun practice mode
+              const masteryStatus = getSubjectMasteryStatus(state.activeChildId, state.currentSubject);
+              if (masteryStatus.isComplete) {
+                state.subjectPracticeMode = 'fun';
+                state.funPracticeSession = { answeredItems: [], subject: state.currentSubject };
+              }
+              // END FUN PRACTICE MODE
+
               speakPanda("Great! Let's start learning!", () => {
                 state.subjectIntro.waitingForReady = false;
                 state.subjectIntro.shown = true;
@@ -8374,15 +8443,33 @@
             if (!state.currentSubject) return;
             if (state.subjectIntro && state.subjectIntro.waitingForReady) return; // Still on intro screen
             if (state.learningIntro && state.learningIntro.waitingForReady) return; // Still on magical intro
-            
+
             const subject = state.currentSubject;
             const childData = state.learningData[state.activeChildId][subject];
-            const items = Object.keys(childData).filter(item => !childData[item].mastered);
-            
+
+            // BEGIN FUN PRACTICE MODE
+            const unmasteredItems = Object.keys(childData).filter(item => !childData[item].mastered);
+            const allItems = Object.keys(childData);
+
+            // Determine which items to use based on mode
+            let items;
+            if (state.subjectPracticeMode === 'fun') {
+                items = allItems;
+            } else {
+                items = unmasteredItems;
+            }
+
             if (items.length === 0) return;
-            
-            const currentItem = state.currentLesson || items[0];
-            
+
+            // In fun mode, pick a random item; in normal mode, use currentLesson or first unmastered
+            let currentItem;
+            if (state.subjectPracticeMode === 'fun') {
+                currentItem = state.currentLesson || items[Math.floor(Math.random() * items.length)];
+            } else {
+                currentItem = state.currentLesson || items[0];
+            }
+            // END FUN PRACTICE MODE
+
             let question = '';
             if (subject === 'colors') {
                 question = `Can you find the ${currentItem} one? Look for ${currentItem}!`;
@@ -8393,7 +8480,7 @@
             } else {
                 question = `Can you find ${currentItem}?`;
             }
-            
+
             speakPanda(question);
         }
 
@@ -8475,7 +8562,7 @@
                             
                             <!-- Start Button -->
                             <button
-                                onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
+                                onclick="startSubjectPractice();"
                                 style="background: ${accent.gradient}; color: white; padding: 1.25rem 3rem; border-radius: 16px; font-size: 1.35rem; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 8px 24px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.1) inset; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; letter-spacing: 0.02em;"
                                 onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 32px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.2) inset'"
                                 onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 24px ${accent.glow}, 0 0 0 1px rgba(255,255,255,0.1) inset'">
@@ -8488,14 +8575,14 @@
                             <!-- Skip and Back Buttons -->
                             <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                                 <button
-                                    onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
+                                    onclick="startSubjectPractice();"
                                     style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.4); cursor: pointer; transition: all 0.2s;"
                                     onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'; this.style.color='#e2e8f0';"
                                     onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.color='#94a3b8';">
                                     Skip Intro
                                 </button>
                                 <button
-                                    onclick="stopAllSpeech(); state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();"
+                                    onclick="stopAllSpeech(); state.subjectPracticeMode='normal'; state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();"
                                     style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
                                     onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0'; this.style.borderColor='rgba(100, 116, 139, 0.5)'"
                                     onmouseout="this.style.background='transparent'; this.style.color='#64748b'; this.style.borderColor='rgba(100, 116, 139, 0.3)'">
@@ -8531,13 +8618,30 @@
             }
             
             const childData = state.learningData[state.activeChildId][subject];
-            
-            const items = Object.keys(childData).filter(item => !childData[item].mastered);
+
+            // BEGIN FUN PRACTICE MODE
+            // Get unmastered items for normal mode
+            const unmasteredItems = Object.keys(childData).filter(item => !childData[item].mastered);
+            // Get ALL items for fun mode
+            const allItems = Object.keys(childData);
+
+            // Determine which items to use based on mode
+            let items;
+            if (state.subjectPracticeMode === 'fun') {
+                // In fun mode, always use all items
+                items = allItems;
+            } else {
+                // In normal mode, only use unmastered items
+                items = unmasteredItems;
+            }
+            // END FUN PRACTICE MODE
+
             if (items.length === 0) {
+                // Only show this celebration screen in normal mode (fun mode always has items)
                 return `
                     <div style="min-height: 100vh; background: linear-gradient(180deg, #0B1120 0%, #13294B 50%, #1a3a5c 100%); display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;">
                         <!-- Celebration particles -->
-                        <div style="position: absolute; inset: 0; background-image: 
+                        <div style="position: absolute; inset: 0; background-image:
                             radial-gradient(2px 2px at 20% 30%, #fbbf24 0%, transparent 100%),
                             radial-gradient(2px 2px at 40% 20%, #34d399 0%, transparent 100%),
                             radial-gradient(2px 2px at 60% 40%, #f472b6 0%, transparent 100%),
@@ -8545,16 +8649,16 @@
                             radial-gradient(2px 2px at 25% 60%, #a78bfa 0%, transparent 100%),
                             radial-gradient(2px 2px at 75% 70%, #fbbf24 0%, transparent 100%);
                             animation: twinkle 2s ease-in-out infinite; pointer-events: none;"></div>
-                        
+
                         <div style="position: relative; z-index: 1; text-align: center; background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(20px); padding: 48px; border-radius: 32px; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 60px rgba(16, 185, 129, 0.2);">
                             <div style="font-size: 5rem; margin-bottom: 24px; animation: celebrate 1s ease-in-out infinite;">🎉</div>
                             <h3 style="font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #34d399 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px;">All Mastered!</h3>
                             <p style="color: #94a3b8; font-size: 1.2rem; margin-bottom: 32px;">Amazing work! You've mastered all the ${subjectData.name.toLowerCase()}!</p>
-                            <button onclick="stopAllSpeech(); state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();" style="padding: 16px 32px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border-radius: 14px; font-size: 1.1rem; font-weight: 600; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(75, 156, 211, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(75, 156, 211, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(75, 156, 211, 0.3)'">
+                            <button onclick="stopAllSpeech(); state.subjectPracticeMode='normal'; state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();" style="padding: 16px 32px; background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%); color: white; border-radius: 14px; font-size: 1.1rem; font-weight: 600; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(75, 156, 211, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(75, 156, 211, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(75, 156, 211, 0.3)'">
                                 ← Back to My Children
                             </button>
                         </div>
-                        
+
                         <style>
                             @keyframes celebrate {
                                 0%, 100% { transform: scale(1) rotate(0deg); }
@@ -8569,8 +8673,18 @@
                     </div>
                 `;
             }
-            
-            const currentItem = state.currentLesson || items[0];
+
+            // BEGIN FUN PRACTICE MODE
+            // In fun mode, pick a random item instead of using currentLesson or first unmastered
+            let currentItem;
+            if (state.subjectPracticeMode === 'fun') {
+                // Pick a random item from all items
+                currentItem = state.currentLesson || items[Math.floor(Math.random() * items.length)];
+            } else {
+                // Normal mode: use currentLesson or first unmastered item
+                currentItem = state.currentLesson || items[0];
+            }
+            // END FUN PRACTICE MODE
             const itemData = childData[currentItem];
             const teachingPrompt = teachingGuides[subject]?.prompts[currentItem];
             
@@ -8620,7 +8734,7 @@
                                 <button onclick="toggleTeacherMode()" style="padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.2s; ${state.teacherMode ? 'background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);' : 'background: rgba(30, 41, 59, 0.8); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3);'}">
                                     ${state.teacherMode ? '👨‍🏫 Guide On' : '👤 Guide Off'}
                                 </button>
-                                <button onclick="stopAllSpeech(); state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();" style="padding: 10px 18px; background: rgba(30, 41, 59, 0.8); color: #94a3b8; border-radius: 12px; font-weight: 600; font-size: 0.9rem; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(51, 65, 85, 0.9)'; this.style.color='white';" onmouseout="this.style.background='rgba(30, 41, 59, 0.8)'; this.style.color='#94a3b8';">
+                                <button onclick="stopAllSpeech(); state.subjectPracticeMode='normal'; state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();" style="padding: 10px 18px; background: rgba(30, 41, 59, 0.8); color: #94a3b8; border-radius: 12px; font-weight: 600; font-size: 0.9rem; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(51, 65, 85, 0.9)'; this.style.color='white';" onmouseout="this.style.background='rgba(30, 41, 59, 0.8)'; this.style.color='#94a3b8';">
                                     ← Back
                                 </button>
                             </div>
@@ -8767,56 +8881,149 @@
 
         function selectAnswer(selectedItem) {
             const subject = state.currentSubject;
-            const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
-            const correctItem = state.currentLesson || items[0];
-            
+            const childData = state.learningData[state.activeChildId][subject];
+
+            // BEGIN FUN PRACTICE MODE
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const allItems = Object.keys(childData);
+
+            // Determine which items to use based on mode
+            let items;
+            if (state.subjectPracticeMode === 'fun') {
+                items = allItems;
+            } else {
+                items = unmasteredItems;
+            }
+
+            // In fun mode, use currentLesson; in normal mode, use currentLesson or first unmastered
+            let correctItem;
+            if (state.subjectPracticeMode === 'fun') {
+                correctItem = state.currentLesson || items[Math.floor(Math.random() * items.length)];
+            } else {
+                correctItem = state.currentLesson || items[0];
+            }
+            // END FUN PRACTICE MODE
+
             const isCorrect = selectedItem === correctItem;
-            checkAnswer(isCorrect);
+            checkAnswer(isCorrect, selectedItem);
         }
 
         function askForHelp() {
             const subject = state.currentSubject;
-            const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
-            const item = state.currentLesson || items[0];
+            const childData = state.learningData[state.activeChildId][subject];
+
+            // BEGIN FUN PRACTICE MODE
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const allItems = Object.keys(childData);
+            const items = state.subjectPracticeMode === 'fun' ? allItems : unmasteredItems;
+            const item = state.currentLesson || (items.length > 0 ? items[0] : null);
+            // END FUN PRACTICE MODE
+
+            if (!item) return;
             const teachingPrompt = teachingGuides[subject]?.prompts[item];
-            
+
             if (teachingPrompt) {
                 speakText(`Here's how to teach ${item}. ${teachingPrompt.tips}`);
             }
         }
+        function checkAnswer(isCorrect, answeredItem) {
             const subject = state.currentSubject;
+            const childData = state.learningData[state.activeChildId][subject];
 
-        function checkAnswer(isCorrect) {
-            const subject = state.currentSubject;
-            const items = Object.keys(state.learningData[state.activeChildId][subject]).filter(i => !state.learningData[state.activeChildId][subject][i].mastered);
-            const item = state.currentLesson || items[0];
-            const itemData = state.learningData[state.activeChildId][subject][item];
-            
+            // BEGIN FUN PRACTICE MODE
+            const unmasteredItems = Object.keys(childData).filter(i => !childData[i].mastered);
+            const allItems = Object.keys(childData);
+
+            // Determine which items to use based on mode
+            let items;
+            if (state.subjectPracticeMode === 'fun') {
+                items = allItems;
+            } else {
+                items = unmasteredItems;
+            }
+
+            // Determine current item based on mode
+            let item;
+            if (state.subjectPracticeMode === 'fun') {
+                item = state.currentLesson || items[Math.floor(Math.random() * items.length)];
+            } else {
+                item = state.currentLesson || items[0];
+            }
+            // END FUN PRACTICE MODE
+
+            const itemData = childData[item];
+
             itemData.attempts++;
-            
+
             if (isCorrect) {
                 itemData.correct++;
                 itemData.consecutiveCorrect++;
-                
-                // Voice feedback for correct answers
-                if (itemData.consecutiveCorrect >= 3) {
-                    itemData.mastered = true;
-                    speakRandomPhrase(getCorrectResponsesForSubject(subject));
 
-                    // Celebration modal
-                    setTimeout(() => {
-                        const childName = state.children.find(c => c.id === state.activeChildId).name;
-                        showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
-                            state.currentLesson = null;
-                            render();
-                        });
-                    }, 100);
-                } else if (itemData.consecutiveCorrect === 2) {
-                    // Almost there - 2 in a row, need 1 more
-                    speakRandomPhrase(almostThereResponses);
-                } else {
-                    // First correct answer
+                // BEGIN FUN PRACTICE MODE - Track fun practice progress
+                if (state.subjectPracticeMode === 'fun') {
+                    // Add this item to answered items if not already there
+                    if (!state.funPracticeSession.answeredItems.includes(item)) {
+                        state.funPracticeSession.answeredItems.push(item);
+                    }
+
+                    // Check if child has answered all items correctly once in this session
+                    if (state.funPracticeSession.answeredItems.length >= allItems.length) {
+                        // Full cycle completed! Increment repeatMasteries
+                        const childId = state.activeChildId;
+                        if (!state.repeatMasteries[childId]) {
+                            state.repeatMasteries[childId] = { colors: 0, shapes: 0, numbers: 0 };
+                        }
+                        state.repeatMasteries[childId][subject] = (state.repeatMasteries[childId][subject] || 0) + 1;
+                        const repeatCount = state.repeatMasteries[childId][subject];
+
+                        // Celebration for completing fun practice cycle
+                        const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
+                        const childName = state.children.find(c => c.id === childId).name;
+                        speakPanda(`Amazing ${childName}! You've mastered ${subjectName} ${repeatCount + 1} times now!`);
+
+                        // Reset fun practice session for another round
+                        state.funPracticeSession.answeredItems = [];
+
+                        // Show celebration modal
+                        setTimeout(() => {
+                            showAppModal(`Fun Practice Complete!`, `${childName} has practiced all the ${subject} again!\n\nTotal masteries: ${repeatCount + 1}`, 'celebration', () => {
+                                state.currentLesson = null;
+                                render();
+                            });
+                        }, 100);
+
+                        // Save updated repeatMasteries
+                        saveAppStateToStorage();
+                        render();
+                        return; // Exit early after celebration
+                    }
+
+                    // In fun mode, just give praise (items are already mastered)
                     speakRandomPhrase(getCorrectResponsesForSubject(subject));
+                }
+                // END FUN PRACTICE MODE
+                else {
+                    // Normal mode logic
+                    // Voice feedback for correct answers
+                    if (itemData.consecutiveCorrect >= 3) {
+                        itemData.mastered = true;
+                        speakRandomPhrase(getCorrectResponsesForSubject(subject));
+
+                        // Celebration modal
+                        setTimeout(() => {
+                            const childName = state.children.find(c => c.id === state.activeChildId).name;
+                            showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
+                                state.currentLesson = null;
+                                render();
+                            });
+                        }, 100);
+                    } else if (itemData.consecutiveCorrect === 2) {
+                        // Almost there - 2 in a row, need 1 more
+                        speakRandomPhrase(almostThereResponses);
+                    } else {
+                        // First correct answer
+                        speakRandomPhrase(getCorrectResponsesForSubject(subject));
+                    }
                 }
             } else {
                 itemData.incorrect++;
@@ -8832,8 +9039,8 @@
                     speakRandomPhrase(wrongResponses);
                 }
 
-                // Show hint if in teacher mode on second wrong answer
-                if (itemData.incorrect === 2 && state.teacherMode) {
+                // Show hint if in teacher mode on second wrong answer (only in normal mode)
+                if (state.subjectPracticeMode !== 'fun' && itemData.incorrect === 2 && state.teacherMode) {
                     const teachingPrompt = teachingGuides[subject]?.prompts[item];
                     if (teachingPrompt && teachingPrompt.hints[0]) {
                         setTimeout(() => {
@@ -8842,7 +9049,7 @@
                     }
                 }
             }
-            
+
             logInteraction('learning_attempt', {
                 childId: state.activeChildId,
                 subject: subject,
@@ -8850,7 +9057,10 @@
                 correct: isCorrect,
                 consecutiveCorrect: itemData.consecutiveCorrect,
                 attempts: itemData.attempts,
-                mastered: itemData.mastered
+                mastered: itemData.mastered,
+                // BEGIN FUN PRACTICE MODE
+                practiceMode: state.subjectPracticeMode
+                // END FUN PRACTICE MODE
             });
 
             // Save to localStorage (learning progress updated)
