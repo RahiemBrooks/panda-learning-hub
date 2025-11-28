@@ -986,22 +986,6 @@
             background: linear-gradient(90deg, #22c55e, #16a34a);
         }
 
-        /* Recommended Badge */
-        .std-pill-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, var(--accent-orange) 0%, #f97316 100%);
-            color: white;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 10px;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);
-        }
-
         /* Complete Checkmark */
         .std-pill-check {
             position: absolute;
@@ -9553,19 +9537,14 @@
                         
                         <!-- Progress Modules Grid (Active) -->
                         <div class="subject-progress-row">
-                            ${modules.map((mod, idx) => {
-                                // Recommend the first subject with items not yet mastered
-                                const isRecommended = idx === modules.findIndex(m => m.mastered < m.total);
+                            ${modules.map((mod) => {
                                 const isComplete = mod.mastered === mod.total;
                                 return `
                                 <div class="std-pill subject-pill" onclick="selectSubject('${mod.subject}')" style="position: relative;">
-                                    ${isRecommended && !isComplete ? `
-                                        <div class="std-pill-badge">START HERE</div>
-                                    ` : ''}
                                     ${isComplete ? `
                                         <div class="std-pill-check">✓</div>
                                     ` : ''}
-                                    <div class="std-pill-circle subject-circle" style="${isRecommended && !isComplete ? 'border: 3px solid #FF8C42; box-shadow: 0 0 20px rgba(255, 140, 66, 0.3);' : ''}">
+                                    <div class="std-pill-circle subject-circle">
                                         <div class="std-pill-icon subject-icon">${mod.icon}</div>
                                     </div>
                                     <div class="std-pill-label subject-label">${mod.name}</div>
