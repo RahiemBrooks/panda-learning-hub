@@ -6586,12 +6586,8 @@
         function getObjectImageUrl(searchTerm) {
             const base = 'https://source.unsplash.com/400x250/';
             const query = encodeURIComponent(searchTerm || '');
-            const sig = Math.floor(Math.random() * 100000);
+            const sig = Math.floor(Math.random() * 1000000);
             return `${base}?${query}&sig=${sig}`;
-        }
-
-        function getObjectFallbackUrl(word) {
-            return `https://via.placeholder.com/400x250/1f2937/ffffff?text=${encodeURIComponent(word.toUpperCase())}`;
         }
 
         function toggleDIYObject(key) {
@@ -6684,7 +6680,7 @@
                             ${pageObjects.map(obj => `
                                 <div style="border: 2px dashed #ccc; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; height: 1.3in; box-sizing: border-box;">
                                     <img src="${getObjectImageUrl(obj.searchTerm)}"
-                                         onerror="this.onerror=null; this.src='${getObjectFallbackUrl(obj.word)}';"
+                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
                                          alt="${obj.word} label photo"
                                          style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; margin-right: 15px;">
                                     <div style="font-size: 36px; font-weight: 800; text-transform: uppercase; flex: 1;">${obj.word}</div>
@@ -6706,7 +6702,7 @@
                                 ${pageObjects.map(obj => `
                                     <div style="width: 2.6in; height: 1in; border: 1px dashed #ddd; padding: 5px; display: flex; align-items: center; box-sizing: border-box;">
                                         <img src="${getObjectImageUrl(obj.searchTerm)}"
-                                             onerror="this.onerror=null; this.src='${getObjectFallbackUrl(obj.word)}';"
+                                             onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
                                              alt="${obj.word} label photo"
                                              style="width: 50px; height: 40px; object-fit: cover; border-radius: 2px; margin-right: 8px;">
                                         <div style="font-size: 14px; font-weight: 700; text-transform: uppercase;">${obj.word}</div>
@@ -6817,13 +6813,12 @@
                 <div class="object-grid">
                     ${filteredObjects.map(obj => {
                         const isSelected = state.diyLabels.selectedObjects.includes(obj.key);
-                        const imageUrl = getObjectImageUrl(obj.searchTerm);
-                        const fallbackUrl = getObjectFallbackUrl(obj.word);
+                        const imgUrl = getObjectImageUrl(obj.searchTerm);
                         return `
                             <div class="object-card ${isSelected ? 'selected' : ''}" onclick="toggleDIYObject('${obj.key}')">
                                 <img class="object-card-img"
-                                     src="${imageUrl}"
-                                     onerror="this.onerror=null; this.src='${fallbackUrl}';"
+                                     src="${imgUrl}"
+                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
                                      alt="${obj.word} label photo">
                                 <div class="object-card-word">${obj.word}</div>
                                 <div class="object-card-controls">
@@ -6905,7 +6900,7 @@
                                     <div class="label-strip">
                                         <img class="label-strip-img"
                                              src="${getObjectImageUrl(obj.searchTerm)}"
-                                             onerror="this.onerror=null; this.src='${getObjectFallbackUrl(obj.word)}';"
+                                             onerror="this.onerror=null; this.src='https://via.placeholder.com/400x250/1f2937/ffffff?text=' + encodeURIComponent('${obj.word.toUpperCase()}');"
                                              alt="${obj.word} label photo">
                                         <div class="label-strip-word">${obj.word}</div>
                                         ${isPaperStrips ? `
