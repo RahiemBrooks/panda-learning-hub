@@ -1663,8 +1663,6 @@
             },
             currentPrompt: null,
             showHints: true,
-            // Practice screen correct option highlight
-            highlightCorrectOption: false,
             // ColorQuest practice mode
             colorQuest: {
                 active: false,
@@ -1679,8 +1677,7 @@
                 recognition: null,
                 currentQuestion: null,
                 choices: [],
-                correctChoice: null,
-                highlightCorrectOption: false // Temporary glow on correct option when question is asked
+                correctChoice: null
             },
             // Learning section intro
             learningIntro: {
@@ -2206,20 +2203,6 @@
         // Global audio element for ElevenLabs TTS playback
         let currentPandaAudio = null;
 
-        // Audio cache to store fetched TTS audio and avoid repeat network calls
-        const ttsAudioCache = new Map();
-
-        // Simple hash function for cache keys
-        function hashText(text) {
-            let hash = 0;
-            for (let i = 0; i < text.length; i++) {
-                const char = text.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
-            }
-            return 'tts_' + hash;
-        }
-
         // Global function to stop all speech - call when navigating away
         function stopAllSpeech() {
             // Stop ElevenLabs audio playback
@@ -2264,15 +2247,29 @@
         };
 
         // YES/NO interpretation patterns (for toddler speech)
-        const YES_PATTERNS = ["yes","yeah","yep","yup","uh-huh","mm-hmm","ok","okay","alright","all right","i'm ready","ready","let's go","let's do it","i'm good","i'm set","i'm done","i'm finished","go","start","begin","sure","sure thing","that's fine","sounds good","i can","i want to","i will","i'm willing","i got it","let me try","i can do it","i'm prepared","let's start","yessir","yes ma'am","yesss","yesss i'm ready","yeah let's go","okay i'm ready","yup i'm ready","ready now","now i'm ready","i'm ready now","go ahead","do it","start it","do the next one","next","next please","continue","keep going","go on","i'm okay","i'm good now","i'm ready to play","i'm ready to learn","i'm ready to pick","i'm ready to answer","yup yup","yeah yeah","let's keep going","move on","reddy","otay","okee","mm-yeah","mm-kay","kay","k"];
+        const YES_PATTERNS = [
+          'yes', 'yeah', 'yep', 'yup',
+          'ready', "i'm ready", 'im ready',
+          'ok', 'okay', 'sure',
+          'uh huh', 'uh-huh',
+          'go'
+        ];
 
-        const NO_PATTERNS = ["no","nope","nah","uh-uh","mm-mm","not yet","wait","hold on","hang on","stop","stop please","don't start","don't","not now","i'm not ready","i'm not ready yet","i need a minute","i need time","one second","wait a second","wait a minute","give me a second","give me a minute","maybe later","later","not right now","i don't know","i dunno","i'm not sure","i can't","i don't want to","i don't feel like it","i don't want to do it","i'm unsure","i need help","help","help me","i need to think","let me think","i'm scared","i'm confused","i don't get it","i don't understand","no thank you","no thanks","stop please","stop that","i'm busy","i'm tired","i'm done for now","i want to stop","let's stop","don't go","go back","back","go back please","redo","not this one","skip","skip it","skip this","i don't want to answer","i don't want to pick","i don't know the answer","i forgot","nooo","no no","nu-uh","nuh","not yettt","waiiiit","hold up","lemme think","i dunnooo","idk","ehh"];
+        const NO_PATTERNS = [
+          'no', 'nope', 'nah',
+          'not yet',
+          'wait',
+          "i'm not ready", 'im not ready',
+          'not ready',
+          "i don't know", 'i dont know',
+          'maybe later'
+        ];
 
         // OPTION interpretation patterns (for multiple choice)
         const OPTION_PATTERNS = {
-            0: ["option one","one","number one","the first one","first","that one","this one","the top one","the left one","the circle one","circle","red","the beginning one","the start one","the first choice","my first choice","pick one","i choose one","i want number one","i pick number one","i pick the first","that's the one","yup the first","wun","numba one","da first","dis one","this first one"],
-            1: ["option two","two","number two","the second one","second","the middle one","the center one","the middle choice","the second choice","my second choice","i choose two","i pick two","i want number two","that one in the middle","that middle one","two please","that's two","yeah two","the next one","the one in the middle","the circle","blue","choo","numba two","sec-on","da middle","dis middle one"],
-            2: ["option three","three","number three","the third one","third","the last one","the one on the right","the bottom one","the final one","the last choice","my third choice","i choose three","i pick three","i want number three","the last option","that one, the last","yeah three","three please","the right one","the circle","green","free","numba free","da last one","dat one","dis last one"]
+            0: ['one', '1', 'option one', 'option 1', 'first one', 'first', 'the first'],
+            1: ['two', '2', 'option two', 'option 2', 'second one', 'second', 'the second'],
+            2: ['three', '3', 'option three', 'option 3', 'third one', 'third', 'the third']
         };
 
         /**
@@ -2490,13 +2487,6 @@
 
                     // Call the result callback
                     if (elevenLabsSTT.onResult) {
-                        console.log('🎤 ELEVENLABS STT CALLBACK INVOKED:', {
-                            mode: elevenLabsSTT.currentMode,
-                            interpretation: interpretation,
-                            interpretationType: typeof interpretation,
-                            transcript: transcript,
-                            transcriptType: typeof transcript
-                        });
                         elevenLabsSTT.onResult({ interpretation, transcript });
                     }
                 };
@@ -2648,46 +2638,10 @@
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
             }
-            // Also stop browser TTS if speaking
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
 
-            const cacheKey = hashText(text);
-            console.log('🐼 PANDA Voice: Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+            console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
-            // Check cache first - instant playback if available
-            if (ttsAudioCache.has(cacheKey)) {
-                console.log('🐼 Playing from cache (instant)');
-                const cachedBlob = ttsAudioCache.get(cacheKey);
-                const audioUrl = URL.createObjectURL(cachedBlob);
-                currentPandaAudio = new Audio(audioUrl);
-                currentPandaAudio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                };
-                currentPandaAudio.onerror = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                };
-                currentPandaAudio.play().catch(err => {
-                    console.error('🐼 Cached audio play failed:', err.message);
-                });
-                return;
-            }
-
-            // Not cached: use browser TTS as immediate fallback while fetching ElevenLabs
-            let browserTTSPlaying = false;
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.1;
-                browserTTSPlaying = true;
-                window.speechSynthesis.speak(utterance);
-                console.log('🐼 Browser TTS started (immediate fallback)');
-            }
-
-            // Fetch ElevenLabs TTS and cache for future use
+            // Call ElevenLabs TTS via Netlify function
             fetch('/.netlify/functions/elevenlabs-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2700,17 +2654,6 @@
                 return response.blob();
             })
             .then(blob => {
-                // Cache the audio for future instant playback
-                ttsAudioCache.set(cacheKey, blob);
-                console.log('🐼 ElevenLabs audio cached for future use');
-
-                // If browser TTS was playing, don't interrupt with ElevenLabs
-                // The next time this phrase is spoken, it will play from cache instantly
-                if (browserTTSPlaying) {
-                    return;
-                }
-
-                // Play the ElevenLabs audio
                 const audioUrl = URL.createObjectURL(blob);
                 currentPandaAudio = new Audio(audioUrl);
                 currentPandaAudio.onended = () => {
@@ -2728,7 +2671,6 @@
             })
             .catch(err => {
                 console.error('🐼 ElevenLabs TTS error:', err.message);
-                // Browser TTS already provided fallback, so just log the error
             });
         }
 
@@ -2830,6 +2772,12 @@
             return;
           }
 
+          // Helper to reuse ElevenLabs YES/NO patterns
+          const matchesPattern = (patterns) => {
+            if (!Array.isArray(patterns)) return false;
+            return patterns.some(pattern => transcript.includes(pattern));
+          };
+
           // 1. Help requests
           if (transcript.includes('help') || transcript.includes('hint') || transcript.includes('what do i say')) {
             const subject = state.currentSubject;
@@ -2857,34 +2805,37 @@
             return;
           }
 
-          // 3. Use the shared yes/no interpreter for consistent pattern matching
-          const yesNoResult = interpretYesNo(transcript);
-
-          // 4. Correct / "yes" intents
-          // Use shared interpreter plus teaching-specific words like "correct"/"right"
+          // 3. Correct / "yes" intents
+          // Use both explicit words and ElevenLabs YES_PATTERNS
           const isYesIntent =
-            yesNoResult === 'yes' ||
             transcript.includes('correct') ||
-            transcript.includes('right');
+            transcript.includes('right') ||
+            transcript.includes('yes') ||
+            matchesPattern(typeof YES_PATTERNS !== 'undefined' ? YES_PATTERNS : []);
 
           if (isYesIntent) {
             checkAnswer(true);
             return;
           }
 
-          // 5. Incorrect / "no / not yet / I don't know" intents
-          // Use shared interpreter plus teaching-specific words like "wrong"/"incorrect"
+          // 4. Incorrect / "no / not yet / I don't know" intents
           const isNoIntent =
-            yesNoResult === 'no' ||
             transcript.includes('wrong') ||
-            transcript.includes('incorrect');
+            transcript.includes('incorrect') ||
+            transcript.includes('no') ||
+            transcript.includes('not yet') ||
+            transcript.includes("i'm not ready") ||
+            transcript.includes('im not ready') ||
+            transcript.includes("i don't know") ||
+            transcript.includes('i dont know') ||
+            matchesPattern(typeof NO_PATTERNS !== 'undefined' ? NO_PATTERNS : []);
 
           if (isNoIntent) {
             checkAnswer(false);
             return;
           }
 
-          // 6. Fallback
+          // 5. Fallback
           speakText("I didn't understand that. You can say 'yes', 'no', 'not yet', 'help', or 'next'.");
         }
 
@@ -4012,47 +3963,11 @@
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
             }
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
 
             const previewText = "Hi there! I'm Panda. And I'm so excited, to learn with you today!";
-            const cacheKey = hashText(previewText);
-            console.log('🐼 PANDA Voice Preview');
+            console.log('🐼 PANDA Voice Preview (ElevenLabs)');
 
-            // Check cache first - instant playback if available
-            if (ttsAudioCache.has(cacheKey)) {
-                console.log('🐼 Playing preview from cache (instant)');
-                const cachedBlob = ttsAudioCache.get(cacheKey);
-                const audioUrl = URL.createObjectURL(cachedBlob);
-                currentPandaAudio = new Audio(audioUrl);
-                currentPandaAudio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                };
-                currentPandaAudio.onerror = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                    showAppToast('Voice preview failed to play.', 'warning');
-                };
-                currentPandaAudio.play().catch(err => {
-                    console.error('🐼 Cached audio play failed:', err.message);
-                    showAppToast('Voice preview failed to play.', 'warning');
-                });
-                logInteraction('panda_voice_preview_played');
-                return;
-            }
-
-            // Not cached: use browser TTS as immediate fallback
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(previewText);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.1;
-                window.speechSynthesis.speak(utterance);
-                console.log('🐼 Browser TTS started for preview');
-            }
-
-            // Fetch ElevenLabs TTS and cache for future use
+            // Call ElevenLabs TTS via Netlify function
             fetch('/.netlify/functions/elevenlabs-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -4065,12 +3980,26 @@
                 return response.blob();
             })
             .then(blob => {
-                // Cache the audio for future instant playback
-                ttsAudioCache.set(cacheKey, blob);
-                console.log('🐼 Preview audio cached for future use');
+                const audioUrl = URL.createObjectURL(blob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                };
+                currentPandaAudio.onerror = () => {
+                    console.error('🐼 Audio playback error');
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    showAppToast('Voice preview failed to play.', 'warning');
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Audio play failed:', err.message);
+                    showAppToast('Voice preview failed to play.', 'warning');
+                });
             })
             .catch(err => {
                 console.error('🐼 ElevenLabs TTS error:', err.message);
+                showAppToast('Voice preview unavailable. Please try again.', 'warning');
             });
 
             logInteraction('panda_voice_preview_played');
@@ -6445,13 +6374,6 @@
 
             // Use ElevenLabs STT with 2-second recording window for yes/no
             startElevenLabsSTT('yesNo', (result) => {
-                console.log('🎤 COLORQUEST YESNO CALLBACK:', {
-                    result: result,
-                    resultType: typeof result,
-                    interpretation: result ? result.interpretation : 'NO_RESULT',
-                    transcript: result ? result.transcript : 'NO_RESULT'
-                });
-
                 state.colorQuest.listening = false;
 
                 // Safety check - make sure we're still waiting for ready
@@ -6460,18 +6382,14 @@
                     return;
                 }
 
-                // Extract interpretation, defaulting to 'unclear' if missing
-                const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
-                console.log('🎤 ColorQuest: Using interpretation:', interpretation);
-
-                if (interpretation === 'yes') {
+                if (result.interpretation === 'yes') {
                     // Child said YES - proceed with enthusiasm
                     speakPanda("Awesome, you're ready! Let's go!", () => {
                         state.colorQuest.waitingForReady = false;
                         generateColorQuestQuestion();
                         render();
                     });
-                } else if (interpretation === 'no') {
+                } else if (result.interpretation === 'no') {
                     // Child said NO - acknowledge and wait
                     speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the Ready button.", () => {
                         render();
@@ -6484,7 +6402,6 @@
                     });
                 } else {
                     // UNCLEAR or UNAVAILABLE - encourage tapping
-                    console.log('🎤 ColorQuest: Falling back to unclear/unavailable path');
                     speakPanda("I didn't quite hear that. You can say 'Yes' or 'No,' or tap the buttons.", () => {
                         render();
                         // Listen again after a delay
@@ -6555,24 +6472,18 @@
             const q = state.colorQuest.currentQuestion;
             let questionText = '';
 
-            // Updated question wording that matches what's on screen
             if (q.type === 'colors') {
-                questionText = `Can you find the ${q.correctAnswer} one? Say '${q.correctAnswer}' or tap it.`;
+                questionText = `Can you find the ${q.correctAnswer} one?`;
             } else if (q.type === 'shapes') {
-                questionText = `Can you find the ${q.correctAnswer}? Say '${q.correctAnswer}' or tap it.`;
+                questionText = `Can you find the ${q.correctAnswer}?`;
             } else {
-                questionText = `Can you find the number ${q.correctAnswer}? Say '${q.correctAnswer}' or tap it.`;
+                questionText = `Can you find the number ${q.correctAnswer}?`;
             }
 
-            // Trigger the brief glow highlight on the correct option
-            state.colorQuest.highlightCorrectOption = true;
-            render();
-
-            // Remove the highlight after 1.5 seconds
-            setTimeout(() => {
-                state.colorQuest.highlightCorrectOption = false;
-                render();
-            }, 1500);
+            // Add voice option instruction if microphone is enabled
+            if (state.audioSetup.microphoneEnabled) {
+                questionText += ` You can tap the answer, or say 'Option 1', 'Option 2', or 'Option 3.'`;
+            }
 
             speakPanda(questionText, () => {
                 // After asking question, start listening for responses
@@ -6692,59 +6603,10 @@
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
             }
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
 
-            const cacheKey = hashText(text);
-            console.log('🐼 PANDA Voice: Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+            console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
-            // Check cache first - instant playback if available
-            if (ttsAudioCache.has(cacheKey)) {
-                console.log('🐼 Playing from cache (instant)');
-                const cachedBlob = ttsAudioCache.get(cacheKey);
-                const audioUrl = URL.createObjectURL(cachedBlob);
-                currentPandaAudio = new Audio(audioUrl);
-                currentPandaAudio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                    if (onComplete) onComplete();
-                };
-                currentPandaAudio.onerror = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    currentPandaAudio = null;
-                    if (onComplete) onComplete();
-                };
-                currentPandaAudio.play().catch(err => {
-                    console.error('🐼 Cached audio play failed:', err.message);
-                    if (onComplete) onComplete();
-                });
-                return;
-            }
-
-            // Not cached: use browser TTS as immediate fallback with callback support
-            let callbackCalled = false;
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.1;
-                utterance.onend = () => {
-                    if (!callbackCalled && onComplete) {
-                        callbackCalled = true;
-                        onComplete();
-                    }
-                };
-                utterance.onerror = () => {
-                    if (!callbackCalled && onComplete) {
-                        callbackCalled = true;
-                        onComplete();
-                    }
-                };
-                window.speechSynthesis.speak(utterance);
-                console.log('🐼 Browser TTS started (immediate fallback)');
-            }
-
-            // Fetch ElevenLabs TTS and cache for future use
+            // Call ElevenLabs TTS via Netlify function
             fetch('/.netlify/functions/elevenlabs-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -6757,17 +6619,31 @@
                 return response.blob();
             })
             .then(blob => {
-                // Cache the audio for future instant playback
-                ttsAudioCache.set(cacheKey, blob);
-                console.log('🐼 ElevenLabs audio cached for future use');
+                const audioUrl = URL.createObjectURL(blob);
+                currentPandaAudio = new Audio(audioUrl);
+                currentPandaAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    // Call the onComplete callback when audio finishes
+                    if (onComplete) onComplete();
+                };
+                currentPandaAudio.onerror = () => {
+                    console.error('🐼 Audio playback error');
+                    URL.revokeObjectURL(audioUrl);
+                    currentPandaAudio = null;
+                    // Still call callback on error so app flow continues
+                    if (onComplete) onComplete();
+                };
+                currentPandaAudio.play().catch(err => {
+                    console.error('🐼 Audio play failed:', err.message);
+                    // Call callback on play failure
+                    if (onComplete) onComplete();
+                });
             })
             .catch(err => {
                 console.error('🐼 ElevenLabs TTS error:', err.message);
-                // If browser TTS wasn't available and callback not called, call it now
-                if (!callbackCalled && onComplete) {
-                    callbackCalled = true;
-                    setTimeout(onComplete, 500);
-                }
+                // Call callback on fetch error so app flow continues
+                if (onComplete) setTimeout(onComplete, 500);
             });
         }
 
@@ -7075,15 +6951,11 @@
                                 ${state.colorQuest.choices.map(choice => {
                                     const isCorrect = choice === state.colorQuest.correctChoice;
                                     const shouldFade = state.colorQuest.hintLevel === 3 && !isCorrect;
-                                    const shouldGlow = state.colorQuest.highlightCorrectOption && isCorrect;
-
-                                    // Glow style for correct option when question is asked
-                                    const glowStyle = shouldGlow ? 'box-shadow: 0 0 20px 8px rgba(16, 185, 129, 0.6), 0 0 40px 16px rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.8);' : '';
-
+                                    
                                     return `
-                                    <button
+                                    <button 
                                         onclick="handleColorQuestAnswer('${choice}')"
-                                        style="background: rgba(45, 63, 95, 0.6); border: 3px solid ${shouldFade ? 'rgba(100, 116, 139, 0.3)' : (shouldGlow ? 'rgba(16, 185, 129, 0.8)' : 'rgba(75, 156, 211, 0.4)')}; border-radius: 20px; padding: 1.5rem; cursor: pointer; transition: all 0.3s; min-height: 180px; display: flex; align-items: center; justify-content: center; opacity: ${shouldFade ? '0.25' : '1'}; transform: scale(${shouldFade ? '0.95' : (shouldGlow ? '1.02' : '1')}); ${glowStyle}"
+                                        style="background: rgba(45, 63, 95, 0.6); border: 3px solid ${shouldFade ? 'rgba(100, 116, 139, 0.3)' : 'rgba(75, 156, 211, 0.4)'}; border-radius: 20px; padding: 1.5rem; cursor: pointer; transition: all 0.3s; min-height: 180px; display: flex; align-items: center; justify-content: center; opacity: ${shouldFade ? '0.25' : '1'}; transform: scale(${shouldFade ? '0.95' : '1'});"
                                         onmouseover="if (!${shouldFade}) { this.style.transform='scale(1.05)'; this.style.borderColor='rgba(75, 156, 211, 0.7)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.3), 0 0 20px rgba(75, 156, 211, 0.2)'; }"
                                         onmouseout="if (!${shouldFade}) { this.style.transform='scale(1)'; this.style.borderColor='rgba(75, 156, 211, 0.4)'; this.style.boxShadow='none'; }">
                                         ${renderColorQuestChoice(q.type, choice)}
@@ -7243,13 +7115,6 @@
 
             // Use ElevenLabs STT with 2-second recording window for yes/no
             startElevenLabsSTT('yesNo', (result) => {
-                console.log('🎤 LEARNINGINTRO YESNO CALLBACK:', {
-                    result: result,
-                    resultType: typeof result,
-                    interpretation: result ? result.interpretation : 'NO_RESULT',
-                    transcript: result ? result.transcript : 'NO_RESULT'
-                });
-
                 state.learningIntro.listening = false;
 
                 // Safety check - make sure we're still waiting for ready
@@ -7258,17 +7123,13 @@
                     return;
                 }
 
-                // Extract interpretation, defaulting to 'unclear' if missing
-                const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
-                console.log('🎤 LearningIntro: Using interpretation:', interpretation);
-
-                if (interpretation === 'yes') {
+                if (result.interpretation === 'yes') {
                     // Child said YES - proceed with enthusiasm
                     stopAllSpeech();
                     speakPanda("Fantastic! Let's begin our magical adventure!", () => {
                         completeMagicalIntro();
                     });
-                } else if (interpretation === 'no') {
+                } else if (result.interpretation === 'no') {
                     // Child said NO - acknowledge and wait
                     speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the Ready button.", () => {
                         render();
@@ -7281,7 +7142,6 @@
                     });
                 } else {
                     // UNCLEAR or UNAVAILABLE - encourage tapping
-                    console.log('🎤 LearningIntro: Falling back to unclear/unavailable path');
                     speakPanda("I didn't quite hear that. You can say 'Yes' or 'No,' or tap the buttons.", () => {
                         render();
                         // Listen again after a delay
@@ -8221,12 +8081,7 @@
           }
 
           startElevenLabsSTT('yesNo', (result) => {
-            console.log('🎤 SUBJECTINTRO YESNO CALLBACK:', {
-              result: result,
-              resultType: typeof result,
-              interpretation: result ? result.interpretation : 'NO_RESULT',
-              transcript: result ? result.transcript : 'NO_RESULT'
-            });
+            console.log('🎤 SubjectIntro STT result:', result);
 
             // Make sure we're still on the subject intro and waiting
             if (!state.subjectIntro || !state.subjectIntro.waitingForReady || !state.currentSubject) {
@@ -8234,34 +8089,23 @@
               return;
             }
 
-            // Extract interpretation - use existing if valid, otherwise call interpretYesNo on transcript
-            const validInterpretations = ['yes', 'no', 'unclear', 'unavailable'];
-            let interpretation;
-
-            if (result && result.interpretation && validInterpretations.includes(result.interpretation)) {
-              // Use existing valid interpretation
-              interpretation = result.interpretation;
-            } else if (result && typeof result.transcript === 'string' && result.transcript.trim()) {
-              // Have transcript but no valid interpretation - use interpretYesNo
-              interpretation = interpretYesNo(result.transcript);
-              console.log('🎤 SubjectIntro: Called interpretYesNo on transcript:', result.transcript, '-> ', interpretation);
-            } else if (typeof result === 'string' && result.trim()) {
-              // Result is a raw transcript string
-              interpretation = interpretYesNo(result);
-              console.log('🎤 SubjectIntro: Called interpretYesNo on raw string:', result, '->', interpretation);
-            } else {
-              // Fallback to unclear
-              interpretation = 'unclear';
-            }
-            console.log('🎤 SubjectIntro: Final interpretation:', interpretation);
+            const interpretation = result && result.interpretation ? result.interpretation : 'unclear';
 
             if (interpretation === 'yes') {
-              // Child is ready – start the subject practice (same as I'M READY button)
+              // Child is ready – start the subject practice
               stopAllSpeech();
-              state.subjectIntro.waitingForReady = false;
-              state.subjectIntro.shown = true;
-              render();
-              setTimeout(() => askCurrentQuestion(), 500);
+              speakPanda("Great! Let's start learning!", () => {
+                state.subjectIntro.waitingForReady = false;
+                state.subjectIntro.shown = true;
+                render();
+                setTimeout(() => {
+                  try {
+                    askCurrentQuestion();
+                  } catch (e) {
+                    console.log('Error asking first question:', e);
+                  }
+                }, 500);
+              });
             } else if (interpretation === 'no') {
               // Child said no / not yet / I don't know – reassure and wait
               speakPanda("Okay, we can wait. When you're ready, say 'I'm ready' or tap the I'm Ready button.", () => {
@@ -8274,7 +8118,6 @@
               });
             } else {
               // UNCLEAR or UNAVAILABLE – gently prompt again
-              console.log('🎤 SubjectIntro: Falling back to unclear/unavailable path');
               speakPanda("I didn't quite hear that. You can say 'Yes' or 'Not yet', or tap the buttons.", () => {
                 render();
                 setTimeout(() => {
@@ -8293,15 +8136,15 @@
             if (!state.currentSubject) return;
             if (state.subjectIntro && state.subjectIntro.waitingForReady) return; // Still on intro screen
             if (state.learningIntro && state.learningIntro.waitingForReady) return; // Still on magical intro
-
+            
             const subject = state.currentSubject;
             const childData = state.learningData[state.activeChildId][subject];
             const items = Object.keys(childData).filter(item => !childData[item].mastered);
-
+            
             if (items.length === 0) return;
-
+            
             const currentItem = state.currentLesson || items[0];
-
+            
             let question = '';
             if (subject === 'colors') {
                 question = `Can you find the ${currentItem} one? Look for ${currentItem}!`;
@@ -8312,15 +8155,7 @@
             } else {
                 question = `Can you find ${currentItem}?`;
             }
-
-            // Briefly highlight the correct option when question is asked
-            state.highlightCorrectOption = true;
-            render();
-            setTimeout(() => {
-                state.highlightCorrectOption = false;
-                render();
-            }, 1500);
-
+            
             speakPanda(question);
         }
 
@@ -8377,13 +8212,29 @@
                                 Ready to practice <span style="color: ${accent.primary}; font-weight: 600;">${subjectData.name}</span>? I'll show you different ${subjectData.name.toLowerCase()}, and you tell me which one it is!
                             </p>
                             
-                            <!-- Voice Info Strip -->
-                            <div style="background: rgba(75, 156, 211, 0.1); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(75, 156, 211, 0.25);">
-                                <p style="font-size: 0.95rem; color: #94a3b8; margin: 0; line-height: 1.5;">
-                                    When you tap <span style="color: #7dd3fc; font-weight: 600;">'I'm Ready!'</span>, Panda will use voice to guide you through the activity.
-                                </p>
+                            <!-- Voice Listening Indicator -->
+                            <div style="background: rgba(20, 184, 166, 0.1); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(20, 184, 166, 0.3); position: relative; overflow: hidden;">
+                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent); animation: shimmer 2s infinite;"></div>
+                                <div style="position: relative; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <span style="width: 4px; height: 16px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite;"></span>
+                                        <span style="width: 4px; height: 24px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.1s;"></span>
+                                        <span style="width: 4px; height: 20px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.2s;"></span>
+                                        <span style="width: 4px; height: 28px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.3s;"></span>
+                                        <span style="width: 4px; height: 18px; background: #14b8a6; border-radius: 2px; animation: sound-wave 0.8s ease-in-out infinite 0.4s;"></span>
+                                    </div>
+                                    <span style="font-size: 1.1rem; font-weight: 600; color: #14b8a6;">Panda is listening...</span>
+                                </div>
+                                <p style="font-size: 0.9rem; color: #5eead4; margin-top: 0.5rem; position: relative;">Say "Yes" or "Ready" when you're ready to start!</p>
                             </div>
-
+                            
+                            <!-- Divider -->
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);"></div>
+                                <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
+                                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);"></div>
+                            </div>
+                            
                             <!-- Start Button -->
                             <button
                                 onclick="stopAllSpeech(); state.subjectIntro.waitingForReady=false; state.subjectIntro.shown=true; render(); setTimeout(() => askCurrentQuestion(), 500);"
@@ -8514,15 +8365,7 @@
                         radial-gradient(1px 1px at 70% 35%, rgba(255,255,255,0.2) 0%, transparent 100%),
                         radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.25) 0%, transparent 100%);
                         pointer-events: none; z-index: 0;"></div>
-
-                    <!-- Glow animation for correct option hint -->
-                    <style>
-                        @keyframes optionGlow {
-                            0% { box-shadow: 0 0 30px ${qAccent.glow}, 0 0 60px ${qAccent.glow}, 0 8px 24px rgba(0, 0, 0, 0.2); }
-                            100% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
-                        }
-                    </style>
-
+                    
                     <!-- Main Content -->
                     <div style="position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 32px 24px;">
                         
@@ -8544,6 +8387,42 @@
                                 </button>
                             </div>
                         </div>
+
+                        ${state.teacherMode && teachingPrompt ? `
+                            <!-- Parent Teaching Guide -->
+                            <div style="background: rgba(139, 92, 246, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; margin-bottom: 32px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                                <h4 style="font-size: 1.25rem; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                                    👨‍🏫 Parent Guide: Teaching "${currentItem}"
+                                </h4>
+                                
+                                <div style="display: grid; gap: 16px;">
+                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                                        <p style="font-weight: 700; color: #c4b5fd; margin-bottom: 8px; font-size: 0.95rem;">1️⃣ Say to Your Child:</p>
+                                        <p style="color: #e2e8f0; font-size: 1.1rem; line-height: 1.6;">"${teachingPrompt.say}"</p>
+                                        <button onclick="speakText('${teachingPrompt.say.replace(/'/g, "\\'")}');" style="font-size: 0.85rem; color: #a78bfa; margin-top: 12px; padding: 8px 14px; background: rgba(139, 92, 246, 0.2); border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">🔊 Play Audio</button>
+                                    </div>
+                                    
+                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                                        <p style="font-weight: 700; color: #93c5fd; margin-bottom: 8px; font-size: 0.95rem;">2️⃣ Point & Show:</p>
+                                        <p style="color: #e2e8f0; line-height: 1.6;">${teachingPrompt.show}</p>
+                                    </div>
+                                    
+                                    <div style="background: rgba(251, 191, 36, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(251, 191, 36, 0.3);">
+                                        <p style="font-weight: 700; color: #fcd34d; margin-bottom: 8px; font-size: 0.95rem;">💡 Tips:</p>
+                                        <p style="color: #fef3c7; font-size: 0.95rem; line-height: 1.6;">${teachingPrompt.tips}</p>
+                                    </div>
+                                    
+                                    ${itemData.incorrect > 1 ? `
+                                        <div style="background: rgba(249, 115, 22, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(249, 115, 22, 0.3);">
+                                            <p style="font-weight: 700; color: #fdba74; margin-bottom: 8px; font-size: 0.95rem;">🆘 Helpful Hints:</p>
+                                            <ul style="font-size: 0.95rem; color: #fed7aa; line-height: 1.8; padding-left: 20px;">
+                                                ${teachingPrompt.hints.map(hint => `<li>${hint}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <!-- Streak Feedback Banner -->
                         ${itemData.consecutiveCorrect > 0 ? `
@@ -8572,22 +8451,18 @@
 
                         <!-- Multiple Choice Options -->
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto 40px;">
-                            ${options.map((option, index) => {
-                                const isCorrectOption = option === currentItem;
-                                const showGlow = state.highlightCorrectOption && isCorrectOption;
-                                const glowStyle = showGlow ? `border-color: ${qAccent.primary}; box-shadow: 0 0 25px ${qAccent.glow}, 0 0 50px ${qAccent.glow}, 0 8px 24px rgba(0, 0, 0, 0.2); animation: optionGlow 1.5s ease-out;` : '';
-                                return `
-                                <button onclick="selectAnswer('${option}')" style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(10px); border: 2px solid rgba(75, 156, 211, 0.25); border-radius: 20px; padding: 28px 20px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); ${glowStyle}" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.borderColor='${qAccent.primary}'; this.style.boxShadow='0 12px 32px rgba(0,0,0,0.3), 0 0 20px ${qAccent.glow}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.borderColor='rgba(75, 156, 211, 0.25)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.2)'">
+                            ${options.map((option, index) => `
+                                <button onclick="selectAnswer('${option}')" style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(10px); border: 2px solid rgba(75, 156, 211, 0.25); border-radius: 20px; padding: 28px 20px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.borderColor='${qAccent.primary}'; this.style.boxShadow='0 12px 32px rgba(0,0,0,0.3), 0 0 20px ${qAccent.glow}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.borderColor='rgba(75, 156, 211, 0.25)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.2)'">
                                     <div style="margin-bottom: 16px;">${renderLearningOption(subject, option)}</div>
                                     <p style="text-align: center; font-size: 1rem; font-weight: 600; color: #94a3b8;">Option ${index + 1}</p>
                                 </button>
-                            `}).join('')}
+                            `).join('')}
                         </div>
 
                         <!-- Progress Indicator - Compact -->
                         <div style="background: rgba(26, 39, 68, 0.6); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(75, 156, 211, 0.15);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering ${subject === 'numbers' ? 'the number' : subject === 'colors' ? 'the color' : ''} "${currentItem}"</p>
+                                <p style="font-size: 1rem; font-weight: 600; color: #e2e8f0;">Mastering "${currentItem}"</p>
                                 <p style="font-size: 0.85rem; color: #64748b;">${itemData.attempts} tries</p>
                             </div>
                             <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
@@ -8603,42 +8478,6 @@
                                   'Almost there! Just 1 more!'}
                             </p>
                         </div>
-
-                        ${state.teacherMode && teachingPrompt ? `
-                            <!-- Parent Teaching Guide -->
-                            <div style="background: rgba(139, 92, 246, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 24px; margin-top: 32px; border: 1px solid rgba(139, 92, 246, 0.3);">
-                                <h4 style="font-size: 1.25rem; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                                    👨‍🏫 Parent Guide: Teaching "${currentItem}"
-                                </h4>
-
-                                <div style="display: grid; gap: 16px;">
-                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(139, 92, 246, 0.2);">
-                                        <p style="font-weight: 700; color: #c4b5fd; margin-bottom: 8px; font-size: 0.95rem;">1️⃣ Say to Your Child:</p>
-                                        <p style="color: #e2e8f0; font-size: 1.1rem; line-height: 1.6;">"${teachingPrompt.say}"</p>
-                                        <button onclick="speakText('${teachingPrompt.say.replace(/'/g, "\\'")}');" style="font-size: 0.85rem; color: #a78bfa; margin-top: 12px; padding: 8px 14px; background: rgba(139, 92, 246, 0.2); border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">🔊 Play Audio</button>
-                                    </div>
-
-                                    <div style="background: rgba(26, 39, 68, 0.6); border-radius: 14px; padding: 18px; border: 1px solid rgba(59, 130, 246, 0.2);">
-                                        <p style="font-weight: 700; color: #93c5fd; margin-bottom: 8px; font-size: 0.95rem;">2️⃣ Point & Show:</p>
-                                        <p style="color: #e2e8f0; line-height: 1.6;">${teachingPrompt.show}</p>
-                                    </div>
-
-                                    <div style="background: rgba(251, 191, 36, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(251, 191, 36, 0.3);">
-                                        <p style="font-weight: 700; color: #fcd34d; margin-bottom: 8px; font-size: 0.95rem;">💡 Tips:</p>
-                                        <p style="color: #fef3c7; font-size: 0.95rem; line-height: 1.6;">${teachingPrompt.tips}</p>
-                                    </div>
-
-                                    ${itemData.incorrect > 1 ? `
-                                        <div style="background: rgba(249, 115, 22, 0.1); border-radius: 14px; padding: 18px; border: 1px solid rgba(249, 115, 22, 0.3);">
-                                            <p style="font-weight: 700; color: #fdba74; margin-bottom: 8px; font-size: 0.95rem;">🆘 Helpful Hints:</p>
-                                            <ul style="font-size: 0.95rem; color: #fed7aa; line-height: 1.8; padding-left: 20px;">
-                                                ${teachingPrompt.hints.map(hint => `<li>${hint}</li>`).join('')}
-                                            </ul>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        ` : ''}
 
                         <!-- Voice Help Button -->
                         ${state.voiceEnabled ? `
@@ -8729,16 +8568,7 @@
                     // Celebration modal
                     setTimeout(() => {
                         const childName = state.children.find(c => c.id === state.activeChildId).name;
-                        // Use subject-appropriate wording for the mastery message
-                        let masteryMessage;
-                        if (subject === 'numbers') {
-                            masteryMessage = `${childName} has mastered the number ${item}!\n\nGreat teaching!`;
-                        } else if (subject === 'colors') {
-                            masteryMessage = `${childName} has mastered the color ${item}!\n\nGreat teaching!`;
-                        } else {
-                            masteryMessage = `${childName} has mastered ${item}!\n\nGreat teaching!`;
-                        }
-                        showAppModal(`MASTERED: ${item}!`, masteryMessage, 'celebration', () => {
+                        showAppModal(`MASTERED: ${item}!`, `${childName} has mastered this item!\n\nGreat teaching!`, 'celebration', () => {
                             state.currentLesson = null;
                             render();
                         });
