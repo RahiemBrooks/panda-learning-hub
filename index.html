@@ -1245,28 +1245,47 @@
         }
         
         .day-nav-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 1px solid rgba(75, 156, 211, 0.3);
-            background: rgba(26, 39, 68, 0.8);
-            display: flex;
+            min-width: 100px;
+            min-height: 44px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(15, 23, 42, 0.8);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
             cursor: pointer;
-            transition: all 0.15s;
-            color: #94a3b8;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+            color: #e5e7eb;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
         }
-        
+
         .day-nav-btn:hover:not(:disabled) {
             background: rgba(75, 156, 211, 0.2);
-            border-color: var(--unc-blue);
+            border-color: rgba(148, 163, 184, 0.9);
             color: white;
+            transform: translateY(-1px);
         }
-        
+
         .day-nav-btn:disabled {
-            opacity: 0.3;
+            opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .day-nav-btn-primary {
+            border-color: #4B9CD3;
+            background: linear-gradient(135deg, #4B9CD3 0%, #7BAFD4 100%);
+            color: #ffffff;
+        }
+
+        .day-nav-btn-primary:hover:not(:disabled) {
+            border-color: #93c5fd;
+            background: linear-gradient(135deg, #5BA6DB 0%, #8BC0E0 100%);
+            color: #ffffff;
+            transform: translateY(-1px);
         }
         
         .exit-btn {
@@ -7086,15 +7105,15 @@
 
                 <!-- Day Navigation -->
                 <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 24px;">
-                    <button class="day-nav-btn" onclick="previousDay()" ${state.currentDay <= 1 ? 'disabled' : ''} style="background: rgba(26, 39, 68, 0.8); border: 1px solid rgba(75, 156, 211, 0.3); border-radius: 10px; padding: 10px 16px; cursor: ${state.currentDay <= 1 ? 'not-allowed' : 'pointer'}; opacity: ${state.currentDay <= 1 ? '0.5' : '1'}; transition: all 0.2s; display: flex; align-items: center; gap: 8px; color: #94a3b8;">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button class="day-nav-btn" onclick="previousDay()" ${state.currentDay <= 1 ? 'disabled' : ''}>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
                         Previous
                     </button>
-                    <button class="day-nav-btn" onclick="nextDay()" ${state.currentDay >= maxDay ? 'disabled' : ''} style="background: rgba(26, 39, 68, 0.8); border: 1px solid rgba(75, 156, 211, 0.3); border-radius: 10px; padding: 10px 16px; cursor: ${state.currentDay >= maxDay ? 'not-allowed' : 'pointer'}; opacity: ${state.currentDay >= maxDay ? '0.5' : '1'}; transition: all 0.2s; display: flex; align-items: center; gap: 8px; color: #94a3b8;">
+                    <button class="day-nav-btn day-nav-btn-primary" onclick="nextDay()" ${state.currentDay >= maxDay ? 'disabled' : ''}>
                         Next
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </button>
