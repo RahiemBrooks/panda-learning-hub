@@ -2360,6 +2360,7 @@
         }
 
         // Save app state (children, learningData, assessments) to localStorage
+        // Also triggers server sync for cross-device persistence
         function saveAppStateToStorage() {
             try {
                 const persistentState = {
@@ -2371,6 +2372,11 @@
                     // END REPEAT MASTERY COUNTS
                 };
                 localStorage.setItem(STORAGE_KEYS.APP_STATE, JSON.stringify(persistentState));
+
+                // BEGIN CROSS-DEVICE SYNC
+                // Also sync to server (non-blocking, fire-and-forget)
+                syncAppStateToServer();
+                // END CROSS-DEVICE SYNC
             } catch (e) {
                 console.warn('PANDA: Could not save app state to localStorage', e);
             }
@@ -2542,6 +2548,123 @@
 
         // ============================================================================
         // END NAVIGATION PERSISTENCE
+        // ============================================================================
+
+        // ============================================================================
+        // BEGIN CROSS-DEVICE SYNC - Server-side state persistence
+        // ============================================================================
+
+        // Load state from server for the given participant ID
+        // This function is async and should be called after loadConsentFromStorage()
+        // to merge server state into local state (server state takes precedence)
+        async function loadServerStateForParticipant(participantId) {
+            if (!participantId) {
+                console.log('PANDA: No participantId, skipping server sync');
+                return;
+            }
+
+            try {
+                console.log('PANDA: Fetching state from server for participant:', participantId);
+                const res = await fetch('/.netlify/functions/state?participantId=' + encodeURIComponent(participantId));
+                const data = await res.json();
+
+                if (data.success && data.state) {
+                    console.log('PANDA: Server state found, merging into local state');
+
+                    // Merge server state into local app state (server is canonical)
+                    if (Array.isArray(data.state.children)) {
+                        state.children = data.state.children;
+                    }
+                    if (typeof data.state.learningData === 'object' && data.state.learningData !== null) {
+                        state.learningData = data.state.learningData;
+                    }
+                    if (Array.isArray(data.state.journalEntries)) {
+                        state.journalEntries = data.state.journalEntries;
+                    }
+                    if (typeof data.state.repeatMasteries === 'object' && data.state.repeatMasteries !== null) {
+                        state.repeatMasteries = data.state.repeatMasteries;
+                    }
+
+                    // Ensure learning data exists for all children (handles any inconsistencies)
+                    state.children.forEach(child => {
+                        if (child && child.id) {
+                            ensureLearningDataForChild(child.id);
+                            ensureRepeatMasteriesForChild(child.id);
+                        }
+                    });
+
+                    // Ensure funPracticeSession is always initialized
+                    ensureFunPracticeSession();
+
+                    // Set first child as selected if exists
+                    if (state.children.length > 0 && !state.selectedChildForProgress) {
+                        state.selectedChildForProgress = state.children[0].id;
+                    }
+
+                    // Also write this to localStorage as backup
+                    saveAppStateToStorage();
+
+                    // Re-render to show updated data
+                    render();
+
+                    console.log('PANDA: Server state merged successfully, updatedAt:', data.updatedAt);
+                } else {
+                    console.log('PANDA: No server state found, checking if we need to push local state');
+                    // No server state yet; if we have local state, push it up
+                    const hasLocalData = state.children.length > 0 ||
+                                        Object.keys(state.learningData).length > 0 ||
+                                        state.journalEntries.length > 0 ||
+                                        Object.keys(state.repeatMasteries).length > 0;
+
+                    if (hasLocalData) {
+                        console.log('PANDA: Local state exists, syncing to server');
+                        syncAppStateToServer();
+                    }
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not load server state, falling back to local only', e);
+                // App continues with localStorage data - no blocking
+            }
+        }
+
+        // Sync app state to server (non-blocking, fire-and-forget with warning on failure)
+        async function syncAppStateToServer() {
+            if (!state.participantId) {
+                return; // No participant ID, cannot sync
+            }
+
+            const persistentState = {
+                children: state.children,
+                learningData: state.learningData,
+                journalEntries: state.journalEntries,
+                repeatMasteries: state.repeatMasteries
+            };
+
+            try {
+                console.log('PANDA: Syncing state to server for participant:', state.participantId);
+                const res = await fetch('/.netlify/functions/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        participantId: state.participantId,
+                        state: persistentState,
+                        updatedAt: new Date().toISOString()
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    console.log('PANDA: State synced to server successfully');
+                } else {
+                    console.warn('PANDA: Server sync returned error:', data.error);
+                }
+            } catch (e) {
+                console.warn('PANDA: Could not sync to server (will retry on next save)', e);
+            }
+        }
+
+        // ============================================================================
+        // END CROSS-DEVICE SYNC
         // ============================================================================
 
         // ============================================================================
@@ -4345,6 +4468,11 @@
             // Save consent and participation code to localStorage
             saveConsentToStorage();
 
+            // BEGIN CROSS-DEVICE SYNC
+            // Fetch any existing state for this demo participant ID from the server
+            loadServerStateForParticipant(demoId);
+            // END CROSS-DEVICE SYNC
+
             state.currentView = 'audioSetup';
             render();
         }
@@ -4406,6 +4534,13 @@
 
             // Save consent and participation code to localStorage
             saveConsentToStorage();
+
+            // BEGIN CROSS-DEVICE SYNC
+            // Fetch any existing state for this participant ID from the server
+            // This is async and non-blocking - if server has data, it will be loaded
+            // and the app will re-render with the merged state
+            loadServerStateForParticipant(id);
+            // END CROSS-DEVICE SYNC
 
             state.currentView = 'audioSetup';
             render();
@@ -10963,7 +11098,16 @@
 
         // Check for saved consent/participation code before first render
         // If found, skip consent/code screens and go directly to role selection
-        loadConsentFromStorage();
+        const consentRestored = loadConsentFromStorage();
+
+        // BEGIN CROSS-DEVICE SYNC
+        // If consent was restored and we have a participantId, fetch server state
+        // This is async and non-blocking - the app renders immediately with localStorage data
+        // and updates when server state arrives (if different)
+        if (consentRestored && state.participantId) {
+            loadServerStateForParticipant(state.participantId);
+        }
+        // END CROSS-DEVICE SYNC
 
         render();
     </script>

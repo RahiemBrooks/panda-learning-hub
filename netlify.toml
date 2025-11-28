@@ -1,0 +1,11 @@
+# Netlify configuration for PANDA Learning Hub
+
+[build]
+  # No build command needed for static site
+  publish = "."
+
+[functions]
+  # Directory containing Netlify Functions
+  directory = "netlify/functions"
+  # Use esbuild for bundling (includes dependencies)
+  node_bundler = "esbuild"
