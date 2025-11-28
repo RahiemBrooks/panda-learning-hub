@@ -1663,6 +1663,8 @@
             },
             currentPrompt: null,
             showHints: true,
+            // Practice screen correct option highlight
+            highlightCorrectOption: false,
             // ColorQuest practice mode
             colorQuest: {
                 active: false,
@@ -8172,15 +8174,15 @@
             if (!state.currentSubject) return;
             if (state.subjectIntro && state.subjectIntro.waitingForReady) return; // Still on intro screen
             if (state.learningIntro && state.learningIntro.waitingForReady) return; // Still on magical intro
-            
+
             const subject = state.currentSubject;
             const childData = state.learningData[state.activeChildId][subject];
             const items = Object.keys(childData).filter(item => !childData[item].mastered);
-            
+
             if (items.length === 0) return;
-            
+
             const currentItem = state.currentLesson || items[0];
-            
+
             let question = '';
             if (subject === 'colors') {
                 question = `Can you find the ${currentItem} one? Look for ${currentItem}!`;
@@ -8191,7 +8193,15 @@
             } else {
                 question = `Can you find ${currentItem}?`;
             }
-            
+
+            // Briefly highlight the correct option when question is asked
+            state.highlightCorrectOption = true;
+            render();
+            setTimeout(() => {
+                state.highlightCorrectOption = false;
+                render();
+            }, 1500);
+
             speakPanda(question);
         }
 
@@ -8385,7 +8395,15 @@
                         radial-gradient(1px 1px at 70% 35%, rgba(255,255,255,0.2) 0%, transparent 100%),
                         radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.25) 0%, transparent 100%);
                         pointer-events: none; z-index: 0;"></div>
-                    
+
+                    <!-- Glow animation for correct option hint -->
+                    <style>
+                        @keyframes optionGlow {
+                            0% { box-shadow: 0 0 30px ${qAccent.glow}, 0 0 60px ${qAccent.glow}, 0 8px 24px rgba(0, 0, 0, 0.2); }
+                            100% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
+                        }
+                    </style>
+
                     <!-- Main Content -->
                     <div style="position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 32px 24px;">
                         
@@ -8435,12 +8453,16 @@
 
                         <!-- Multiple Choice Options -->
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto 40px;">
-                            ${options.map((option, index) => `
-                                <button onclick="selectAnswer('${option}')" style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(10px); border: 2px solid rgba(75, 156, 211, 0.25); border-radius: 20px; padding: 28px 20px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.borderColor='${qAccent.primary}'; this.style.boxShadow='0 12px 32px rgba(0,0,0,0.3), 0 0 20px ${qAccent.glow}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.borderColor='rgba(75, 156, 211, 0.25)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.2)'">
+                            ${options.map((option, index) => {
+                                const isCorrectOption = option === currentItem;
+                                const showGlow = state.highlightCorrectOption && isCorrectOption;
+                                const glowStyle = showGlow ? `border-color: ${qAccent.primary}; box-shadow: 0 0 25px ${qAccent.glow}, 0 0 50px ${qAccent.glow}, 0 8px 24px rgba(0, 0, 0, 0.2); animation: optionGlow 1.5s ease-out;` : '';
+                                return `
+                                <button onclick="selectAnswer('${option}')" style="background: rgba(26, 39, 68, 0.85); backdrop-filter: blur(10px); border: 2px solid rgba(75, 156, 211, 0.25); border-radius: 20px; padding: 28px 20px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); ${glowStyle}" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.borderColor='${qAccent.primary}'; this.style.boxShadow='0 12px 32px rgba(0,0,0,0.3), 0 0 20px ${qAccent.glow}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.borderColor='rgba(75, 156, 211, 0.25)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.2)'">
                                     <div style="margin-bottom: 16px;">${renderLearningOption(subject, option)}</div>
                                     <p style="text-align: center; font-size: 1rem; font-weight: 600; color: #94a3b8;">Option ${index + 1}</p>
                                 </button>
-                            `).join('')}
+                            `}).join('')}
                         </div>
 
                         <!-- Progress Indicator - Compact -->
