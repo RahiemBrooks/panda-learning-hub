@@ -2183,6 +2183,7 @@
             consentScrolled: false,
             participantId: null,
             userId: null,
+            sessionParticipantConfirmed: false, // Must be confirmed each launch via ID entry
             preTestCompleted: false,
             currentDay: 1,
             journalEntries: [],
@@ -2350,6 +2351,7 @@
         const STORAGE_KEYS = {
             CONSENT_GIVEN: 'pandaConsentGiven',
             PARTICIPATION_CODE: 'pandaParticipationCode',
+            SAVED_PARTICIPANT_ID: 'pandaSavedParticipantId', // Last confirmed ID (convenience only)
             APP_STATE: 'pandaAppState',
             // BEGIN NAVIGATION PERSISTENCE
             NAV_STATE: 'pandaNavState' // For storing currentView, activeChildId, currentSubject
@@ -2449,34 +2451,28 @@
             }
         }
 
-        // Check if user has already completed consent/code entry
+        // Check if user has already completed consent
+        // NOTE: participantId is NOT restored here - it must be re-confirmed every session
         function loadConsentFromStorage() {
             try {
                 const consentGiven = localStorage.getItem(STORAGE_KEYS.CONSENT_GIVEN);
-                const participationCode = localStorage.getItem(STORAGE_KEYS.PARTICIPATION_CODE);
 
-                if (consentGiven === 'true' && participationCode && participationCode.length > 0) {
-                    // Restore consent and participation state
+                if (consentGiven === 'true') {
+                    // Restore consent flag only; participantId must be re-entered each launch
                     state.consentGiven = true;
-                    state.participantId = participationCode;
-                    state.userId = `PANDA_${participationCode}_restored`;
 
                     // Load saved app state (children, progress, etc.)
                     loadAppStateFromStorage();
 
-                    // Skip to role selection (audio setup is not re-required)
+                    // Skip audio setup (not re-required for returning users)
                     state.audioSetup.setupComplete = true;
 
-                    // BEGIN NAVIGATION PERSISTENCE - Restore last view on reload
-                    // Try to restore navigation state (currentView, activeChildId, currentSubject)
-                    const restoredView = loadNavStateFromStorage();
-                    if (!restoredView) {
-                        // Fallback to role selection if no valid nav state
-                        state.currentView = 'roleSelection';
-                    }
-                    // END NAVIGATION PERSISTENCE
+                    // Always route returning users to participant ID entry
+                    // Nav state is restored AFTER successful ID confirmation in submitParticipantId()
+                    state.currentView = 'participantIdEntry';
+                    state.sessionParticipantConfirmed = false;
 
-                    return true; // Consent was restored
+                    return true; // Consent was found
                 }
             } catch (e) {
                 console.warn('PANDA: Could not load consent from localStorage', e);
@@ -4526,14 +4522,61 @@
         // ============================================================================
 
         function renderParticipantIdEntry() {
+            // Determine if this is a returning user (consent already stored)
+            const isReturningUser = state.consentGiven && localStorage.getItem(STORAGE_KEYS.CONSENT_GIVEN) === 'true';
+            // Check for a previously saved participant ID (convenience "Continue as" button)
+            let savedId = null;
+            try { savedId = localStorage.getItem(STORAGE_KEYS.SAVED_PARTICIPANT_ID); } catch(e) {}
+
+            const stepBadge = isReturningUser
+                ? `<span class="inline-block px-4 py-2 rounded-full text-sm font-medium" style="background: var(--accent-orange-glow); color: var(--accent-orange-bright); border: 1px solid var(--border-accent);">
+                       Confirm Your Participant ID
+                   </span>`
+                : `<span class="inline-block px-4 py-2 rounded-full text-sm font-medium" style="background: var(--accent-orange-glow); color: var(--accent-orange-bright); border: 1px solid var(--border-accent);">
+                       Step 3 of 5: Participant ID
+                   </span>`;
+
+            const continueAsButton = (savedId && isReturningUser)
+                ? `<!-- Continue as last-used ID -->
+                   <div style="margin-bottom: 16px;">
+                       <button
+                           onclick="submitParticipantId('${savedId}')"
+                           style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--unc-blue) 0%, #5ba3d9 100%); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px rgba(75,156,211,0.35);"
+                           onmouseover="this.style.transform='translateY(-2px)'; this.style.opacity='0.92'"
+                           onmouseout="this.style.transform='translateY(0)'; this.style.opacity='1'">
+                           ✓ Continue as ${savedId}
+                       </button>
+                       <p style="color: var(--text-muted); font-size: 0.78rem; margin-top: 6px; text-align: center;">
+                           Last session ID — click to confirm and continue
+                       </p>
+                   </div>
+                   <!-- Divider -->
+                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                       <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                       <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">or enter a different ID</span>
+                       <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                   </div>`
+                : '';
+
+            // Back button: only shown to first-time users (not yet stored consent)
+            const backToConsentButton = !isReturningUser
+                ? `<div style="margin-top: 16px;">
+                       <button
+                           onclick="state.currentView='consent'; state.consentGiven=false; state.consentScrolled=false; render();"
+                           style="width: 100%; padding: 12px; background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                           onmouseover="this.style.borderColor='var(--unc-blue)'; this.style.color='var(--unc-blue)'"
+                           onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.color='var(--text-muted)'">
+                           ← Back to Consent Form
+                       </button>
+                   </div>`
+                : '';
+
             return `
                 <div class="min-h-screen dark-theme-bg flex items-center justify-center p-4">
                     <div style="max-width: 480px; width: 100%;">
                         <!-- Step Indicator -->
                         <div class="text-center mb-6">
-                            <span class="inline-block px-4 py-2 rounded-full text-sm font-medium" style="background: var(--accent-orange-glow); color: var(--accent-orange-bright); border: 1px solid var(--border-accent);">
-                                Step 3 of 5: Participant ID
-                            </span>
+                            ${stepBadge}
                         </div>
 
                         <!-- Logo/Brand -->
@@ -4542,21 +4585,25 @@
                             <h1 style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">PANDA</h1>
                             <p style="color: var(--text-muted); font-size: 0.9rem;">Learning Hub</p>
                         </div>
-                        
+
                         <!-- Card -->
                         <div class="glass-card" style="background: rgba(31, 42, 66, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border-accent); border-radius: 24px; padding: 32px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);">
                             <div style="text-align: center; margin-bottom: 24px;">
                                 <h2 style="font-size: 1.4rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Enter Your Participant ID</h2>
                                 <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
-                                    This 5-digit code links your responses to the study while keeping your name private.
+                                    ${isReturningUser
+                                        ? 'Please confirm your participant ID to start today\'s session.'
+                                        : 'This 5-digit code links your responses to the study while keeping your name private.'}
                                 </p>
                             </div>
 
+                            ${continueAsButton}
+
                             <div style="margin-bottom: 20px;">
                                 <label style="display: block; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; font-size: 0.85rem;">Participant ID</label>
-                                <input 
-                                    type="text" 
-                                    id="participantIdInput" 
+                                <input
+                                    type="text"
+                                    id="participantIdInput"
                                     placeholder="e.g., 12000"
                                     maxlength="5"
                                     style="width: 100%; padding: 16px; font-size: 1.4rem; text-align: center; background: var(--bg-deep); border: 2px solid var(--border-default); border-radius: 12px; color: var(--text-primary); font-weight: 600; letter-spacing: 0.15em; transition: all 0.2s;"
@@ -4571,8 +4618,8 @@
                                 </p>
                             </div>
 
-                            <button 
-                                onclick="submitParticipantId()" 
+                            <button
+                                onclick="submitParticipantId()"
                                 style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-bright) 100%); color: white; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px var(--accent-orange-glow);"
                                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 30px var(--accent-orange-glow)'"
                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px var(--accent-orange-glow)'">
@@ -4581,7 +4628,7 @@
 
                             <!-- I don't have my code link -->
                             <div style="margin-top: 16px; text-align: center;">
-                                <button 
+                                <button
                                     onclick="toggleCodeHelp()"
                                     style="background: none; border: none; color: var(--unc-blue); font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 4px;"
                                 >
@@ -4593,17 +4640,8 @@
                                     </p>
                                 </div>
                             </div>
-                            
-                            <!-- Back to Consent -->
-                            <div style="margin-top: 16px;">
-                                <button 
-                                    onclick="state.currentView='consent'; state.consentGiven=false; state.consentScrolled=false; render();" 
-                                    style="width: 100%; padding: 12px; background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;"
-                                    onmouseover="this.style.borderColor='var(--unc-blue)'; this.style.color='var(--unc-blue)'"
-                                    onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.color='var(--text-muted)'">
-                                    ← Back to Consent Form
-                                </button>
-                            </div>
+
+                            ${backToConsentButton}
 
                             <!-- Demo Mode Divider -->
                             <div style="margin-top: 24px; display: flex; align-items: center; gap: 12px;">
@@ -4614,7 +4652,7 @@
 
                             <!-- Demo Mode Button -->
                             <div style="margin-top: 16px;">
-                                <button 
+                                <button
                                     onclick="enterDemoMode()"
                                     style="width: 100%; padding: 12px; background: var(--bg-elevated); color: var(--text-secondary); border: 1px dashed var(--border-default); border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;"
                                     onmouseover="this.style.borderColor='var(--accent-orange)'; this.style.color='var(--accent-orange-bright)'"
@@ -4655,6 +4693,7 @@
             state.participantId = demoId;
             state.userId = `PANDA_DEMO_${demoId}_${Date.now()}`;
             state.isDemoMode = true;
+            state.sessionParticipantConfirmed = true;
             logInteraction('demo_mode_entered', { participantId: demoId });
 
             // Save consent and participation code to localStorage
@@ -4704,28 +4743,42 @@
             return { valid: true };
         }
 
-        function submitParticipantId() {
+        function submitParticipantId(prefillId) {
             const input = document.getElementById('participantIdInput');
             const errorDiv = document.getElementById('idError');
-            const id = input.value.trim();
+            // Allow passing a pre-filled ID (e.g. from "Continue as XXXXX" button)
+            const id = prefillId !== undefined ? String(prefillId).trim() : input.value.trim();
 
             const validation = validateParticipantId(id);
 
             if (!validation.valid) {
-                errorDiv.textContent = validation.message;
-                errorDiv.style.display = 'block';
-                input.style.borderColor = '#EF4444';
-                input.focus();
+                if (errorDiv) {
+                    errorDiv.textContent = validation.message;
+                    errorDiv.style.display = 'block';
+                }
+                if (input) {
+                    input.style.borderColor = '#EF4444';
+                    input.focus();
+                }
                 return;
             }
 
-            // Valid ID - proceed to audio setup
+            // Valid ID - confirm for this session
             state.participantId = id;
             state.userId = `PANDA_${id}_${Date.now()}`;
+            state.sessionParticipantConfirmed = true;
+
             logInteraction('participant_id_verified', { participantId: id });
 
             // Save consent and participation code to localStorage
             saveConsentToStorage();
+            // Save last-used ID as convenience for next session's "Continue as" button
+            try {
+                localStorage.setItem(STORAGE_KEYS.SAVED_PARTICIPANT_ID, id);
+            } catch (e) { /* ignore */ }
+
+            // Fire session_start logging now that a valid participantId is confirmed
+            logInteraction('session_start', { participantId: id });
 
             // BEGIN CROSS-DEVICE SYNC
             // Fetch any existing state for this participant ID from the server
@@ -4734,7 +4787,18 @@
             loadServerStateForParticipant(id);
             // END CROSS-DEVICE SYNC
 
-            state.currentView = 'audioSetup';
+            // For returning users (audio setup already complete), restore nav state
+            // For first-time users, proceed to audio setup
+            if (state.audioSetup.setupComplete) {
+                // BEGIN NAVIGATION PERSISTENCE - Restore last view for returning users
+                const restoredView = loadNavStateFromStorage();
+                if (!restoredView) {
+                    state.currentView = 'roleSelection';
+                }
+                // END NAVIGATION PERSISTENCE
+            } else {
+                state.currentView = 'audioSetup';
+            }
             render();
         }
 
@@ -7770,6 +7834,13 @@
 
         function acceptConsent() {
             state.consentGiven = true;
+            // Save consent to localStorage immediately so returning users skip consent on reload
+            try {
+                localStorage.setItem(STORAGE_KEYS.CONSENT_GIVEN, 'true');
+                localStorage.setItem('pandaConsentTimestamp', new Date().toISOString());
+            } catch (e) {
+                console.warn('PANDA: Could not save consent to localStorage', e);
+            }
             logInteraction('consent_accepted');
             state.currentView = 'participantIdEntry';
             render();
@@ -7791,6 +7862,30 @@
             stopAllSpeech(); // Stop any ongoing speech
             state.userRole = null;
             state.currentView = 'roleSelection';
+            render();
+        }
+
+        // Full reset: clears all stored data and returns to the consent screen.
+        // Useful for testing or switching to a completely new participant.
+        function fullResetApp() {
+            stopAllSpeech();
+            try {
+                localStorage.removeItem(STORAGE_KEYS.CONSENT_GIVEN);
+                localStorage.removeItem('pandaConsentTimestamp');
+                localStorage.removeItem(STORAGE_KEYS.PARTICIPATION_CODE);
+                localStorage.removeItem(STORAGE_KEYS.SAVED_PARTICIPANT_ID);
+                localStorage.removeItem(STORAGE_KEYS.NAV_STATE);
+            } catch (e) { /* ignore */ }
+            // Reset in-memory state
+            state.consentGiven = false;
+            state.consentScrolled = false;
+            state.participantId = null;
+            state.userId = null;
+            state.sessionParticipantConfirmed = false;
+            state.userRole = null;
+            state.audioSetup.setupComplete = false;
+            state.currentView = 'opening';
+            logInteraction('full_reset');
             render();
         }
 
@@ -11232,9 +11327,9 @@
         // BEGIN HISTORY INTEGRATION - Handle browser back/forward buttons
         // ============================================================================
         window.onpopstate = function(event) {
-            // Only handle popstate if consent is given (don't let back bypass consent)
-            if (!state.consentGiven || !state.participantId) {
-                console.log('PANDA: Ignoring popstate - consent not given');
+            // Only handle popstate if consent is given AND participant ID has been confirmed this session
+            if (!state.consentGiven || !state.participantId || !state.sessionParticipantConfirmed) {
+                console.log('PANDA: Ignoring popstate - consent not given or participant ID not confirmed');
                 return;
             }
 
@@ -11388,18 +11483,10 @@
             }
         }
 
-        // Check for saved consent/participation code before first render
-        // If found, skip consent/code screens and go directly to role selection
-        const consentRestored = loadConsentFromStorage();
-
-        // BEGIN CROSS-DEVICE SYNC
-        // If consent was restored and we have a participantId, fetch server state
-        // This is async and non-blocking - the app renders immediately with localStorage data
-        // and updates when server state arrives (if different)
-        if (consentRestored && state.participantId) {
-            loadServerStateForParticipant(state.participantId);
-        }
-        // END CROSS-DEVICE SYNC
+        // Check for saved consent before first render.
+        // If consent exists, route to participant ID entry (required every session).
+        // Server sync happens AFTER participant ID is confirmed in submitParticipantId().
+        loadConsentFromStorage();
 
         // ============================================================================
         // MIC PRIVACY GLOBAL EVENT LISTENERS
