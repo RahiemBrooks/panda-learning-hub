@@ -7,5 +7,7 @@
 [functions]
   # Directory containing Netlify Functions
   directory = "netlify/functions"
-  # Use esbuild for bundling (includes dependencies)
-  node_bundler = "esbuild"
+  # Use nft (Node File Tracing) bundler for better compatibility with
+  # @netlify/blobs, which relies on Netlify's runtime context injection.
+  # esbuild can strip runtime-injected environment detection code.
+  node_bundler = "nft"

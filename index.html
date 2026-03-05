@@ -2277,8 +2277,13 @@
             // END REPEAT MASTERY COUNTS
             // BEGIN MIC PRIVACY STATE
             // True only while MediaRecorder is actually recording
-            micActive: false
+            micActive: false,
             // END MIC PRIVACY STATE
+            // BEGIN SYNC WARNING STATE
+            // Set to true when the server-side state sync returns an error so the UI
+            // can show a non-blocking warning without interrupting audio.
+            serverSyncFailed: false
+            // END SYNC WARNING STATE
         };
 
         // ============================================================================
@@ -2570,6 +2575,16 @@
             try {
                 console.log('PANDA: Fetching state from server for participant:', participantId);
                 const res = await fetch('/.netlify/functions/state?participantId=' + encodeURIComponent(participantId));
+
+                if (!res.ok) {
+                    // HTTP error (502, 503, 500 …) — log detail and show a friendly warning.
+                    // Audio and local state continue to work normally.
+                    console.warn('PANDA: State sync HTTP error', res.status, res.statusText);
+                    state.serverSyncFailed = true;
+                    showSyncWarning('Cross-device sync is temporarily unavailable (server error ' + res.status + '). Your local progress is safe.');
+                    return;
+                }
+
                 const data = await res.json();
 
                 if (data.success && data.state) {
@@ -2626,9 +2641,40 @@
                     }
                 }
             } catch (e) {
-                console.warn('PANDA: Could not load server state, falling back to local only', e);
+                console.warn('PANDA: Could not load server state, falling back to local only:', e.message);
+                // Network failure or JSON parse error — show a non-blocking warning.
+                state.serverSyncFailed = true;
+                showSyncWarning('Cross-device sync is unavailable right now. Your local progress is safe and audio will still work.');
                 // App continues with localStorage data - no blocking
             }
+        }
+
+        // Show a dismissible, non-blocking sync-warning banner at the top of the page.
+        // Safe to call multiple times — only creates one banner.
+        function showSyncWarning(message) {
+            if (document.getElementById('panda-sync-warning')) return; // already shown
+            const banner = document.createElement('div');
+            banner.id = 'panda-sync-warning';
+            banner.setAttribute('role', 'alert');
+            banner.style.cssText = [
+                'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:99999',
+                'background:#f59e0b', 'color:#1c1917', 'font-size:13px',
+                'padding:8px 40px 8px 16px', 'text-align:center',
+                'font-family:sans-serif', 'box-shadow:0 2px 6px rgba(0,0,0,.3)'
+            ].join(';');
+            banner.textContent = '⚠️ ' + message;
+            // Dismiss button
+            const btn = document.createElement('button');
+            btn.textContent = '✕';
+            btn.setAttribute('aria-label', 'Dismiss');
+            btn.style.cssText = [
+                'position:absolute', 'right:10px', 'top:50%', 'transform:translateY(-50%)',
+                'background:none', 'border:none', 'cursor:pointer',
+                'font-size:16px', 'color:#1c1917', 'padding:0 4px'
+            ].join(';');
+            btn.onclick = function() { banner.remove(); };
+            banner.appendChild(btn);
+            document.body.insertBefore(banner, document.body.firstChild);
         }
 
         // Sync app state to server (non-blocking, fire-and-forget with warning on failure)
@@ -2656,6 +2702,15 @@
                     })
                 });
 
+                if (!res.ok) {
+                    console.warn('PANDA: State POST HTTP error', res.status, res.statusText);
+                    if (!state.serverSyncFailed) {
+                        state.serverSyncFailed = true;
+                        showSyncWarning('Cross-device sync is temporarily unavailable. Your local progress is safe.');
+                    }
+                    return;
+                }
+
                 const data = await res.json();
                 if (data.success) {
                     console.log('PANDA: State synced to server successfully');
@@ -2663,7 +2718,7 @@
                     console.warn('PANDA: Server sync returned error:', data.error);
                 }
             } catch (e) {
-                console.warn('PANDA: Could not sync to server (will retry on next save)', e);
+                console.warn('PANDA: Could not sync to server (will retry on next save):', e.message);
             }
         }
 
