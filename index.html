@@ -2768,12 +2768,10 @@
             "You figured it out!",
             "You got it right!",
             "You found the right one!",
-            "You got all three—great job!",
             "You know this one!",
             "You remembered it!",
             "You're getting so good at this!",
             "You made a great choice!",
-            "Nice work—three in a row!",
             "You picked the right one!",
             "You learned it really well!",
             "Such great thinking!",
@@ -2806,6 +2804,19 @@
             "You're getting better every time!",
             "You're doing fantastic learning!",
             "You're amazing—great work!"
+        ];
+
+        // Mastery-level praise — ONLY used when consecutiveCorrect === 3
+        // "all three" / "three in a row" phrases are ONLY in this array
+        const masteryResponses = [
+            "You got all three—great job!",
+            "Nice work—three in a row!",
+            "You got all three right! Amazing!",
+            "Three in a row! You've mastered it!",
+            "You learned it! Three correct in a row!",
+            "You're a star—three right in a row!",
+            "Incredible! You got all three!",
+            "You did it—three in a row! Woohoo!"
         ];
 
         // Color-specific praise responses
@@ -10914,10 +10925,11 @@
                 // END FUN PRACTICE MODE
                 else {
                     // Normal mode logic
-                    // Voice feedback for correct answers
+                    // Voice feedback keyed to mastery count (1, 2, or 3)
                     if (itemData.consecutiveCorrect >= 3) {
+                        // count === 3 → mastery achieved; ONLY "all three" phrases live here
                         itemData.mastered = true;
-                        speakRandomPhrase(getCorrectResponsesForSubject(subject));
+                        speakRandomPhrase(masteryResponses);
 
                         // Celebration modal
                         setTimeout(() => {
@@ -10928,10 +10940,10 @@
                             });
                         }, 100);
                     } else if (itemData.consecutiveCorrect === 2) {
-                        // Almost there - 2 in a row, need 1 more
+                        // count === 2 → progress toward mastery, one more to go
                         speakRandomPhrase(almostThereResponses);
                     } else {
-                        // First correct answer
+                        // count === 1 → first correct answer; no "all three" phrases here
                         speakRandomPhrase(getCorrectResponsesForSubject(subject));
                     }
                 }
