@@ -4054,6 +4054,216 @@
             console.log('Interaction logged:', logEntry);
         }
 
+        // ============================================================================
+        // RESEARCH LOGGING SYSTEM  (IRB-Safe, Honors Thesis)
+        // ============================================================================
+        // Collects usage telemetry for research analysis. No PII is ever collected
+        // (no IP, no UA string, no names, no audio). All events are fire-and-forget;
+        // failures are fully silent and never block or interrupt the user experience.
+        // ============================================================================
+
+        // Shared start-time for response-time measurement.
+        // Set by askCurrentQuestion / askColorQuestQuestion; read + cleared by
+        // checkAnswer / handleColorQuestAnswer.
+        let _researchQuestionStart = 0;
+
+        (function initResearchLogger() {
+            // --- Session bootstrap -------------------------------------------
+            const _sess = {
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+                start: new Date().toISOString(),
+                activitiesUsed:     [],
+                questionsAnswered:  0,
+                correctAnswers:     0,
+                incorrectAnswers:   0,
+                masteryAchieved:    [],  // [{activity, itemId, trialsToMastery}]
+                parentActionsCount: 0,
+                flushed:            false
+            };
+
+            // --- In-memory + localStorage retry queue -----------------------
+            const QUEUE_KEY = 'panda_log_queue';
+            let _queue = [];
+            try {
+                const saved = localStorage.getItem(QUEUE_KEY);
+                if (saved) _queue = JSON.parse(saved);
+            } catch (_) { /* ignore parse errors */ }
+
+            function _saveQueue() {
+                try { localStorage.setItem(QUEUE_KEY, JSON.stringify(_queue)); } catch (_) {}
+            }
+
+            // --- Helpers ----------------------------------------------------
+            // Numeric-only participant ID guard (IRB rule)
+            function _validPid(pid) {
+                return typeof pid === 'string' && /^[0-9]+$/.test(pid) && pid.length > 0;
+            }
+
+            // Coarse device classification — no fingerprinting
+            function _deviceType() {
+                try {
+                    return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+                        ? 'mobile' : 'desktop';
+                } catch (_) { return 'desktop'; }
+            }
+
+            // --- Core send (fire-and-forget, non-blocking) ------------------
+            async function _send(payload) {
+                try {
+                    const res = await fetch('/.netlify/functions/logEvent', {
+                        method:    'POST',
+                        headers:   { 'Content-Type': 'application/json' },
+                        body:      JSON.stringify(payload),
+                        keepalive: true   // survives page-unload
+                    });
+                    if (!res.ok) throw new Error('http ' + res.status);
+                } catch (_err) {
+                    // Queue for later retry; never surface error to user
+                    _queue.push(payload);
+                    _saveQueue();
+                }
+            }
+
+            // --- Retry loop (30–60 s jitter to avoid thundering-herd) -------
+            let _retryTimer = null;
+            function _scheduleRetry() {
+                if (_retryTimer) return;
+                const delay = 30000 + Math.floor(Math.random() * 30000);
+                _retryTimer = setTimeout(async () => {
+                    _retryTimer = null;
+                    await _flushQueue();
+                    if (_queue.length > 0) _scheduleRetry();
+                }, delay);
+            }
+
+            async function _flushQueue() {
+                while (_queue.length > 0) {
+                    const item = _queue[0];
+                    try {
+                        const res = await fetch('/.netlify/functions/logEvent', {
+                            method:    'POST',
+                            headers:   { 'Content-Type': 'application/json' },
+                            body:      JSON.stringify(item),
+                            keepalive: true
+                        });
+                        if (!res.ok) break;   // Stop on error; leave remainder
+                        _queue.shift();
+                        _saveQueue();
+                    } catch (_) { break; }
+                }
+            }
+
+            // --- Public API -------------------------------------------------
+
+            /**
+             * logEvent(eventType, payload)
+             *
+             * Silently skips when participantId is absent or non-numeric.
+             * Never throws. All failures are queued for retry.
+             *
+             * payload fields (all optional — attach what is relevant):
+             *   activity      string|null   — "colors"|"shapes"|"numbers"
+             *   itemId        string|null   — specific color/shape/number name
+             *   questionId    string|null   — stable question identifier
+             *   attemptNumber number|null   — 1, 2, or 3 within mastery sequence
+             *   correct       bool|null
+             *   responseTimeMs number|null
+             *   trialsToMastery number|null — populated on mastery_achieved
+             *   metadata      object        — any extra key-value data
+             */
+            window.logEvent = function logEvent(eventType, payload) {
+                try {
+                    const pid = state.participantId;
+                    if (!_validPid(pid)) return;   // No valid participant → skip silently
+
+                    payload = payload || {};
+
+                    const ev = {
+                        participantId:  pid,
+                        role:           state.userRole === 'parent' ? 'parent' : 'child',
+                        sessionId:      _sess.id,
+                        timestamp:      new Date().toISOString(),
+                        eventType:      eventType,
+                        view:           state.currentView   || null,
+                        activity:       payload.activity    !== undefined
+                                            ? payload.activity
+                                            : (state.currentSubject || null),
+                        itemId:         payload.itemId          || null,
+                        questionId:     payload.questionId      || null,
+                        attemptNumber:  payload.attemptNumber   != null ? payload.attemptNumber   : null,
+                        correct:        payload.correct         !== undefined ? payload.correct    : null,
+                        responseTimeMs: payload.responseTimeMs  != null ? payload.responseTimeMs  : null,
+                        metadata:       payload.metadata        || {}
+                    };
+
+                    // ---- Session-level accumulators ----
+                    if (eventType === 'correct_answer') {
+                        _sess.correctAnswers++;
+                        _sess.questionsAnswered++;
+                        if (ev.activity && !_sess.activitiesUsed.includes(ev.activity))
+                            _sess.activitiesUsed.push(ev.activity);
+                    } else if (eventType === 'incorrect_answer') {
+                        _sess.incorrectAnswers++;
+                        _sess.questionsAnswered++;
+                    } else if (eventType === 'mastery_achieved') {
+                        _sess.masteryAchieved.push({
+                            activity:        ev.activity,
+                            itemId:          ev.itemId,
+                            trialsToMastery: payload.trialsToMastery || null
+                        });
+                    } else if (eventType === 'activity_selected') {
+                        if (ev.activity && !_sess.activitiesUsed.includes(ev.activity))
+                            _sess.activitiesUsed.push(ev.activity);
+                    } else if (ev.role === 'parent') {
+                        _sess.parentActionsCount++;
+                    }
+
+                    _send(ev);
+                    if (_queue.length > 0) _scheduleRetry();
+                } catch (_) { /* never throw — logging must not interrupt app */ }
+            };
+
+            /**
+             * sendResearchSessionSummary()
+             *
+             * Builds and sends the session_summary record.
+             * Called on beforeunload / pagehide. Idempotent (flushed guard).
+             */
+            window.sendResearchSessionSummary = function sendResearchSessionSummary() {
+                try {
+                    const pid = state.participantId;
+                    if (!_validPid(pid) || _sess.flushed) return;
+                    _sess.flushed = true;
+
+                    const summary = {
+                        participantId:      pid,
+                        role:               state.userRole === 'parent' ? 'parent' : 'child',
+                        sessionId:          _sess.id,
+                        eventType:          'session_summary',
+                        sessionStart:       _sess.start,
+                        sessionEnd:         new Date().toISOString(),
+                        durationMs:         Date.now() - new Date(_sess.start).getTime(),
+                        activitiesUsed:     _sess.activitiesUsed,
+                        questionsAnswered:  _sess.questionsAnswered,
+                        correctAnswers:     _sess.correctAnswers,
+                        incorrectAnswers:   _sess.incorrectAnswers,
+                        masteryAchieved:    _sess.masteryAchieved,
+                        parentActionsCount: _sess.parentActionsCount,
+                        deviceType:         _deviceType()
+                    };
+
+                    // Flush any pending queued events first, then send summary
+                    _flushQueue().then(() => _send(summary));
+                } catch (_) { /* never throw */ }
+            };
+        })();
+
+        // ============================================================================
+        // END RESEARCH LOGGING SYSTEM
+        // ============================================================================
+
 
         // ============================================================================
         // ICON COMPONENTS (using SVG)
@@ -4734,6 +4944,7 @@
             state.participantId = id;
             state.userId = `PANDA_${id}_${Date.now()}`;
             logInteraction('participant_id_verified', { participantId: id });
+            logEvent('session_start', { metadata: { day: state.currentDay } });
 
             // Save consent and participation code to localStorage
             saveConsentToStorage();
@@ -8565,6 +8776,12 @@
                 // After asking question, start listening for responses
                 startColorQuestListening();
             });
+            _researchQuestionStart = Date.now();
+            logEvent('question_presented', {
+                activity:   state.colorQuest.currentQuestion.type,
+                itemId:     state.colorQuest.currentQuestion.correctAnswer,
+                questionId: state.colorQuest.currentQuestion.type + ':' + state.colorQuest.currentQuestion.correctAnswer
+            });
         }
 
         // ColorQuest Option Listening - Uses ElevenLabs STT for option selection
@@ -8735,10 +8952,30 @@
         function handleColorQuestAnswer(selectedChoice) {
             // Stop listening while processing answer
             stopColorQuestListening();
-            
+
             const isCorrect = selectedChoice === state.colorQuest.correctChoice;
             state.colorQuest.totalAttempts++;
-            
+
+            // Research: capture response time
+            const _cqRspMs = _researchQuestionStart ? Date.now() - _researchQuestionStart : null;
+            _researchQuestionStart = 0;
+            const _cqActivity = state.colorQuest.currentQuestion
+                ? state.colorQuest.currentQuestion.type : null;
+            const _cqItemId = state.colorQuest.currentQuestion
+                ? state.colorQuest.currentQuestion.correctAnswer : null;
+            logEvent('answer_submitted', {
+                activity:       _cqActivity,
+                itemId:         _cqItemId,
+                correct:        isCorrect,
+                responseTimeMs: _cqRspMs
+            });
+            logEvent(isCorrect ? 'correct_answer' : 'incorrect_answer', {
+                activity:       _cqActivity,
+                itemId:         _cqItemId,
+                correct:        isCorrect,
+                responseTimeMs: _cqRspMs
+            });
+
             if (isCorrect) {
                 // Correct answer!
                 state.colorQuest.correctAnswers++;
@@ -10193,6 +10430,7 @@
             state.currentSubject = subject;
             state.currentLesson = null;
             state.currentView = 'childLearning'; // Set the view to childLearning
+            logEvent('activity_selected', { activity: subject });
 
             // Auto-enable voice for interactive learning
             state.voiceEnabled = true;
@@ -10399,6 +10637,11 @@
             // END SANITY CHECK
 
             speakPanda(question);
+            _researchQuestionStart = Date.now();
+            logEvent('question_presented', {
+                itemId:     currentItem,
+                questionId: subject + ':' + currentItem
+            });
         }
 
         function renderSubjectPractice() {
@@ -10870,9 +11113,25 @@
 
             itemData.attempts++;
 
+            // Research: capture response time before any branching
+            const _rspMs = _researchQuestionStart ? Date.now() - _researchQuestionStart : null;
+            _researchQuestionStart = 0;
+
             if (isCorrect) {
                 itemData.correct++;
                 itemData.consecutiveCorrect++;
+                logEvent('answer_submitted', {
+                    itemId:         item,
+                    attemptNumber:  itemData.consecutiveCorrect,
+                    correct:        true,
+                    responseTimeMs: _rspMs
+                });
+                logEvent('correct_answer', {
+                    itemId:         item,
+                    attemptNumber:  itemData.consecutiveCorrect,
+                    correct:        true,
+                    responseTimeMs: _rspMs
+                });
 
                 // BEGIN FUN PRACTICE MODE - Track fun practice progress
                 if (state.subjectPracticeMode === 'fun') {
@@ -10929,6 +11188,13 @@
                     if (itemData.consecutiveCorrect >= 3) {
                         // count === 3 → mastery achieved; ONLY "all three" phrases live here
                         itemData.mastered = true;
+                        logEvent('mastery_achieved', {
+                            itemId:          item,
+                            attemptNumber:   3,
+                            correct:         true,
+                            trialsToMastery: itemData.attempts,
+                            responseTimeMs:  _rspMs
+                        });
                         speakRandomPhrase(masteryResponses);
 
                         // Celebration modal
@@ -10951,6 +11217,18 @@
                 itemData.incorrect++;
                 const previousStreak = itemData.consecutiveCorrect;
                 itemData.consecutiveCorrect = 0;
+                logEvent('answer_submitted', {
+                    itemId:         item,
+                    attemptNumber:  null,
+                    correct:        false,
+                    responseTimeMs: _rspMs
+                });
+                logEvent('incorrect_answer', {
+                    itemId:         item,
+                    attemptNumber:  null,
+                    correct:        false,
+                    responseTimeMs: _rspMs
+                });
 
                 // Wrong answer feedback
                 if (previousStreak === 2) {
@@ -10993,6 +11271,12 @@
 
         function setActiveTab(tab) {
             state.activeTab = tab;
+            // Research: parent navigation events
+            if (tab === 'analytics') {
+                logEvent('parent_progress_viewed', { metadata: { tab } });
+            } else {
+                logEvent('parent_navigation', { metadata: { tab } });
+            }
             render();
         }
 
@@ -11140,6 +11424,11 @@
             }
             isPopStateNavigation = false; // Reset flag after render
             // END HISTORY INTEGRATION
+
+            // Research: fire parent_view_opened once per transition to parentDashboard
+            if (state.currentView === 'parentDashboard' && previousView !== 'parentDashboard') {
+                logEvent('parent_view_opened', { metadata: { fromView: previousView } });
+            }
 
             previousView = state.currentView;
 
@@ -11430,12 +11719,18 @@
         window.addEventListener('beforeunload', () => {
             console.log('🎤 PANDA: Window unloading, stopping all mic activity');
             hardStopAllMicActivity();
+            // Research: send session_end event and session summary
+            logEvent('session_end', {});
+            sendResearchSessionSummary();
         });
 
         // Also handle page hide (iOS Safari, some mobile browsers)
         window.addEventListener('pagehide', () => {
             console.log('🎤 PANDA: Page hidden, stopping all mic activity');
             hardStopAllMicActivity();
+            // Research: send session summary (idempotent — flushed guard prevents duplicates)
+            logEvent('session_end', {});
+            sendResearchSessionSummary();
         });
 
         // ============================================================================
