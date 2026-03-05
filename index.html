@@ -3218,15 +3218,27 @@
         // Global audio element for ElevenLabs TTS playback
         let currentPandaAudio = null;
 
+        // TTS request ID: incremented on every new speakText/speakPanda call AND on
+        // stopAllSpeech. Any pending async fetch that returns after the ID changes is
+        // discarded, preventing stale audio from playing over a newer request.
+        let ttsRequestId = 0;
+
+        // Debounce guard: prevents voice + click both firing selectSubject()
+        let lastCategoryAcceptTime = 0;
+
         // Global function to stop all speech - call when navigating away
         // DEBUG_MODE flag for voice sync debugging
         const DEBUG_MODE = false;
 
         function stopAllSpeech() {
+            // Invalidate any in-flight async TTS fetch so it won't play when it resolves
+            ttsRequestId++;
+
             // Stop ElevenLabs audio playback
             if (currentPandaAudio) {
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
+                currentPandaAudio.src = '';
                 currentPandaAudio = null;
             }
             // Also stop any legacy speechSynthesis (fallback)
@@ -3791,10 +3803,15 @@
         function speakText(text) {
             if (!state.voiceEnabled) return;
 
+            // Capture the current request ID; any previous pending fetch is now stale
+            const myTtsId = ++ttsRequestId;
+
             // Stop any currently playing audio
             if (currentPandaAudio) {
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
+                currentPandaAudio.src = '';
+                currentPandaAudio = null;
             }
 
             console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
@@ -3812,6 +3829,10 @@
                 return response.blob();
             })
             .then(blob => {
+                // Discard if a newer TTS request (or stopAllSpeech) happened while fetching
+                if (myTtsId !== ttsRequestId) {
+                    return; // Blob is in-memory and will be GC'd; nothing to revoke yet
+                }
                 const audioUrl = URL.createObjectURL(blob);
                 currentPandaAudio = new Audio(audioUrl);
                 currentPandaAudio.onended = () => {
@@ -8642,10 +8663,15 @@
                 return;
             }
 
+            // Capture the current request ID; any previous pending fetch is now stale
+            const myTtsId = ++ttsRequestId;
+
             // Stop any currently playing audio
             if (currentPandaAudio) {
                 currentPandaAudio.pause();
                 currentPandaAudio.currentTime = 0;
+                currentPandaAudio.src = '';
+                currentPandaAudio = null;
             }
 
             console.log('🐼 PANDA Voice (ElevenLabs): Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
@@ -8663,6 +8689,10 @@
                 return response.blob();
             })
             .then(blob => {
+                // Discard if a newer TTS request (or stopAllSpeech) happened while fetching
+                if (myTtsId !== ttsRequestId) {
+                    return; // Blob is in-memory and will be GC'd; nothing to revoke yet
+                }
                 const audioUrl = URL.createObjectURL(blob);
                 currentPandaAudio = new Audio(audioUrl);
                 currentPandaAudio.onended = () => {
@@ -9825,10 +9855,17 @@
                     shown: false,
                     waitingForSelection: true
                 };
-                
-                // Start Panda greeting after a short delay
+
+                // Start Panda greeting after a short delay.
+                // Guard inside the callback: if the user already selected a subject
+                // (e.g. by clicking a card within 800ms) we must NOT play the home intro
+                // over the module intro that is already queued.
                 setTimeout(() => {
-                    if (typeof startSubjectSelectionGreeting === 'function') {
+                    if (
+                        typeof startSubjectSelectionGreeting === 'function' &&
+                        state.currentView === 'childLearning' &&
+                        !state.currentSubject
+                    ) {
                         startSubjectSelectionGreeting();
                     }
                 }, 800);
@@ -9876,7 +9913,7 @@
                         
                         <!-- Header with Back Button -->
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-                            <button onclick="stopAllSpeech(); state.currentView='childManagement'; render();" style="padding: 10px 20px; background: rgba(30, 41, 59, 0.8); color: #94a3b8; border-radius: 12px; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; font-size: 0.9rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(51, 65, 85, 0.9)'; this.style.color='white';" onmouseout="this.style.background='rgba(30, 41, 59, 0.8)'; this.style.color='#94a3b8';">
+                            <button onclick="stopAllSpeech(); state.subjectSelectionGreeting=null; state.currentView='childManagement'; render();" style="padding: 10px 20px; background: rgba(30, 41, 59, 0.8); color: #94a3b8; border-radius: 12px; font-weight: 600; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; font-size: 0.9rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(51, 65, 85, 0.9)'; this.style.color='white';" onmouseout="this.style.background='rgba(30, 41, 59, 0.8)'; this.style.color='#94a3b8';">
                                 ← Back
                             </button>
                             <div style="color: #64748b; font-size: 0.9rem;">Overall: ${progress}% Mastered</div>
@@ -10009,6 +10046,10 @@
         }
 
         function startSubjectSelectionGreeting() {
+            // Guard: do nothing if user is no longer on the subject-selection screen
+            // or if a subject has already been chosen (e.g. fast click before 800ms timer fires)
+            if (state.currentView !== 'childLearning' || state.currentSubject) return;
+
             try {
                 // BEGIN MASTERY-AWARE GREETING - Adjust greeting based on what's not yet mastered
                 let greeting;
@@ -10054,8 +10095,12 @@
                 recognition.lang = 'en-US';
                 
                 recognition.onresult = (event) => {
+                    // Guard: if the user already selected a subject (e.g. via a click),
+                    // ignore stale voice results to prevent double-firing
+                    if (state.currentSubject || state.currentView !== 'childLearning') return;
+
                     const transcript = event.results[0][0].transcript.toLowerCase();
-                    
+
                     if (transcript.includes('color')) {
                         selectSubject('colors');
                     } else if (transcript.includes('shape')) {
@@ -10078,11 +10123,13 @@
                 };
                 
                 recognition.onend = () => {
-                    // Auto-restart to keep listening
-                    if (!state.currentSubject) {
+                    // Auto-restart only if still on subject-selection screen with no subject chosen
+                    if (!state.currentSubject && state.currentView === 'childLearning') {
                         setTimeout(() => {
                             try {
-                                listenForSubjectSelection();
+                                if (!state.currentSubject && state.currentView === 'childLearning') {
+                                    listenForSubjectSelection();
+                                }
                             } catch (e) {
                                 console.error('Error restarting recognition:', e);
                             }
@@ -10114,7 +10161,12 @@
         // END FUN PRACTICE MODE
 
         function selectSubject(subject) {
-            // Stop any ongoing speech
+            // D/E: Debounce – ignore rapid duplicate calls (voice + click, or double-tap)
+            const now = Date.now();
+            if (now - lastCategoryAcceptTime < 1500) return;
+            lastCategoryAcceptTime = now;
+
+            // D: Step 1 – stop ALL currently playing TTS immediately
             stopAllSpeech();
 
             // Reset subject intro state completely for fresh start
@@ -10134,18 +10186,27 @@
             // Auto-enable voice for interactive learning
             state.voiceEnabled = true;
 
+            // Reset greeting guard so the home intro can play again if user returns
+            state.subjectSelectionGreeting = null;
+
             // Set up for intro greeting - create fresh state
             state.subjectIntro = {
                 shown: false,
                 waitingForReady: true
             };
-            
+
+            // D: Step 2 – render the module screen first
             render();
-            
-            // Start the subject introduction
-            setTimeout(() => {
-                startSubjectIntro(subject);
-            }, 500);
+
+            // D: Step 3 – play the module intro ONLY after the screen is painted
+            // (requestAnimationFrame ensures the DOM update is flushed, then we wait
+            // a short moment so any in-flight home-intro fetch is cancelled before
+            // the module-intro fetch starts)
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    startSubjectIntro(subject);
+                }, 100);
+            });
         }
 
         function startSubjectIntro(subject) {
@@ -10397,7 +10458,7 @@
                                     Skip Intro
                                 </button>
                                 <button
-                                    onclick="stopAllSpeech(); state.subjectPracticeMode='normal'; state.currentSubject=null; state.subjectIntro=null; state.currentView='childManagement'; render();"
+                                    onclick="stopAllSpeech(); state.subjectPracticeMode='normal'; state.currentSubject=null; state.subjectIntro=null; state.subjectSelectionGreeting=null; state.currentView='childManagement'; render();"
                                     style="background: transparent; color: #64748b; padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(100, 116, 139, 0.3); cursor: pointer; transition: all 0.2s;"
                                     onmouseover="this.style.background='rgba(51, 65, 85, 0.5)'; this.style.color='#e2e8f0'; this.style.borderColor='rgba(100, 116, 139, 0.5)'"
                                     onmouseout="this.style.background='transparent'; this.style.color='#64748b'; this.style.borderColor='rgba(100, 116, 139, 0.3)'">
@@ -11208,6 +11269,7 @@
 
                     // Reset subject intro state when navigating back
                     state.subjectIntro = null;
+                    state.subjectSelectionGreeting = null;
                     state.learningIntro = { shown: false, waitingForReady: false, listening: false };
 
                     // Mark as popstate navigation to avoid re-pushing to history
