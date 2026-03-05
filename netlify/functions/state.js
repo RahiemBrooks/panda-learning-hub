@@ -13,6 +13,9 @@
  *   - Expects JSON body: { participantId: string, state: <persistentState>, updatedAt: string }
  *   - Stores/overwrites the state for the given participant ID
  *   - Returns { success: true } on success
+ *
+ * Required environment variables: none (Netlify Blobs uses automatic site context)
+ * Optional env vars for diagnostics: NETLIFY_SITE_ID (auto-set by Netlify)
  */
 
 const { getStore } = require('@netlify/blobs');
@@ -87,6 +90,8 @@ const corsHeaders = {
 };
 
 exports.handler = async (event, context) => {
+  console.log('state function invoked:', event.httpMethod, event.path || '');
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -96,8 +101,22 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Initialize blob store
-  const store = getStore('panda-participant-state');
+  // Initialize blob store — wrap in try/catch so a missing Netlify Blobs context
+  // returns a clear 503 rather than an unhandled crash (502).
+  let store;
+  try {
+    store = getStore('panda-participant-state');
+  } catch (initError) {
+    console.error('Failed to initialise Netlify Blobs store:', initError);
+    return {
+      statusCode: 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        error: 'State sync service temporarily unavailable. Please try again later.',
+      }),
+    };
+  }
 
   // Handle GET request
   if (event.httpMethod === 'GET') {
@@ -118,6 +137,7 @@ exports.handler = async (event, context) => {
       const storedData = await store.get(participantId, { type: 'json' });
 
       if (storedData) {
+        console.log('state GET: found state for participant', participantId, 'updatedAt', storedData.updatedAt);
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -129,6 +149,7 @@ exports.handler = async (event, context) => {
         };
       } else {
         // Not found is not an error - return null state
+        console.log('state GET: no stored state found for participant', participantId);
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -136,7 +157,7 @@ exports.handler = async (event, context) => {
         };
       }
     } catch (error) {
-      console.error('Error fetching state:', error);
+      console.error('state GET: error fetching from Blobs:', error.message, error.stack || '');
       return {
         statusCode: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -191,13 +212,14 @@ exports.handler = async (event, context) => {
 
       await store.setJSON(participantId, dataToStore);
 
+      console.log('state POST: stored state for participant', participantId, 'at', serverUpdatedAt);
       return {
         statusCode: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ success: true, updatedAt: serverUpdatedAt }),
       };
     } catch (error) {
-      console.error('Error storing state:', error);
+      console.error('state POST: error writing to Blobs:', error.message, error.stack || '');
       return {
         statusCode: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
